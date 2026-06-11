@@ -639,6 +639,13 @@ def _(mo):
     - SUP: (Supply Unit Properties)
     - ASP: (Autonomous Systems Properties)
     - GP: (Graph Properties)
+
+    ## Assumptions:
+    1.  An Autonomous System (AS) knows the layout of the ESRC sector grid before it navigates it. (e.g. it has the blueprints)
+    2. The algorithm A1 is asking about is the algorithm that the AS is running.
+    3. The AS can turn on the spot.
+    4. The ASs can navigate in all directions without turning, and the AS starts oriented in the cardinal direction corresponding to 0°\*.
+    	- *The cardinal angle of 0° doesn't have to be pointing north, it just has to be consistent. Also that the AS is facing 0° at the entry just ensures it knows which way to go based of the graph.
     """)
     return
 
@@ -680,17 +687,17 @@ def _(mo):
     The input is a <b><u>directed</u></b> unweighted graph paired with one map, four other nested maps and two more sets.
     Note, the five maps are just providing properties for the four sets (as a graph is just two sets) and properties of the whole environment.
 
-    G: (Graph of a Sector Grid) = (V,E)
-    SU: (Supply Unit)
-    AS: (Autonomous Systems)
-    EP: (Edge Properties)
-    VP: (Vertex Properties)
-    SUP: (Supply Unit Properties)
+    G: (Graph of a Sector Grid) = (V,E)<br>
+    SU: (Supply Unit)<br>
+    AS: (Autonomous Systems)<br>
+    EP: (Edge Properties)<br>
+    VP: (Vertex Properties)<br>
+    SUP: (Supply Unit Properties)<br>
     ASP: (Autonomous Systems Properties)
 
     #### Graph (Sector Grid, G=(V,E)):
 
-    Graph, G = (V,E) where V = set of all vertices in G and E = set of all edges in G. Each Vertex in V is a sector and each edge in E is a corridor between two sectors.
+    Graph, G = (V,E) where V = set of all vertices in G and E = set of all edges in G. Each vertex in V is a sector and each edge in E is a corridor between two sectors.
 
     This can be represented as:
 
@@ -702,23 +709,17 @@ def _(mo):
 
     #### Set 1 (Supply Units (SU):
 
-    This is a set containing all supply units in the Sector Grid.
+    This is a set containing all supply units in the Sector Grid.<br>
     SU = {x | x is a supply unit in the Sector Grid}.
 
     #### Set 2 (Autonomous Systems (AS)):
 
-    This is a set containing all Autonomous Systems (AS) being deployed in the Sector Grid.
+    This is a set containing all Autonomous Systems (AS) being deployed in the Sector Grid.<br>
     AS = {x | x is an Autonomous System being deployed in the Sector Grid}
 
     #### **NOTE on Maps:**
 
-    The following four ADTs are maps of maps, where the key gives you a map of properties of that object. The properties might have keys with values, such as 'weight: 1', but not all objects of the same type will have maps of properties containing the same key values, as they may be not applicable to one object but not the other. An example:
-
-    VP[v] = {"supply_unit": "s1", is_exit: True}
-
-    whereas:
-
-    VP[u] = {"is_entry": True}.
+    The following four ADTs are maps of maps, where the key gives you a map of properties of that object. The properties might have keys with values, such as 'weight: 1'.
 
     #### Map 1 (Corridor Properties (EP):
 
@@ -731,8 +732,6 @@ def _(mo):
     - a real number indicating the stability of the corridor.
     - a real number indication the length of the corridor.
 
-    The map associated with one edge may not include all the keys listed above, if a certain property of the edge is not applicable. For example if the edge has no cost of traversal, it will not include a key associated with it.
-
     In the current problem scope, a possible implementation of this is:
 
     EP = {(u,v):{ "cardinal_angle": real number (cardinal angle from u to v)}
@@ -742,15 +741,15 @@ def _(mo):
 
     This map, VP (Vertex Properties) takes vertices (or sectors) as keys and returns a map potentially containing the properties:
 
-    - a string indicating what supply unit lies within the sector, or null if no supply unit is contained, (if not specified it can be assumed no supply unit is in the sector).
-    - a Boolean value indicating whether it is an entry (assume False if not specified),
-    - a Boolean value indicating whether it is an exit (assume False if not specified).
+    - a string indicating what supply unit lies within the sector, or null if no supply unit is contained.
+    - a Boolean value indicating whether it is an entry.
+    - a Boolean value indicating whether it is an exit.
 
     Beyond current scope:
 
     - a value indicating the stability of the sector.
     - size
-    - shape
+    - shape <!--#TODO continue proofreading here-->
 
     In the current problem scope, a possible implementation of this is:
 
@@ -787,7 +786,6 @@ def _(mo):
     This map, ASP (Autonomous System Properties) takes Autonomous Systems (ASs) as keys and returns a map of properties of the AS, potentially including:
 
     - a vertex which is the starting location (or entry) of the AS.
-    - ~~a real number indicating the cardinal direction AS begins facing.~~
 
     Beyond current scope:
 
@@ -830,11 +828,9 @@ def _(mo):
 
     so the output might look like:
 
-    output = {"walk":  [$v_1$,,$v_2$,,$v_3$,...,,$v_n$],
-
-    	"energy_expended": real number,
-
-    	"supply_units_recovered": {$s_1$,$s_2$,$s_3$,...$s_m$}}
+    output = {"walk":  [$v_1$,,$v_2$,,$v_3$,...,,$v_n$],<br>
+    "energy_expended": real number,<br>
+    "supply_units_recovered": {$s_1$,$s_2$,$s_3$,...$s_m$}}
 
     #### Environmental Outputs
 
@@ -842,7 +838,7 @@ def _(mo):
     	1. move(a: angle, d: distance) → None         # allows the AS to move 'd' distance at 'a' cardinal angle.
     	2. exit() → None         # if at an exit (extraction point), it allows the AS to exit the sector grid.
 
-    Note: no command is for picking up a supply unit as that is automatically done.
+    Note: no command is for picking up a supply unit as that is automatically done.<br>
     Note: no command is for reading environment as it is currently assumed that the AS gets that as an input before the whole thing.
 
 
@@ -925,75 +921,73 @@ def _(mo):
     mo.md(r"""
     ### ADTs
 
-    **1. Graph (Nielsen, 2026)**
-    add_vertex(v: Vertex) → None
-    add_edge(u: Vertex, v: Vertex) → None
-    neighbours(v: Vertex) → Set[Vertex]
-    has_edge(u: Vertex, v: Vertex) → Boolean
-    has_vertex(u: Vertex) → Boolean
+    **1. Graph (Nielsen, 2026)**<br>
+    add_vertex(v: Vertex) → None<br>
+    add_edge(u: Vertex, v: Vertex) → None<br>
+    neighbours(v: Vertex) → Set[Vertex]<br>
+    has_edge(u: Vertex, v: Vertex) → Boolean<br>
+    has_vertex(u: Vertex) → Boolean<br>
     vertices() → Set[Vertex]
 
-    **2. Maps:**
-    add(k: Key, e: Element) → None
-    set(k: Key, e: Element) → None
-    remove(k: Key) → None
-    lookup(k: Key) → Element
-    contains(k: Key) → Boolean
+    **2. Maps:**<br>
+    add(k: Key, e: Element) → None<br>
+    set(k: Key, e: Element) → None<br>
+    remove(k: Key) → None<br>
+    lookup(k: Key) → Element<br>
+    contains(k: Key) → Boolean<br>
     keys() → Set[Keys]
 
-    Note:
+    **Note:**<br>
 
     - map_name[k] ⇔ list_name.lookup(k) (when getting the value with key k)
     - map_name[k] ← e ⇔ list_name.set(k,e) (when setting the value at key k to e)
 
-    **3. Sets:**
-    add(e: Element) → None
-    remove(e: Element) → None
+    **3. Sets:**<br>
+    add(e: Element) → None<br>
+    remove(e: Element) → None<br>
     contains: (e: Element) → Boolean
 
-    **4. Lists**
-    insert_at(i: Index, e: Element) → None
-    insert_at(i: Index, l: list) → None
-    append(e: Element) → None
-    append(l: List) → None
-    set(i: Index, e: Element) → None
-    remove_at(i: Index) → None
-    lookup(i: Index) → Element
+    **4. Lists**<br>
+    insert_at(i: Index, e: Element) → None<br>
+    insert_at(i: Index, l: list) → None<br>
+    append(e: Element) → None<br>
+    append(l: List) → None<br>
+    set(i: Index, e: Element) → None<br>
+    remove_at(i: Index) → None<br>
+    lookup(i: Index) → Element<br>
     length() → Integer
 
     Note:
-
     - list_name[i] ⇔ list_name.lookup(i) (when getting the value at i)
     - list_name[i] ← e ⇔ list_name.set(i,e) (when setting the value at i to e)
 
-    **5. Stack**
-    push(e: Element) → None
-    pop() → Element
-    peak() → Element
+    **5. Stack**<br>
+    push(e: Element) → None<br>
+    pop() → Element<br>
+    peak() → Element<br>
     is_empty() → Boolean
 
-    **6. Queue**
-    push(e: Element) → None
-    pop() → Element
-    peak() → Element
+    **6. Queue**<br>
+    push(e: Element) → None<br>
+    pop() → Element<br>
+    peak() → Element<br>
     is_empty() → Boolean
 
-    **7. Priority Queue**
-    push(e: Element, i: Importance) → None
-    pop_highest() → Element
-    peak_highest() → Element
-    pop_lowest() → Element
-    peak_lowest() → Element
+    **7. Priority Queue**<br>
+    push(e: Element, i: Importance) → None<br>
+    pop_highest() → Element<br>
+    peak_highest() → Element<br>
+    pop_lowest() → Element<br>
+    peak_lowest() → Element<br>
     is_empty() → Boolean
 
-    **8. Array**
-    set(i: Index, e: Element) → None
-    remove_at(i: Index) → None
-    lookup(i: Index) → Element
+    **8. Array**<br>
+    set(i: Index, e: Element) → None<br>
+    remove_at(i: Index) → None<br>
+    lookup(i: Index) → Element<br>
     length() → Integer
 
     Note:
-
     - array_name[i] ⇔ array_name.lookup(i) (when getting the value at i)
     - array_name[i] ← e ⇔ array_name.set(i,e) (when setting the value at i to e)
 
@@ -1007,7 +1001,7 @@ def _(mo):
 
     sets (of the ASs and the SUs.)
 
-    The graph is ideal to model a 2d space with discrite points where one can be, as graphs are well suited to finding paths and walks in space.
+    The graph is ideal to model a 2d space with discrite points where one can be, as graphs are well suited to finding paths and walks in space.<br>
     The sets are ideal to convey what is in the environment as order doesn't matter and it can store many items effectively.
     The maps are ideal to convey information about elements in the environment as they take an element and return a value (which can be made of multiple values) giving key information about said element.
 
@@ -1616,20 +1610,6 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(AS, ASP, EP, G, GP, SU, SUP, VP, mo):
-    #input stuff
-    _count = 150
-
-    _VP = str(VP)[0:min(_count,len(str(VP)))]
-    if len(str(VP)) > _count:
-        _VP += "**...**"
-
-
-
-    _EP = str(EP)[0:min(_count,len(str(EP)))]
-    if len(str(EP)) > _count:
-        _EP += "**...**"
-
-
     mo.md(rf"""
     the inputs are: G, AS, SU, VP, EP, SUP, ASP, GP. 
     - G: (Graph of a Sector Grid) = (V,E)
@@ -1642,22 +1622,39 @@ def _(AS, ASP, EP, G, GP, SU, SUP, VP, mo):
     - GP: (Graph Properties)
 
 
-    **Little snippits of the inputs:**  
-    G = {G}  
-
-    AS = {AS}  
-
-    SU = {SU}  
-
-    VP = {_VP}  
-
-    EP  = {_EP}  
-
-    SUP = {SUP}  
-
-    ASP = {ASP}  
-
-    GP = {GP}  
+    **The Inputs:**<br>
+    G = *{G}* = (in adjencey list form)
+    ```python
+    { {v:list(dict(G[v]).keys()) for v in G.nodes()} }
+    ```
+    AS =
+    ```python
+    {AS}
+    ```
+    SU = 
+    ```python
+    {SU}  
+    ```
+    VP = 
+    ```python
+    {VP}
+    ```
+    EP = 
+    ```python
+    {EP}
+    ```
+    SUP = 
+    ```python
+    {SUP}
+    ```
+    ASP = 
+    ```python
+    {ASP}  
+    ```
+    GP = 
+    ```python
+    {GP}  
+    ```
     """)
     return
 
@@ -1683,14 +1680,16 @@ def _(BFS_DFS_time_taken, mo, output_dict):
 
 @app.cell(hide_code=True)
 def _(basic_to_tup, mo, output_dict):
-    _dict = [basic_to_tup(v) for v in output_dict["walk"]]
-
     mo.md(rf"""
-    walk list printed out in tuple form:  
-    {_dict}
+    **walk list printed out in tuple form:**
+    ```python
+    {[basic_to_tup(v) for v in output_dict["walk"]]}
+    ```
 
-    raw output:  
+    **raw output:**  
+    ```python
     {output_dict}
+    ```
     """)
     return
 
@@ -1773,7 +1772,7 @@ def _(mo):
     - The graph G is used in BFS to find the neighbours of a vertex v, with G.vertices().
     Mismatch Problems between BFS+DFS algorithm and part A's ADTs.
 
-    My ADT design is a bit over the top including lots of details in multiple places as well as some parts that aren't currently relevant to the problem, such as ASP, AS, SUP and GP as they are currently static, which my algorithm ignores.
+    My ADT design is a bit over the top including lots of details in multiple places as well as some parts that aren't currently relevant to the problem, such as ASP, AS, SUP and GP as they are currently static, which my algorithm ignores.<br>
     In part A, I call the graph the combination of two sets--V and E--but then I call it its own ADT which I use in the pseudocode and python.
     """)
     return
