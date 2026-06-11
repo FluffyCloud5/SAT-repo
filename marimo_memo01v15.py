@@ -47,7 +47,7 @@ def header(mo):
     | **Name** | *Kieran Meinshasuen* |
     | **Student number** | *MEI0004* |
     | **Facility seed** | *30012009* |
-    | **Teacher** | *Kodie Nielson* |
+    | **Teacher** | *Kodie Nielsen* |
 
     > **Authentication note:** This seed identifies your unique facility.
     > It must match your cover sheet. Do not change it after your first submission.

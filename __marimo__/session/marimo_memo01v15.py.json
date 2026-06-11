@@ -20,12 +20,12 @@
     },
     {
       "id": "MJUe",
-      "code_hash": "f92a7de6e5a7d677adccee508d76280a",
+      "code_hash": "11056eef951202c0d86ec4b078ae6dae",
       "outputs": [
         {
           "type": "data",
           "data": {
-            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h1 id=\"operation-emberlight-my-sat-workbook\">Operation Emberlight \u2014 My SAT Workbook</h1>\n<table>\n<thead>\n<tr>\n<th>Field</th>\n<th>Value</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td><strong>Name</strong></td>\n<td><em>Kieran Meinshasuen</em></td>\n</tr>\n<tr>\n<td><strong>Student number</strong></td>\n<td><em>MEI0004</em></td>\n</tr>\n<tr>\n<td><strong>Facility seed</strong></td>\n<td><em>30012009</em></td>\n</tr>\n<tr>\n<td><strong>Teacher</strong></td>\n<td><em>Kodie Nielson</em></td>\n</tr>\n</tbody>\n</table>\n<blockquote>\n<span class=\"paragraph\"><strong>Authentication note:</strong> This seed identifies your unique facility.\nIt must match your cover sheet. Do not change it after your first submission.</span>\n</blockquote>\n<hr />\n<span class=\"paragraph\"><strong>How to use this workbook:</strong></span>\n<ul>\n<li>Fill all prompts with your actual responses.</li>\n<li>Use the interactive tools (graph explorer, algorithm tracer, implementation cell) to\n  explore your facility \u2014 they are learning tools, not assessed directly.</li>\n<li>Your written responses in Parts A\u2013D are what is assessed.</li>\n</ul></span>"
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h1 id=\"operation-emberlight-my-sat-workbook\">Operation Emberlight \u2014 My SAT Workbook</h1>\n<table>\n<thead>\n<tr>\n<th>Field</th>\n<th>Value</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td><strong>Name</strong></td>\n<td><em>Kieran Meinshasuen</em></td>\n</tr>\n<tr>\n<td><strong>Student number</strong></td>\n<td><em>MEI0004</em></td>\n</tr>\n<tr>\n<td><strong>Facility seed</strong></td>\n<td><em>30012009</em></td>\n</tr>\n<tr>\n<td><strong>Teacher</strong></td>\n<td><em>Kodie Nielsen</em></td>\n</tr>\n</tbody>\n</table>\n<blockquote>\n<span class=\"paragraph\"><strong>Authentication note:</strong> This seed identifies your unique facility.\nIt must match your cover sheet. Do not change it after your first submission.</span>\n</blockquote>\n<hr />\n<span class=\"paragraph\"><strong>How to use this workbook:</strong></span>\n<ul>\n<li>Fill all prompts with your actual responses.</li>\n<li>Use the interactive tools (graph explorer, algorithm tracer, implementation cell) to\n  explore your facility \u2014 they are learning tools, not assessed directly.</li>\n<li>Your written responses in Parts A\u2013D are what is assessed.</li>\n</ul></span>"
           }
         }
       ],

@@ -19,12 +19,13 @@ def _():
     import matplotlib
     import imageio
     import time
-    #matplotlib.use('agg')
+
     return deque, imageio, mo, mpatches, nx, os, plt, random, time
 
 
 @app.cell(hide_code=True)
 def _(mo):
+    #style
     mo.md(r"""
     <style>
         h1 {
@@ -258,7 +259,7 @@ def _(
     fac_supplies,
     nx,
 ):
-    # turn Mr Nielsons implimentation into mine :)
+    # turn Mr Nielsens implimentation into mine :)
 
 
     def tup_to_basic(a):
@@ -617,13 +618,16 @@ def _(mo):
     - ESRC: Emberlight Subterranean Research Complex, the scope of this problem (currently)
     - Sector Grid: A grid of sectors, contained within the ESRC.
     - Sector: A single unit of space, which can be occupied by an AS can be connected to other sectors via corridors.
+
     Movement Options
     - Corridor: Connects two adjacent sectors in the same sector grid that don't have a wall in-between them. Can be bidirectional or one-way.
+
     Types of Sectors:
     - Exit: (or Extraction Point), this is where an AS can end its journey.
     - Entry: (or starting sector), this is where an AS begins its journey.
     - Supply Unit: the sector contains a supply unit
     - Vertex of interest: an exit, an entry or a supply unit sector.
+
     Abbreviations:
     - G: (Graph of a Sector Grid) = (V,E)
     - SU: (Supply Unit)
@@ -919,32 +923,21 @@ def _(mo):
     mo.md(r"""
     ### ADTs
 
-    #### 1. Graph (Nielson, 2026)
-
+    #### 1. Graph (Nielsen, 2026)
     add_vertex(v: Vertex) → None
-
     add_edge(u: Vertex, v: Vertex) → None
-
     neighbours(v: Vertex) → Set[Vertex]
-
     has_edge(u: Vertex, v: Vertex) → Boolean
-
     has_vertex(u: Vertex) → Boolean
-
     vertices() → Set[Vertex]
 
     #### 2. Maps:
 
     add(k: Key, e: Element) → None
-
     set(k: Key, e: Element) → None
-
     remove(k: Key) → None
-
     lookup(k: Key) → Element
-
     contains(k: Key) → Boolean
-
     keys() → Set[Keys]
 
     Note:
@@ -955,28 +948,18 @@ def _(mo):
     #### 3. Sets:
 
     add(e: Element) → None
-
     remove(e: Element) → None
-
     contains: (e: Element) → Boolean
-
 
     #### 4. Lists
 
     insert_at(i: Index, e: Element) → None
-
     insert_at(i: Index, l: list) → None
-
     append(e: Element) → None
-
     append(l: List) → None
-
     set(i: Index, e: Element) → None
-
     remove_at(i: Index) → None
-
     lookup(i: Index) → Element
-
     length() → Integer
 
     Note:
@@ -987,45 +970,31 @@ def _(mo):
     #### 5. Stack
 
     push(e: Element) → None
-
     pop() → Element
-
     peak() → Element
-
     is_empty() → Boolean
 
     #### 6. Queue
 
     push(e: Element) → None
-
     pop() → Element
-
     peak() → Element
-
     is_empty() → Boolean
 
     #### 7. Priority Queue
 
     push(e: Element, i: Importance) → None
-
     pop_highest() → Element
-
     peak_highest() → Element
-
     pop_lowest() → Element
-
     peak_lowest() → Element
-
     is_empty() → Boolean
 
     #### 8. Array
 
     set(i: Index, e: Element) → None
-
     remove_at(i: Index) → None
-
     lookup(i: Index) → Element
-
     length() → Integer
 
     Note:
@@ -1033,7 +1002,7 @@ def _(mo):
     - array_name[i] ⇔ array_name.lookup(i) (when getting the value at i)
     - array_name[i] ← e ⇔ array_name.set(i,e) (when setting the value at i to e)
 
-    ### ADTs used #TODO show reason why selected adt is best
+    ### ADTs used <!--potential improvements to be made-->
 
     #### Inputs:
 
@@ -1043,18 +1012,26 @@ def _(mo):
 
     sets (of the ASs and the SUs.)
 
-    In future, other ADTs may be nested in the maps.
+    The graph is ideal to model a 2d space with discrite points where one can be, as graphs are well suited to finding paths and walks in space.
+    The sets are ideal to convey what is in the environment as order doesn't matter and it can store many items effectively.
+    The maps are ideal to convey information about elements in the environment as they take an element and return a value (which can be made of multiple values) giving key information about said element.
 
     #### Outputs:
 
-    map containing the whole output
+    map containing the whole output, including a:
+    - List (of vertices and edges traversed in walk).
+    - set (of supply units recovered)
+    - integer (cost of walk)
 
-    List (of vertices and edges traversed in walk).
+    having these outputs all in a map allows for ease of use as they are packaged together.
 
+    #### Within the Algorithm
 
-    #### Within the Algorithm #TODO
-
-    It will use at minimum all the input ADTs as well as all the output ADTs.
+    The algorithm is quite complicated with many ADTs used but some key ADTs used are:
+    - A queue for BFS
+    - A stack for DFS
+    - Multiple maps to represent a tree, visited etc.
+    - A list for the walk (ordered and allows for access to all locations without mutations.)
     """)
     return
 
