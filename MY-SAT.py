@@ -60,7 +60,7 @@ def _(mo):
 def _():
     #VALUES
     COLS, ROWS =12,12
-    seed = 0
+    seed = 30012009
     return COLS, ROWS, seed
 
 
@@ -498,14 +498,16 @@ def _(VP, deque):
 
 
 @app.cell(hide_code=True)
-def _(AS, ASP, BFS_DFS, EP, G, GP, SU, SUP, VP):
-    #RUN BFS+DFS
+def _(AS, ASP, BFS_DFS, EP, G, GP, SU, SUP, VP, time):
+    # RUN BFS+DFS
+    _start_time = time.perf_counter()
     output_dict = BFS_DFS(G, AS, SU, VP, EP, SUP, ASP, GP)
+    BFS_DFS_time_taken = time.perf_counter() - _start_time
 
     walk = output_dict["walk"]
 
-    #draw_facility(fac_graph, fac_entry, fac_exit_a, fac_exit_b, fac_supplies, highlight_path=[basic_to_tup(v) for v in walk], node_colors= { basic_to_tup(walk[len(walk)-1]):"red"})
-    return output_dict, walk
+    # draw_facility(fac_graph, fac_entry, fac_exit_a, fac_exit_b, fac_supplies, highlight_path=[basic_to_tup(v) for v in walk], node_colors= { basic_to_tup(walk[len(walk)-1]):"red"})
+    return BFS_DFS_time_taken, output_dict, walk
 
 
 @app.cell(hide_code=True)
@@ -1623,6 +1625,7 @@ def _(mo):
 @app.cell
 def _(make_gif, mo, seed, time):
     #DISPLAY GIF
+
     if(make_gif()):
         time.sleep(10)
     mo.image("figs\\"+ str(seed) + ".gif")
@@ -1638,9 +1641,10 @@ def _(mo):
 
 
 @app.cell
-def _(mo, output_dict):
+def _(BFS_DFS_time_taken, mo, output_dict):
     mo.callout(mo.hstack([
             mo.stat(label="Length",    value=str(output_dict["length"])),
+            mo.stat(label="Rough Time Taken to Find Shortest Walk",    value=str(round(BFS_DFS_time_taken,4))+" seconds"),
             mo.stat(label="Supply Units Recovered",  value="All"),
         ], gap=0, wrap=True),kind = "info")
     return
@@ -1657,8 +1661,6 @@ def _(basic_to_tup, mo, output_dict):
     raw output:  
     {output_dict}
     """)
-
-
     return
 
 
