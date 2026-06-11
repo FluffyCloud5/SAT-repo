@@ -925,7 +925,7 @@ def _(mo):
     mo.md(r"""
     ### ADTs
 
-    #### 1. Graph (Nielsen, 2026)
+    **1. Graph (Nielsen, 2026)**
     add_vertex(v: Vertex) → None
     add_edge(u: Vertex, v: Vertex) → None
     neighbours(v: Vertex) → Set[Vertex]
@@ -933,8 +933,7 @@ def _(mo):
     has_vertex(u: Vertex) → Boolean
     vertices() → Set[Vertex]
 
-    #### 2. Maps:
-
+    **2. Maps:**
     add(k: Key, e: Element) → None
     set(k: Key, e: Element) → None
     remove(k: Key) → None
@@ -947,14 +946,12 @@ def _(mo):
     - map_name[k] ⇔ list_name.lookup(k) (when getting the value with key k)
     - map_name[k] ← e ⇔ list_name.set(k,e) (when setting the value at key k to e)
 
-    #### 3. Sets:
-
+    **3. Sets:**
     add(e: Element) → None
     remove(e: Element) → None
     contains: (e: Element) → Boolean
 
-    #### 4. Lists
-
+    **4. Lists**
     insert_at(i: Index, e: Element) → None
     insert_at(i: Index, l: list) → None
     append(e: Element) → None
@@ -969,22 +966,19 @@ def _(mo):
     - list_name[i] ⇔ list_name.lookup(i) (when getting the value at i)
     - list_name[i] ← e ⇔ list_name.set(i,e) (when setting the value at i to e)
 
-    #### 5. Stack
-
+    **5. Stack**
     push(e: Element) → None
     pop() → Element
     peak() → Element
     is_empty() → Boolean
 
-    #### 6. Queue
-
+    **6. Queue**
     push(e: Element) → None
     pop() → Element
     peak() → Element
     is_empty() → Boolean
 
-    #### 7. Priority Queue
-
+    **7. Priority Queue**
     push(e: Element, i: Importance) → None
     pop_highest() → Element
     peak_highest() → Element
@@ -992,8 +986,7 @@ def _(mo):
     peak_lowest() → Element
     is_empty() → Boolean
 
-    #### 8. Array
-
+    **8. Array**
     set(i: Index, e: Element) → None
     remove_at(i: Index) → None
     lookup(i: Index) → Element
@@ -1588,7 +1581,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## C3 - Displaying the results
+    ## C3 - Displaying the Process
     """)
     return
 
@@ -1623,6 +1616,7 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(AS, ASP, EP, G, GP, SU, SUP, VP, mo):
+    #input stuff
     _count = 150
 
     _VP = str(VP)[0:min(_count,len(str(VP)))]
@@ -1648,7 +1642,7 @@ def _(AS, ASP, EP, G, GP, SU, SUP, VP, mo):
     - GP: (Graph Properties)
 
 
-    Snippits:  
+    **Little snippits of the inputs:**  
     G = {G}  
 
     AS = {AS}  
