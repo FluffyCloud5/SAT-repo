@@ -630,6 +630,8 @@ def _(mo):
 
     Abbreviations:
     - G: (Graph of a Sector Grid) = (V,E)
+    - V: (Vertices or Nodes of G)
+    - E: (Edges, corridors in this case of G)
     - SU: (Supply Unit)
     - AS: (Autonomous System)
     - EP: (Edge Properties)
@@ -1595,6 +1597,8 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     Here is an animation showing the walk taken by the AS. The red node is the one currently occupied by the AS.
+
+    Note: Creating the animation (stored at figs\\\\) often takes 1-2 minutes.
     """)
     return
 
@@ -1612,7 +1616,63 @@ def _(make_gif, mo, seed, time):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Features of the walk taken:
+    ### Inputs
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(AS, ASP, EP, G, GP, SU, SUP, VP, mo):
+    _count = 150
+
+    _VP = str(VP)[0:min(_count,len(str(VP)))]
+    if len(str(VP)) > _count:
+        _VP += "**...**"
+
+
+
+    _EP = str(EP)[0:min(_count,len(str(EP)))]
+    if len(str(EP)) > _count:
+        _EP += "**...**"
+
+
+    mo.md(rf"""
+    the inputs are: G, AS, SU, VP, EP, SUP, ASP, GP. 
+    - G: (Graph of a Sector Grid) = (V,E)
+    - SU: (Supply Unit)
+    - AS: (Autonomous System)
+    - EP: (Edge Properties)
+    - VP: (Vertex Properties)
+    - SUP: (Supply Unit Properties)
+    - ASP: (Autonomous Systems Properties)
+    - GP: (Graph Properties)
+
+
+    Snippits:  
+    G = {G}  
+
+    AS = {AS}  
+
+    SU = {SU}  
+
+    VP = {_VP}  
+
+    EP  = {_EP}  
+
+    SUP = {SUP}  
+
+    ASP = {ASP}  
+
+    GP = {GP}  
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Outputs
+    **Features of the walk taken:**
     """)
     return
 
@@ -1621,7 +1681,7 @@ def _(mo):
 def _(BFS_DFS_time_taken, mo, output_dict):
     mo.callout(mo.hstack([
             mo.stat(label="Length",    value=str(output_dict["length"])),
-            mo.stat(label="Rough Time Taken to Find Shortest Walk",    value=str(round(BFS_DFS_time_taken,4))+" seconds"),
+            mo.stat(label="Rough Time Taken to Compute Shortest Walk",    value=str(round(BFS_DFS_time_taken,4))+" seconds"),
             mo.stat(label="Supply Units Recovered",  value="All"),
         ], gap=0, wrap=True),kind = "info")
     return
