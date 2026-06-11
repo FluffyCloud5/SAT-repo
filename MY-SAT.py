@@ -1597,26 +1597,6 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Here is an animation showing the walk taken by the AS. The red node is the one currently occupied by the AS.
-
-    Note: Creating the animation (stored at figs\\\\) often takes 1-2 minutes.
-    """)
-    return
-
-
-@app.cell
-def _(make_gif, mo, seed, time):
-    #DISPLAY GIF
-
-    if(make_gif()):
-        time.sleep(10)
-    mo.image("figs\\"+ str(seed) + ".gif")
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
     ### Inputs
     """)
     return
@@ -1703,9 +1683,36 @@ def _(AS, ASP, EP, G, GP, SU, SUP, VP, mo):
 def _(mo):
     mo.md(r"""
     ### Outputs
-    **Features of the walk taken:**
     """)
     return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Here is an animation showing the walk taken by the AS. The red node is the one currently occupied by the AS.
+
+    Note: Creating the animation (stored at figs\\\\) often takes 1-2 minutes.
+    """)
+    return
+
+
+@app.cell
+def _(make_gif, mo, seed, time):
+    #DISPLAY GIF
+
+    if(make_gif()):
+        time.sleep(10)
+    mo.image("figs\\"+ str(seed) + ".gif")
+    return
+
+
+app._unparsable_cell(
+    r"""
+    **Features of the walk taken:**
+    """,
+    name="_"
+)
 
 
 @app.cell
