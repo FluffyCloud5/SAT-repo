@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.5"
+__generated_with = "0.23.9"
 app = marimo.App(width="medium", css_file="style.css")
 
 
@@ -749,7 +749,7 @@ def _(mo):
 
     - a value indicating the stability of the sector.
     - size
-    - shape <!--#TODO continue proofreading here-->
+    - shape
 
     In the current problem scope, a possible implementation of this is:
 
@@ -763,7 +763,7 @@ def _(mo):
 
     This map, SUP (Supply Unit Properties), takes a supply unit as a key, and returns a map of the properties of the supply unit. These properties may include:
 
-    - a sector (of vertex of graph G) location (the sector on which the supply unit lies)
+    - a sector (of vertex of graph G) indicating location (the sector on which the supply unit lies)
 
     Beyond current scope:
 
@@ -817,9 +817,7 @@ def _(mo):
 
     #### Computational Outputs
 
-    The outputs of the algorithm that the AS is running are:
-    a map containing:
-
+    The output of the algorithm that the AS is running is a map containing:
     - A walk of where the AS goes that minimizes total energy used and maximises the number of supply units extracted. It starts at an entry and ends at an exit. (as a list)
     - Total energy expended (as a real number)
     - Supply Units recovered (as these are collected instantaneously) (as a set)
@@ -919,7 +917,8 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### ADTs
+    ### ADTs<!--#TODO this is different to what Mr Nielsen has-->
+    <!--We aren't returning the ADT when it is modified. Ask Mr Nielsen whether our ADTs should match his, or match our purpose and whether G.vertices() is acceptable or vertices(G) -->
 
     **1. Graph (Nielsen, 2026)**<br>
     add_vertex(v: Vertex) → None<br>
@@ -927,7 +926,8 @@ def _(mo):
     neighbours(v: Vertex) → Set[Vertex]<br>
     has_edge(u: Vertex, v: Vertex) → Boolean<br>
     has_vertex(u: Vertex) → Boolean<br>
-    vertices() → Set[Vertex]
+    vertices() → Set[Vertex]<br>
+    edges() → Set[Edges]
 
     **2. Maps:**<br>
     add(k: Key, e: Element) → None<br>
@@ -945,7 +945,17 @@ def _(mo):
     **3. Sets:**<br>
     add(e: Element) → None<br>
     remove(e: Element) → None<br>
-    contains: (e: Element) → Boolean
+    contains(e: Element) → Boolean<br>
+    intersection(s: Set) → Set<br>
+    Union(s: Set) → Set<br>
+    difference(s: Set) → Set<br>
+    is_empty() → Boolean<br>
+    size() → Integer<br>
+    get_random() → Element
+
+    Note:
+    - u ∈ V ⇔ V.contains(u) or means forall u where V.contains(u)
+    - U ⊆ V ⇔ V.is_subset(U)
 
     **4. Lists**<br>
     insert_at(i: Index, e: Element) → None<br>
@@ -964,21 +974,25 @@ def _(mo):
     **5. Stack**<br>
     push(e: Element) → None<br>
     pop() → Element<br>
-    peak() → Element<br>
+    peek() → Element<br>
+    size() → Integer<br>
     is_empty() → Boolean
 
     **6. Queue**<br>
     push(e: Element) → None<br>
     pop() → Element<br>
-    peak() → Element<br>
+    peek() → Element<br>
+    size() → Integer<br>
     is_empty() → Boolean
+
 
     **7. Priority Queue**<br>
     push(e: Element, i: Importance) → None<br>
     pop_highest() → Element<br>
-    peak_highest() → Element<br>
+    peek_highest() → Element<br>
     pop_lowest() → Element<br>
-    peak_lowest() → Element<br>
+    peek_lowest() → Element<br>
+    size() → Integer<br>
     is_empty() → Boolean
 
     **8. Array**<br>
@@ -1212,7 +1226,7 @@ def _(mo):
         // -----------Initialise data structures------------
         //--------------------------------------------------
 
-        CRUDY_1 ← the element contained in the set AS
+        CRUDY_1 ← AS.get_random()
     	entry ← ASP[CRUDY_1]["location"]
     	V ← G.Vertices()
 
@@ -1609,9 +1623,9 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(AS, ASP, EP, G, GP, SU, SUP, VP, mo):
+def _(mo):
     mo.md(rf"""
-    the inputs are: G, AS, SU, VP, EP, SUP, ASP, GP. 
+    the inputs are: G, SU, AS, EP, VP, SUP, ASP, GP.
     - G: (Graph of a Sector Grid) = (V,E)
     - SU: (Supply Unit)
     - AS: (Autonomous System)
@@ -1622,40 +1636,66 @@ def _(AS, ASP, EP, G, GP, SU, SUP, VP, mo):
     - GP: (Graph Properties)
 
 
-    **The Inputs:**<br>
-    G = *{G}* = (in adjencey list form)
-    ```python
-    { {v:list(dict(G[v]).keys()) for v in G.nodes()} }
-    ```
-    AS =
-    ```python
-    {AS}
-    ```
-    SU = 
-    ```python
-    {SU}  
-    ```
-    VP = 
-    ```python
-    {VP}
-    ```
-    EP = 
-    ```python
-    {EP}
-    ```
-    SUP = 
-    ```python
-    {SUP}
-    ```
-    ASP = 
-    ```python
-    {ASP}  
-    ```
-    GP = 
-    ```python
-    {GP}  
-    ```
+    **The Inputs:**
     """)
+    return
+
+
+@app.cell
+def _(AS, ASP, EP, G, GP, SU, SUP, VP, mo):
+    _G = f"""
+    ```python
+    G = "{G}" = "(in adjencey list form)" { {v:list(dict(G[v]).keys()) for v in G.nodes()} }
+    ```
+    """
+    _SU = f"""
+    ```python
+    SU = {SU}
+    ```
+    """
+    _AS = f"""
+    ```python
+    AS = {AS}
+    ```
+    """
+    _EP = f"""
+    ```python
+    EP = {EP}
+    ```
+    """
+
+    _VP = f"""
+    ```python
+    VP = {VP}
+    ```
+    """
+    _SUP = f"""
+    ```python
+    SUP = {SUP}
+    ```
+    """
+    _ASP = f"""
+    ```python
+    ASP = {ASP}
+    ```
+    """
+    _GP = f"""
+    ```python
+    GP = {GP}
+    ```
+    """
+
+
+    mo.callout(mo.vstack([
+            mo.md(_G),
+        mo.md(_SU),
+        mo.md(_AS),
+        mo.md(_EP),
+        mo.md(_VP),
+        mo.md(_SUP),
+        mo.md(_ASP),
+        mo.md(_GP),     
+        ], gap=0),kind = "info")
     return
 
 
