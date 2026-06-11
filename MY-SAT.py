@@ -484,8 +484,8 @@ def _(VP, deque):
         return walk
 
     def shortest_walk(walks):
-        min_index = -1
-        min = 14400000
+        min_index = 0
+        min = len(walks[0])
         for i in range(len(walks)):
             if len(walks[i]) < min:
                 min = len(walks[i])
@@ -1568,8 +1568,8 @@ def _(mo):
         return walk
 
     def shortest_walk(walks):
-        min_index = -1
-        min = 14400000
+        min_index = 0
+        min = len(walks[0])
         for i in range(len(walks)):
             if len(walks[i]) < min:
                 min = len(walks[i])
