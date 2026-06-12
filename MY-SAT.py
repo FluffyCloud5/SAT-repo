@@ -19,8 +19,9 @@ def _():
     import matplotlib
     import imageio
     import time
+    import tracemalloc
 
-    return deque, imageio, mo, mpatches, nx, os, plt, random, time
+    return deque, imageio, mo, mpatches, nx, os, plt, random, time, tracemalloc
 
 
 @app.cell(hide_code=True)
@@ -58,11 +59,28 @@ def _(mo):
 
 
 @app.cell
-def _():
+def _(mo):
     #VALUES
     COLS, ROWS =12,12
-    seed = 30012009
-    return COLS, ROWS, seed
+    seed_input = mo.ui.number(
+        value=30012009,
+        start=0,
+        stop=99999999,
+        step=1,
+        label="Your facility seed (from your cover sheet)"
+    )
+    mo.vstack([
+        mo.md("### Enter your seed, then press Tab to rebuild the facility."),
+        seed_input
+    ])
+
+    return COLS, ROWS, seed_input
+
+
+@app.cell
+def _(seed_input):
+    seed = seed_input.value
+    return (seed,)
 
 
 @app.cell(hide_code=True)
@@ -499,16 +517,26 @@ def _(VP, deque):
 
 
 @app.cell(hide_code=True)
-def _(AS, ASP, BFS_DFS, EP, G, GP, SU, SUP, VP, time):
+def _(AS, ASP, BFS_DFS, EP, G, GP, SU, SUP, VP, time, tracemalloc):
     # RUN BFS+DFS
+
+    tracemalloc.start()
+    tracemalloc.reset_peak()
+    _size1, _peak1 = tracemalloc.get_traced_memory()
+
     _start_time = time.perf_counter()
     output_dict = BFS_DFS(G, AS, SU, VP, EP, SUP, ASP, GP)
     BFS_DFS_time_taken = time.perf_counter() - _start_time
+    _size2, _peak2 = tracemalloc.get_traced_memory()
 
+    #print("size: "+str(_size2)+", peak:" + str(_peak2))
+    #print("size: "+str(_size2-_size1)+", peak:" + str(_peak2-_peak1))
+    memory_used = _peak2 - _size1
     walk = output_dict["walk"]
 
+    tracemalloc.stop()
     # draw_facility(fac_graph, fac_entry, fac_exit_a, fac_exit_b, fac_supplies, highlight_path=[basic_to_tup(v) for v in walk], node_colors= { basic_to_tup(walk[len(walk)-1]):"red"})
-    return BFS_DFS_time_taken, output_dict, walk
+    return BFS_DFS_time_taken, memory_used, output_dict, walk
 
 
 @app.cell(hide_code=True)
@@ -921,85 +949,85 @@ def _(mo):
     <!--We aren't returning the ADT when it is modified. Ask Mr Nielsen whether our ADTs should match his, or match our purpose and whether G.vertices() is acceptable or vertices(G) -->
 
     **1. Graph (Nielsen, 2026)**<br>
-    add_vertex(v: Vertex) → None<br>
-    add_edge(u: Vertex, v: Vertex) → None<br>
-    neighbours(v: Vertex) → Set[Vertex]<br>
-    has_edge(u: Vertex, v: Vertex) → Boolean<br>
-    has_vertex(u: Vertex) → Boolean<br>
-    vertices() → Set[Vertex]<br>
+    add_vertex(g: Graph, v: Vertex) → Graph<br>
+    add_edge(g: Graph, u: Vertex, v: Vertex) → Graph<br>
+    neighbours(g: Graph, v: Vertex) → Set[Vertex]<br>
+    has_edge(g: Graph, u: Vertex, v: Vertex) → Boolean<br>
+    has_vertex(g: Graph, u: Vertex) → Boolean<br>
+    vertices(g: Graph) → Set[Vertex]<br>
     edges() → Set[Edges]
 
     **2. Maps:**<br>
-    add(k: Key, e: Element) → None<br>
-    set(k: Key, e: Element) → None<br>
-    remove(k: Key) → None<br>
-    lookup(k: Key) → Element<br>
-    contains(k: Key) → Boolean<br>
-    keys() → Set[Keys]
+    add(m: Map, k: Key, e: Element) → Map<br>
+    set(m: Map, k: Key, e: Element) → Map<br>
+    remove(m: Map, k: Key) → Map<br>
+    lookup(m: Map, k: Key) → Element<br>
+    contains(m: Map, k: Key) → Boolean<br>
+    keys(m: Map) → Set[Keys]
 
     **Note:**<br>
 
-    - map_name[k] ⇔ list_name.lookup(k) (when getting the value with key k)
-    - map_name[k] ← e ⇔ list_name.set(k,e) (when setting the value at key k to e)
+    - map_name[k] ⇔ map_name.lookup(k) (when getting the value with key k)
+    - map_name[k] ← e ⇔ map_name.set(k,e) (when setting the value at key k to e)
 
     **3. Sets:**<br>
-    add(e: Element) → None<br>
-    remove(e: Element) → None<br>
-    contains(e: Element) → Boolean<br>
-    intersection(s: Set) → Set<br>
-    Union(s: Set) → Set<br>
-    difference(s: Set) → Set<br>
-    is_empty() → Boolean<br>
-    size() → Integer<br>
-    get_random() → Element
+    add(s: Set, e: Element) → Set<br>
+    remove(s: Set, e: Element) → Set<br>
+    contains(s: Set, e: Element) → Boolean<br>
+    intersection(s1: Set, s2: Set) → Set<br>
+    Union(s1: Set, s2: Set) → Set<br>
+    difference(s1: Set, s2: Set) → Set<br>
+    is_empty(s: Set) → Boolean<br>
+    size(s: Set) → Integer<br>
+    get_random(s: Set) → Element
 
     Note:
     - u ∈ V ⇔ V.contains(u) or means forall u where V.contains(u)
     - U ⊆ V ⇔ V.is_subset(U)
 
     **4. Lists**<br>
-    insert_at(i: Index, e: Element) → None<br>
-    insert_at(i: Index, l: list) → None<br>
-    append(e: Element) → None<br>
-    append(l: List) → None<br>
-    set(i: Index, e: Element) → None<br>
-    remove_at(i: Index) → None<br>
-    lookup(i: Index) → Element<br>
-    length() → Integer
+    insert_at(l: list, i: Index, e: Element) → list<br>
+    insert_at(l1: list, i: Index, l2: list) → list<br>
+    append(l: list, e: Element) → list<br>
+    append(l1: list, l2: List) → list<br>
+    set(l: list, i: Index, e: Element) → list<br>
+    remove_at(l: list, i: Index) → list<br>
+    lookup(l: list, i: Index) → Element<br>
+    length(l: list) → Integer
 
     Note:
     - list_name[i] ⇔ list_name.lookup(i) (when getting the value at i)
     - list_name[i] ← e ⇔ list_name.set(i,e) (when setting the value at i to e)
 
     **5. Stack**<br>
-    push(e: Element) → None<br>
-    pop() → Element<br>
-    peek() → Element<br>
-    size() → Integer<br>
-    is_empty() → Boolean
+    push(s: Stack, e: Element) → Stack<br>
+    pop(s: Stack) → Stack X Element<br>
+    peek(s: Stack) → Element<br>
+    size(s: Stack) → Integer<br>
+    is_empty(s: Stack) → Boolean
 
     **6. Queue**<br>
-    push(e: Element) → None<br>
-    pop() → Element<br>
-    peek() → Element<br>
-    size() → Integer<br>
-    is_empty() → Boolean
+    push(q: Queue, e: Element) → Queue<br>
+    pop(q: Queue) → Queue X Element<br>
+    peek(q: Queue) → Element<br>
+    size(q: Queue) → Integer<br>
+    is_empty(q: Queue) → Boolean
 
 
     **7. Priority Queue**<br>
-    push(e: Element, i: Importance) → None<br>
-    pop_highest() → Element<br>
-    peek_highest() → Element<br>
-    pop_lowest() → Element<br>
-    peek_lowest() → Element<br>
-    size() → Integer<br>
-    is_empty() → Boolean
+    push(pq: Priority Queue, e: Element, i: Importance) → Priority Queue<br>
+    pop_highest(pq: Priority Queue) → Priority Queue X Element<br>
+    peek_highest(pq: Priority Queue) → Element<br>
+    pop_lowest(pq: Priority Queue) → Priority Queue X Element<br>
+    peek_lowest(pq: Priority Queue) → Element<br>
+    size(pq: Priority Queue) → Integer<br>
+    is_empty(pq: Priority Queue) → Boolean
 
     **8. Array**<br>
-    set(i: Index, e: Element) → None<br>
-    remove_at(i: Index) → None<br>
-    lookup(i: Index) → Element<br>
-    length() → Integer
+    set(a: Array, i: Index, e: Element) → Array<br>
+    remove_at(a: Array, i: Index) → Array<br>
+    lookup(a: Array, i: Index) → Element<br>
+    length(a: Array) → Integer
 
     Note:
     - array_name[i] ⇔ array_name.lookup(i) (when getting the value at i)
@@ -1707,19 +1735,20 @@ def _(make_gif, mo, seed, time):
     return
 
 
-app._unparsable_cell(
-    r"""
-    **Features of the walk taken:**
-    """,
-    name="_"
-)
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **Features of the walk:**
+    """)
+    return
 
 
 @app.cell
-def _(BFS_DFS_time_taken, mo, output_dict):
+def _(BFS_DFS_time_taken, memory_used, mo, output_dict):
     mo.callout(mo.hstack([
             mo.stat(label="Length",    value=str(output_dict["length"])),
-            mo.stat(label="Rough Time Taken to Compute Shortest Walk",    value=str(round(BFS_DFS_time_taken,4))+" seconds"),
+            mo.stat(label="Time to Compute",    value=str(round(BFS_DFS_time_taken,4))+" sec"),
+            mo.stat(label="Memory to Compute",    value=str(round(memory_used/1000,1))+" KB"),
             mo.stat(label="Supply Units Recovered",  value="All"),
         ], gap=0, wrap=True),kind = "info")
     return
@@ -1727,17 +1756,17 @@ def _(BFS_DFS_time_taken, mo, output_dict):
 
 @app.cell(hide_code=True)
 def _(basic_to_tup, mo, output_dict):
-    mo.md(rf"""
+    mo.callout(mo.md(rf"""
     **walk list printed out in tuple form:**
     ```python
     {[basic_to_tup(v) for v in output_dict["walk"]]}
     ```
 
-    **raw output:**  
+    **raw output:**
     ```python
     {output_dict}
     ```
-    """)
+    """), kind = "info")
     return
 
 
@@ -1762,11 +1791,20 @@ def _(mo):
     mo.md(r"""
     Scope: undirected trees.
 
+    P.O.I. = Points of Interest, here meaning entries, exits and supply units.
+
     Conjecture: A shortest walk containing all P.O.I. (points of interest) ending at a specific node can be found utilising a modified DFS on a subtree with only P.O.I. as leaf nodes.
 
     Lemma 1: to visit all nodes and return to the source, DFS provides a shortest walk.
-    - Since to get to a node there is only one path, all of those edges have to be traversed at least twice, and each edge in the graph has to connect at least one node to the tree connected to the source, meaning that every edge has to be traversed at least twice, meaning the walk has to have length at least 2sum(E).
-    - But DFS produces a walk of length 2sum(E) as it has to traverse all edges (in a tree) and then back again. This means DFS produces an optimal walk for its length is the shortest it could be.
+    1. Since to get to a node from another node there is only one path as G is a tree.
+    2. To get to a single node and back to the source all edges in that path have to be traversed at least twice as there is only one path to go there and back.
+    3. Each edge in the graph has to connect at least one node to the tree connected to the source meaning that all edges have to be traversed at least twice to visit all nodes and return to the source.
+    4. Therefore the walk has to have length at <u>**least**</u> 2sum(E) (where sum(E) is the sum of all edge weights) as each edge is traversed twice.
+    5. But DFS produces a walk of length 2sum(E) as it has to traverse all edges (in a tree) and then back again.
+    6. This means DFS produces an optimal walk for its length is the shortest it could be.
+
+    Lemma 2.0: DFS can produce a walk with length 2sum(E) - dist(source,v) if it has to visit all nodes from a source and end at v.
+    1.
 
     Lemma 2: DFS provides a shortest walk to traverse all nodes and end at an arbitrary node.
     - A DFS route with the exit on the return trip exists as it doesn't matter which branch is pushed to the stack first meaning if branches containing the exit are always pushed first, the last leaf node visited will be the exit itself, or a child of the exit.
