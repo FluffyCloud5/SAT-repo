@@ -1,7 +1,7 @@
 import marimo
 
 __generated_with = "0.23.9"
-app = marimo.App(width="medium", css_file="style.css")
+app = marimo.App(width="medium", css_file="")
 
 
 @app.cell
@@ -73,7 +73,6 @@ def _(mo):
         mo.md("### Enter your seed, then press Tab to rebuild the facility."),
         seed_input
     ])
-
     return COLS, ROWS, seed_input
 
 
@@ -165,7 +164,7 @@ def _(COLS, ROWS, nx, random, seed):
 
 @app.cell(hide_code=True)
 def _(COLS, ROWS, mpatches, plt):
-    # Draw Facility
+    # Define Draw Facility
 
     COL_BG       = '#F5F7FA'
     COL_GRID     = '#C8D0DC'
@@ -945,9 +944,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### ADTs<!--#TODO this is different to what Mr Nielsen has-->
-    <!--We aren't returning the ADT when it is modified. Ask Mr Nielsen whether our ADTs should match his, or match our purpose and whether G.vertices() is acceptable or vertices(G) -->
-
+    ### ADTs
     **1. Graph (Nielsen, 2026)**<br>
     add_vertex(g: Graph, v: Vertex) → Graph<br>
     add_edge(g: Graph, u: Vertex, v: Vertex) → Graph<br>
@@ -1803,24 +1800,30 @@ def _(mo):
     5. But DFS produces a walk of length 2sum(E) as it has to traverse all edges (in a tree) and then back again.
     6. This means DFS produces an optimal walk for its length is the shortest it could be.
 
-    Lemma 2.0: DFS can produce a walk with length 2sum(E) - dist(source,v) if it has to visit all nodes from a source and end at v.
-    1.
+    Lemma 2: DFS can produce a walk with length 2sum(E) - dist(source,v), if it has to visit all nodes from a source and end at v.
+    1. Consider if DFS stacks the node with v as a decendant or v itself first at each iteration. Then DFS will explore all other branches before it pops v, and at that point it will explore the desendants of v. once it has explored all nodes, DFS will start returning to the source, and v has to be on that route as it (or a desendant of v) was explored last.
+    2. Therefore as it will end at v having explored all nodes and on a direct path to the source with distance dist(source,v) and we know that a full DFS takes 2sum(E), the length of this walk must be 2sum(E) - dist(source,v).
 
-    Lemma 2: DFS provides a shortest walk to traverse all nodes and end at an arbitrary node.
-    - A DFS route with the exit on the return trip exists as it doesn't matter which branch is pushed to the stack first meaning if branches containing the exit are always pushed first, the last leaf node visited will be the exit itself, or a child of the exit.
-    - So this provides a walk with length 2sum(E) - dist(source,exit). There can be no walk shorter than this (adhering to constraints)  as a walk shorter would mean that w + dist(source,exit) < 2sum(E) - dist(source,exit) + dist(source,exit) = 2sum(E), meaning that it defies lemma 1 so by contradiction lemma 2 holds.
+    Lemma 3 There is no walk shorter that 2sum(E) - dist(source,v), if it has to visit all nodes from a source and end at v.
+    1. Assume the opposite, there is a walk with length l < 2sum(E) - dist(source,v) that visits all nodes starting at the source and ending at v.
+    2. Then l + dist(source,v) equals the return trip length of a walk visiting all nodes starting and ending at the source, as one just has to go from v to source and dist(source,v) = dist(v, source), which must be at least 2sum(E) from lemma 1.
+    3. but l + dist(source,v) < 2sum(E) - dist(source,v) + dist(source,v) = 2sum(E).
+    4. 2sum(E) $\leq$ l + dist(source,v) < 2sum(E) $\implies$ 2sum(E) < 2sum(E)
+    5. There by contradiction Lemma 3 is true.
 
-    Lemma 3: DFS provides a shortest walk containing all leaf nodes and ending at an arbitrary node.
+    Lemma 4: DFS provides a shortest walk to traverse all nodes from an arbitrary node to an arbitrary node.
+    1. By lemma 2 and lemma 3 DFS must produce the shortest walk possible from an arbitrary node to an arbitrary node traversing all nodes as its length is equal to the lower bound.
+
+    Lemma 5: DFS provides a shortest walk containing all leaf nodes and ending at an arbitrary node.
     - As the graph is a tree, there is only one path between any two nodes, meaning to get to a leaf node from the source, all parents of the leaf node must be traversed.
     - As every node in a graph is either a parent of a leaf node or a leaf node, all nodes must be traversed if all leaf nodes are to be traversed.
-    - As all nodes must be traversed, this problem falls under lemma 2, meaning, showing that lemma 3 is true.
+    - As all nodes must be traversed, this problem falls under lemma 4, showing lemma 5 to be true.
 
     Applying to a specific P.O.I:
     - consider a minimal subtree of the tree that is big enough to contain all the P.O.I.
-    - Lemma 3 applies here meaning that the shortest walk to contain the P.O.I is 2sum(E) - dist(source,exit) but sum(E) is of edges in the the subgraph.
-
-    my algorithm (DFS) is the best Q.E.D.
-    (returns the optimal walk)
+    - This means that all leaf nodes will be P.O.I. as otherwise they could be trimmed.
+    - Lemma 5 applies here meaning that the shortest walk to contain the P.O.I is 2sum(E) - dist(source,exit) but sum(E) is of edges in the the subgraph.
+    - Q.E.D.
     """)
     return
 
