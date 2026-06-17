@@ -686,7 +686,6 @@ def _(
             pass
 
     draw_facility(fac_graph, fac_entry, fac_exit_a, fac_exit_b, fac_supplies,node_colors=_node_colours, legend= False)
-
     return
 
 
@@ -695,8 +694,49 @@ def _(mo):
     mo.md(r"""
     # Problem Specification:
 
-    The problem is contained within the Emberlight Subterranean Research Complex (ESRC). Inside the ESRC there might multiple Sector Grids, and inside each sector grids there exist sectors (currently 144 sectors per sector grid 12x12). Due to unique circumstances, a CRUDY-1 (Corridor Reconnaissance and Utility Drone Year 1) needs to be employed to traverse a sector grid to collect critical supply units and bring them to an extraction point.
+    Seismic activity has destabilised the Emberlight Subterranean Research Complex (ESRC). Five critical supply units — designated S1 through S5 — remain scattered throughout the structure and are to be recovered.
 
+    The ESRC is organised as a sector grid. Each sector is a discrete navigable unit. Sectors are connected by reinforced corridors. The sector grid can be seen below.
+
+    The objective is to command CRUDY-1 (Corridor Reconnaissance and Utility Drone — Year 1)--an Autonomous System (AS)--to navigate the facility’s corridor network and transport recovered supply units to an extraction point while maximising recovered supply units and ensuring a safe extraction.
+
+    (Nielsen, 2026)
+    """)
+    return
+
+
+@app.cell
+def _(
+    draw_facility,
+    fac_entry,
+    fac_exit_a,
+    fac_exit_b,
+    fac_graph,
+    fac_supplies,
+):
+    draw_facility(fac_graph, fac_entry, fac_exit_a, fac_exit_b, fac_supplies)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    This notebook explores the development of a design stratergy to complete this task, including
+    1. deciding how the facility and mission should be represented computationally;
+    2. identifing the constraints governing the AS's operation;
+    3. designing an initial strategy and communicating it clearly;
+    4. analysing efficiency and feasibility;
+    5. refining and improving the design as new constraints emerge;
+    6. justifing decisions and comparing alternatives with depth.
+
+    (Nielsen, 2026)
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## Definitions:
     Spaces:
     - ESRC: Emberlight Subterranean Research Complex, the scope of this problem (currently)
@@ -726,24 +766,8 @@ def _(mo):
 
     ## Assumptions:
     1.  An Autonomous System (AS) knows the layout of the ESRC sector grid before it navigates it. (e.g. it has the blueprints)
-    2. The algorithm A1 is asking about is the algorithm that the AS is running.
-    3. The AS can turn on the spot.
-    4. The ASs can navigate in all directions without turning, and the AS starts oriented in the cardinal direction corresponding to 0°\*.
-    	- *The cardinal angle of 0° doesn't have to be pointing north, it just has to be consistent. Also that the AS is facing 0° at the entry just ensures it knows which way to go based of the graph.
+    2.  The ASs can navigate in all directions without turning, and the AS knows its original orientation.
     """)
-    return
-
-
-@app.cell
-def _(
-    draw_facility,
-    fac_entry,
-    fac_exit_a,
-    fac_exit_b,
-    fac_graph,
-    fac_supplies,
-):
-    draw_facility(fac_graph, fac_entry, fac_exit_a, fac_exit_b, fac_supplies)
     return
 
 
@@ -768,16 +792,22 @@ def _(mo):
     mo.md(r"""
     ### Inputs:
 
-    The input is a <b><u>directed</u></b> unweighted graph paired with one map, four other nested maps and two more sets.
-    Note, the five maps are just providing properties for the four sets (as a graph is just two sets) and properties of the whole environment.
+    The input is a <b><u>directed</u></b> unweighted graph, two sets and five maps. <br>
+    **Note**: the five maps are just providing properties for the elements of the four sets (as a graph is just two sets) and properties of the whole environment.
 
+    Graph: <br>
     G: (Graph of a Sector Grid) = (V,E)<br>
-    SU: (Supply Unit)<br>
+
+    Sets: <br>
+    SU: (Supply Units)<br>
     AS: (Autonomous Systems)<br>
+
+    Maps: <br>
     EP: (Edge Properties)<br>
     VP: (Vertex Properties)<br>
     SUP: (Supply Unit Properties)<br>
-    ASP: (Autonomous Systems Properties)
+    ASP: (Autonomous Systems Properties)<br>
+    GP: (Graph Properties)
 
     #### Graph (Sector Grid, G=(V,E)):
 
@@ -933,7 +963,7 @@ def _(mo):
     4. $\forall i [i \in \mathbb{N} \land i \in [1,n-1] \implies e_i \in E \land e_i = (v_i,v_{i+1})]$
     - meaning all edges in the walk must be edges of graph G and that the edge $e_i$ must be from $v_i$ to $v_{i+1}$.
     5. Aim to maximise supply unit recovery while ensuring making it to an extraction point is possible. This means the walk traverses through as many sectors with supply units in them as possible.
-    6. 5. Aim to minimise energy cost, which at this stage is proportional to the number of edges traversed in the walk, so ||walk|| should be minimised. At this stage, this is lowest priority compared to other constraints.
+    6. Aim to minimise energy cost, which at this stage is proportional to the number of edges traversed in the walk, so ||walk|| should be minimised. At this stage, this is lowest priority compared to other constraints.
 
     *3 and 4 are simply ensuring the walk is indeed a walk on graph G.
     """)
