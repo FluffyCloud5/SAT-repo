@@ -355,9 +355,6 @@ def _(VP, deque):
         entry = ASP[CRUDY_1]["location"]
         V = G.nodes()
 
-        # 2. Backtrace Tree
-
-
         #--------------------------------------------------
         # ------------------Main loop----------------------
         #--------------------------------------------------
@@ -512,7 +509,7 @@ def _(VP, deque):
 
 
 
-    return (BFS_DFS,)
+    return BFS, BFS_DFS, backtrace_tree, make_sub_exits
 
 
 @app.cell(hide_code=True)
@@ -631,6 +628,66 @@ def _(
 
 
     return (make_gif,)
+
+
+@app.cell(disabled=True, hide_code=True)
+def _(
+    AS,
+    ASP,
+    BFS,
+    EP,
+    G,
+    GP,
+    SU,
+    SUP,
+    VP,
+    backtrace_tree,
+    basic_to_tup,
+    draw_facility,
+    fac_entry,
+    fac_exit_a,
+    fac_exit_b,
+    fac_graph,
+    fac_supplies,
+    make_sub_exits,
+):
+    # coloured graph for BFS+DFS
+    def _get_sub_dicts(G, AS, SU, VP, EP, SUP, ASP, GP):
+        CRUDY_1 = 0
+        entry = ASP[CRUDY_1]["location"]
+        V = G.nodes()
+
+        #--------------------------------------------------
+        # ------------------Main loop----------------------
+        #--------------------------------------------------
+
+        #1. BFS
+
+        parent, child_count, leaf_nodes = BFS(G, entry)
+
+        #2. Backtrace Tree 
+
+        exit_count, sub_exit = make_sub_exits(G, VP)
+        sub_SU = {v: not (VP[v]["supply_unit"] == None) for v in V}
+        sub_exit, sub_SU = backtrace_tree(parent, child_count, leaf_nodes, sub_exit, sub_SU)
+        return sub_exit, sub_SU
+
+    _sub_exit, _sub_SU = _get_sub_dicts(G, AS, SU, VP, EP, SUP, ASP, GP)
+
+    _node_colours = {}
+    for _k in _sub_SU.keys():
+        if not _sub_exit[_k] and not _sub_SU[_k]:
+            _node_colours[basic_to_tup(_k)] = "#000000"
+        elif not _sub_exit[_k] and _sub_SU[_k]:
+            _node_colours[basic_to_tup(_k)] = "#D0D0E0"
+            pass
+        else :
+            #_node_colours[basic_to_tup(_k)] = "#58D4D3"
+            pass
+
+    draw_facility(fac_graph, fac_entry, fac_exit_a, fac_exit_b, fac_supplies,node_colors=_node_colours, legend= False)
+
+    return
 
 
 @app.cell(hide_code=True)
