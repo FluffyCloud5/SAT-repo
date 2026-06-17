@@ -1,7 +1,11 @@
 import marimo
 
 __generated_with = "0.23.9"
-app = marimo.App(width="medium", css_file="")
+app = marimo.App(
+    width="medium",
+    css_file="/usr/local/_marimo/custom.css",
+    auto_download=["html"],
+)
 
 
 @app.cell
@@ -46,11 +50,11 @@ def _(mo):
           color: darkblue;
         }
         h5 {
-          font-size: 14px;
+          font-size: 18px;
           color: darkblue;
         }
         h6 {
-          font-size: 10px;
+          font-size: 14px;
           color: darkblue;
         }
     </style>
@@ -692,7 +696,7 @@ def _(
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # Problem Specification:
+    # Problem Specification (Version 1):
 
     Seismic activity has destabilised the Emberlight Subterranean Research Complex (ESRC). Five critical supply units — designated S1 through S5 — remain scattered throughout the structure and are to be recovered.
 
@@ -739,20 +743,21 @@ def _(mo):
     mo.md(r"""
     ## Definitions:
     Spaces:
-    - ESRC: Emberlight Subterranean Research Complex, the scope of this problem (currently)
-    - Sector Grid: A grid of sectors, contained within the ESRC.
-    - Sector: A single unit of space, which can be occupied by an AS can be connected to other sectors via corridors.
+    - ESRC: The Emberlight Subterranean Research Complex, the scope of this problem.
+    - Sector: A single unit of space, which can be occupied by an autonomous system (AS).
+    - Sector Grid: A grid of sectors, joined by corridors and contained within the ESRC.
 
-    Movement Options
+
+    Movement Options:
     - Corridor: Connects two adjacent sectors in the same sector grid that don't have a wall in-between them. Can be bidirectional or one-way.
 
     Types of Sectors:
     - Exit: (or Extraction Point), this is where an AS can end its journey.
     - Entry: (or starting sector), this is where an AS begins its journey.
     - Supply Unit: the sector contains a supply unit
-    - Vertex of interest: an exit, an entry or a supply unit sector.
+    - Point of Interest (POI): an exit, an entry or a supply unit sector.
 
-    Abbreviations:
+    Acronyms:
     - G: (Graph of a Sector Grid) = (V,E)
     - V: (Vertices or Nodes of G)
     - E: (Edges, corridors in this case of G)
@@ -765,7 +770,7 @@ def _(mo):
     - GP: (Graph Properties)
 
     ## Assumptions:
-    1.  An Autonomous System (AS) knows the layout of the ESRC sector grid before it navigates it. (e.g. it has the blueprints)
+    1.  An Autonomous System (AS) knows the layout of the ESRC sector grid before it navigates it (e.g. it has the blueprints).
     2.  The ASs can navigate in all directions without turning, and the AS knows its original orientation.
     """)
     return
@@ -809,7 +814,7 @@ def _(mo):
     ASP: (Autonomous Systems Properties)<br>
     GP: (Graph Properties)
 
-    #### Graph (Sector Grid, G=(V,E)):
+    #### Graph - Sector Grid, G=(V,E):
 
     Graph, G = (V,E) where V = set of all vertices in G and E = set of all edges in G. Each vertex in V is a sector and each edge in E is a corridor between two sectors.
 
@@ -821,51 +826,68 @@ def _(mo):
 
     E = {(u,v) | u,v∈V ∧ u is adjacent to v ∧ direct movement can be taken from u into v, without going through any other sectors}
 
-    #### Set 1 (Supply Units (SU):
+    #### Sets
+
+    The following two sets contain elements from the ESRC.
+
+    ##### Set 1 - Supply Units (SU):
 
     This is a set containing all supply units in the Sector Grid.<br>
     SU = {x | x is a supply unit in the Sector Grid}.
 
-    #### Set 2 (Autonomous Systems (AS)):
+    ##### Set 2 - Autonomous Systems (AS):
 
     This is a set containing all Autonomous Systems (AS) being deployed in the Sector Grid.<br>
     AS = {x | x is an Autonomous System being deployed in the Sector Grid}
+    """)
+    return
 
-    #### **NOTE on Maps:**
 
-    The following four ADTs are maps of maps, where the key gives you a map of properties of that object. The properties might have keys with values, such as 'weight: 1'.
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
+    #### Maps
 
-    #### Map 1 (Corridor Properties (EP):
+    The following four ADTs are maps of maps, where the key gives you a map of properties of that object. The properties might have keys with values, such as 'weight: 1'. The final map gives properties of the whole ESRC.
+    """)
+    return
 
-    The first map, EP (Edge Properties) takes the edges as keys and returns a map potentially detailing:
-    - a real number indicating which direction this edge is pointing (cardinal angle).
 
-    Beyond current scope:
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ##### Map 1 - Edge Properties (EP):
+
+    The first map, EP (Edge Properties), takes the edges as keys and returns a map that contains:
+
+    - a real number indicating which direction this edge is pointing (cardinal angle). 0° faces north, 90° east, 180° south and 270° west.
+
+    Beyond scope of version 1:
 
     - a real number indicating the cost to traverse (as it is all the same)
     - a real number indicating the stability of the corridor.
     - a real number indication the length of the corridor.
 
-    In the current problem scope, a possible implementation of this is:
+    In version 1, a possible implementation of this is:
 
     EP = {(u,v):{ "cardinal_angle": real number (cardinal angle from u to v)}
     	| u,v ∈ V ∧ (u,v) ∈ E}
 
-    #### Map 2 (Sector Properties (VP)):
+    ##### Map 2 - Vertex Properties (VP):
 
-    This map, VP (Vertex Properties) takes vertices (or sectors) as keys and returns a map potentially containing the properties:
+    This map, VP (Vertex Properties), takes vertices (or sectors) as keys and returns a map that contains:
 
     - a string indicating what supply unit lies within the sector, or null if no supply unit is contained.
     - a Boolean value indicating whether it is an entry.
     - a Boolean value indicating whether it is an exit.
 
-    Beyond current scope:
+    Beyond scope of version 1:
 
     - a value indicating the stability of the sector.
     - size
     - shape
 
-    In the current problem scope, a possible implementation of this is:
+    In version 1, a possible implementation of this is:
 
     VP = {v : {
     	"supply_unit": nullable string (name of supply unit within the sector, null if it doesn't contain a supply unit),
@@ -873,38 +895,34 @@ def _(mo):
     	"is_exit": Boolean (true if the sector is an extraction point, false otherwise )}
     	| v ∈ V}
 
-    #### Map 3 (Supply Unit Properties (SUP)):
+    ##### Map 3 - Supply Unit Properties (SUP):
 
-    This map, SUP (Supply Unit Properties), takes a supply unit as a key, and returns a map of the properties of the supply unit. These properties may include:
+    This map, SUP (Supply Unit Properties), takes a supply unit as a key and returns a map that contains:
 
-    - a sector (of vertex of graph G) indicating location (the sector on which the supply unit lies)
+    - a sector (a vertex of graph G) indicating location (the sector on which the supply unit lies)
 
-    Beyond current scope:
-
-    - a real number indicating the weight of the supply unit (as currently all the same and thus not needed)
+    Beyond scope of version 1:<br>
+    In the version 1 problem scope, these properties of the supply units are irrelevant, so they won't be included in the map returned for each supply unit:
+    - a real number indicating the weight of the supply unit (as in the version 1 problem, all supply unit weights are the same)
     - fragility
     - importance
     - size
     - lifespan
 
-    In the current problem scope, most of these properties of the supply units are currently irrelevant, so they won't be included in the map returned for each supply unit. Currently, only location will be considered.
-
-    - A vertex, v, on which s, the supply unit lies
-
-    In the current problem scope, a possible implementation of this is:
+    In version 1, a possible implementation of this is:
 
     SUP = {s:{"location": v (the sector of the SU)} | v∈V∧s∈SU}
 
-    #### Map 4 (Autonomous System Properties (ASP)):
+    ##### Map 4 - Autonomous System Properties (ASP):
 
-    This map, ASP (Autonomous System Properties) takes Autonomous Systems (ASs) as keys and returns a map of properties of the AS, potentially including:
+    This map, ASP (Autonomous System Properties), takes Autonomous Systems (ASs) as keys and returns a map that contains:
 
     - a vertex which is the starting location (or entry) of the AS.
 
-    Beyond current scope:
+    Beyond scope of version 1:
 
-    - a string indicating type (e.g. CRUDY-1) (as currently there is only one type)
-    - a real number indicating the total weight the AS can carry. (as currently this equals the total supply units on the map)
+    - a string indicating type (e.g. CRUDY-1) (as in version 1 there is only one type)
+    - a real number indicating the total weight the AS can carry. (as in version 1 this equals the total supply units on the map)
     - a real number indicating how many supply units AS can carry at once. (that is different from the weight, right now they are the same so this is not necessary)
     - a real number indicating total energy of the AS.
     - a real number indicating how much energy a corridor takes.
@@ -912,18 +930,18 @@ def _(mo):
     - a vertex indicating assigned extraction point for the AS.
     - a real number indicating speed of the AS.
 
-    In the current problem scope, a possible implementation of this is:
+    In version 1, a possible implementation of this is:
 
     ASP (Autonomous System Properties) = {x:{"entry": v (indicates entry for AS)}| x ∈ AS ∧ v ∈ V}
 
-    #### Map 5 (Graph Properties (GP)):
+    ##### Map 5 - Graph Properties (GP):
 
     This map provides properties of the whole environment, such as:
 
     - a Boolean value indicating whether emergency lighting is operational
     - a time limit
 
-    These are currently all beyond the current scope of the problem so:
+    These are all beyond the version 1 problem scope, so:
 
     GP = {}
 
@@ -932,7 +950,7 @@ def _(mo):
     #### Computational Outputs
 
     The output of the algorithm that the AS is running is a map containing:
-    - A walk of where the AS goes that minimizes total energy used and maximises the number of supply units extracted. It starts at an entry and ends at an exit. (as a list)
+    - A walk taken by the AS that maximises the number of supply units extracted. It starts at an entry and ends at an exit. (as a list)
     - Total energy expended (as a real number)
     - Supply Units recovered (as these are collected instantaneously) (as a set)
 
@@ -950,8 +968,8 @@ def _(mo):
     	1. move(a: angle, d: distance) → None         # allows the AS to move 'd' distance at 'a' cardinal angle.
     	2. exit() → None         # if at an exit (extraction point), it allows the AS to exit the sector grid.
 
-    Note: no command is for picking up a supply unit as that is automatically done.<br>
-    Note: no command is for reading environment as it is currently assumed that the AS gets that as an input before the whole thing.
+    Note: There is no command that specifically orders to pickup a supply unit as that is automatically done when occupying the same sector as the supply unit.<br>
+    Note: There is no command to scan the environment as it is assumed that the AS already knows the layout of the ESRC.
 
 
     ### Constraints
@@ -962,10 +980,15 @@ def _(mo):
     - meaning all vertices in the walk must be vertices of graph G.
     4. $\forall i [i \in \mathbb{N} \land i \in [1,n-1] \implies e_i \in E \land e_i = (v_i,v_{i+1})]$
     - meaning all edges in the walk must be edges of graph G and that the edge $e_i$ must be from $v_i$ to $v_{i+1}$.
-    5. Aim to maximise supply unit recovery while ensuring making it to an extraction point is possible. This means the walk traverses through as many sectors with supply units in them as possible.
-    6. Aim to minimise energy cost, which at this stage is proportional to the number of edges traversed in the walk, so ||walk|| should be minimised. At this stage, this is lowest priority compared to other constraints.
 
     *3 and 4 are simply ensuring the walk is indeed a walk on graph G.
+
+    ### Objectives
+
+    1. Aims to maximise supply unit recovery.
+    2. Aims to minimise energy cost. In version 1, this is proportional to the number of edges traversed in the walk, so ||walk|| should be minimised. This is a lower priority compared to the other objective.
+
+    These two objectives mean that in the version 1 problem, the objective is to minimize the energy cost of the walk collecting all supply units and making it to the exit.
     """)
     return
 
@@ -988,17 +1011,17 @@ def _(mo):
     	1. This is modelled as a cardinal angle assigned to each edge of the graph G and the direction that the AS is facing. 0º doesn't have to be north, it only has to be consistent.
     	2. The physically layout of the sector grid is abstracted away into this grid, as it only matters how to get from one sector to another sector to be able to traverse the whole grid. This can be calculated using the direction. (i.e. only relative space matters, not absolute.)
     3. Length
-    	1. One unit of length is modelled using a real-valued number in the properties of the edges of the graph (in EP). (Currently) This is set to 1 for all edges.
-    	2. The length of an edge (i.e. a corridor) can be abstracted away as (currently) all corridors have the same length, meaning the AS only has to move in multiples of the length of one of the edges of the graph.
+    	1. One unit of length is modelled using a real-valued number in the properties of the edges of the graph (in EP). This is set to 1 for all edges.
+    	2. The length of an edge (i.e. a corridor) can be abstracted away as in version 1 all corridors have the same length, meaning the AS only has to move in multiples of the length of one of the edges of the graph.
     4. Time
-    	1. Time is currently not modelled in the abstraction.
-    	2. This is (currently) a safe abstraction as conditions are stable.
+    	1. Time is not modelled in the abstraction of version 1.
+    	2. This is a safe abstraction as conditions are stable.
     5. Mass
-    	1. Mass is currently modelled as a unitless value uniform between the supply units, and another maximum load value for the AS.
+    	1. Mass is modelled as a unitless value uniform between the supply units, and another maximum load value for the AS.
     	2. The unit is abstracted away as the relative mass is all that matters. Individual mass of the supply units however, isn't abstracted away.
     6. Corridors
     	1. These are modelled as two edges between the sectors it is between, representing the two ways that one can pass through a corridor. The direction of the corridor is modelled as an cardinal angle.
-    	2. The shape of the corridor and the roughness of it is abstracted away as it is assumed that currently all corridors are traversable by the AS. This may or may not be a safe abstraction. The length of these corridors are abstracted away as they have the same length and the stability is abstracted away as it is assumed that currently conditions are stable.
+    	2. The shape of the corridor and the roughness of it is abstracted away as it is assumed that all corridors are traversable by the AS. This may or may not be a safe abstraction. The length of these corridors are abstracted away as they have the same length and the stability is abstracted away as it is assumed that conditions are stable in version 1.
     7. Sectors
     	1. These are modelled as Vertices on the graph G.
     	2. The size and shape of the sectors are abstracted away as they are all assumed to be the same and traversable by the AS. Also the stability isn't modelled as it is assumed to be stable.
@@ -1012,10 +1035,10 @@ def _(mo):
     	1. These are modelled (in the environment) with a location (being a vertex on the graph), a cardinal direction and a maximum load capacity.
     	2.
     		- a real number indicating how many supply units AS can carry at once. (that is different from the weight, right now they are the same so this is not necessary)
-    		- total energy of the AS. (currently irrelevant, the AS has more than enough energy)
+    		- total energy of the AS. (currently irrelevant in the version 1 problem scope, the AS has more than enough energy)
     		- SUs that the AS has been assigned to extract. (all of them so doesn't need to be explicitly mentioned to the AS)
-    		- assigned extraction point for the AS. (doesn't matter as AS can exit at any extraction point currently)
-    		- speed of the AS. (doesn't matter as time is currently irrelevant)
+    		- assigned extraction point for the AS. (doesn't matter as AS can exit at any extraction point)
+    		- speed of the AS. (doesn't matter as time is irrelevant in the version 1 problem scope)
     """)
     return
 
@@ -1170,16 +1193,16 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Known properties of the problem:
+    Known properties of the version 1 problem:
 
-    - (currently) all edges have the same weight, so it can be treated as an unweighted graph.
-    - (currently) the graph is a tree
-    - (currently) the maximum degree of any vertex is 4 as it is in a grid, meaning it is a 'sparse' graph for the sake of computation. (so an adjacency list is the way to go here).
+    - all edges have the same weight, so it can be treated as an unweighted graph.
+    - the graph is a tree
+    - the maximum degree of any vertex is 4 as it is in a grid, meaning it is a 'sparse' graph for the sake of computation. (so an adjacency list is the way to go here).
     - There are 5 supply units
     - There are 2 exits.
     - There are ||V|| = 144 sectors.
 
-    BFS is currently the best way to find the shortest path from a node to all nodes O(V+E).
+    BFS is the best way to find the shortest path from a node to all nodes O(V+E) for an unweighted graph.
 
     Note: if edge traversal cost starts to differ (but stays positive) use Dijkstra's instead of BFS, O(log(V)(V+E)).
 
@@ -1298,7 +1321,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Every option above has its merits and its drawbacks, but option 3 seems to be the most optimal for the current situation as it balances speed with finding the optimal solution. Its time complexity is O(#Exits(V+E)) (though it should be noted that for small V or E other solutions are likely faster), which is only always beaten by the DFS algorithm.
+    Every option above has its merits and its drawbacks, but option 3 seems to be the most optimal for the version 1 problem as it balances speed with finding the optimal solution. Its time complexity is O(#Exits(V+E)) (though it should be noted that for small V or E other solutions are likely faster), which is only always beaten by the DFS algorithm.
 
     Compared to the Brute force option, with time complexity O((V+E)S+S!) where S is #of supply units, the BFS + DFS solution is significantly faster for large values of S.
 
@@ -1875,9 +1898,9 @@ def _(mo):
     mo.md(r"""
     Scope: undirected trees.
 
-    P.O.I. = Points of Interest, here meaning entries, exits and supply units.
+    POI = Points of Interest, here meaning entries, exits and supply units.
 
-    Conjecture: A shortest walk containing all P.O.I. (points of interest) ending at a specific node can be found utilising a modified DFS on a subtree with only P.O.I. as leaf nodes.
+    Conjecture: A shortest walk containing all POI (points of interest) ending at a specific node can be found utilising a modified DFS on a subtree with only POI as leaf nodes.
 
     Lemma 1: to visit all nodes and return to the source, DFS provides a shortest walk.
     1. Since to get to a node from another node there is only one path as G is a tree.
@@ -1906,10 +1929,10 @@ def _(mo):
     - As every node in a graph is either a parent of a leaf node or a leaf node, all nodes must be traversed if all leaf nodes are to be traversed.
     - As all nodes must be traversed, this problem falls under lemma 4, showing lemma 5 to be true.
 
-    Applying to a specific P.O.I:
-    - consider a minimal subtree of the tree that is big enough to contain all the P.O.I.
-    - This means that all leaf nodes will be P.O.I. as otherwise they could be trimmed.
-    - Lemma 5 applies here meaning that the shortest walk to contain the P.O.I is 2sum(E) - dist(source,exit) but sum(E) is of edges in the the subgraph.
+    Applying to a specific POI:
+    - consider a minimal subtree of the tree that is big enough to contain all the POI
+    - This means that all leaf nodes will be POI as otherwise they could be trimmed.
+    - Lemma 5 applies here meaning that the shortest walk to contain the POI is 2sum(E) - dist(source,exit) but sum(E) is of edges in the the subgraph.
     - Q.E.D.
     """)
     return
@@ -1947,7 +1970,7 @@ def _(mo):
     - The graph G is used in BFS to find the neighbours of a vertex v, with G.vertices().
     Mismatch Problems between BFS+DFS algorithm and part A's ADTs.
 
-    My ADT design is a bit over the top including lots of details in multiple places as well as some parts that aren't currently relevant to the problem, such as ASP, AS, SUP and GP as they are currently static, which my algorithm ignores.<br>
+    My ADT design is a bit over the top including lots of details in multiple places as well as some parts that aren't relevant to the version 1 problem, such as ASP, AS, SUP and GP as they are static, which my algorithm ignores.<br>
     In part A, I call the graph the combination of two sets--V and E--but then I call it its own ADT which I use in the pseudocode and python.
     """)
     return
