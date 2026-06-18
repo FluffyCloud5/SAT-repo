@@ -702,7 +702,18 @@ def _(
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # Problem Outline (memo 1):
+    ### Ammendments to memo 1
+
+    A - Problem Specification
+    -
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    # Problem Outline (memo 2): <!-- #TODO change from memo 1 to 2 -->
 
     Seismic activity has destabilised the Emberlight Subterranean Research Complex (ESRC). Five critical supply units — designated S1 through S5 — remain scattered throughout the structure and are to be recovered.
 
