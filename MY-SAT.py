@@ -985,10 +985,11 @@ def _(mo):
 
     ### Objectives
 
-    1. Aims to maximise supply unit recovery.
-    2. Aims to minimise energy cost. In version 1, this is proportional to the number of edges traversed in the walk, so ||walk|| should be minimised. This is a lower priority compared to the other objective.
+    1. Maximise supply unit recovery.
+    2. Minimise energy cost. In version 1, this is proportional to the number of edges traversed in the walk, so ||walk|| should be minimised. This is a lower priority compared to the first objective.
+    3. Minimise computational time of the algorithm
 
-    These two objectives mean that in the version 1 problem, the objective is to minimize the energy cost of the walk collecting all supply units and making it to the exit.
+    These three objectives mean that in the version 1 problem, the objective is to compute the shortest walk collecting all supply units and making it to the exit with a minimal computational time. This is as the version 1 problem is quite small and therefore even a bruteforce approach is relatively fast.
     """)
     return
 
@@ -1004,41 +1005,49 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    1. Position
-    	1. It is modelled as a vertex on a graph of the Sector Grid, in relation to other vertices on G.
-    	2. The direct position (for example as GPS coordinates) is abstracted away and only shown in reference to that of the starting vertex (the entry), as the AS only needs to know where in the sector grid it is, not the whole world
-    2. Direction
-    	1. This is modelled as a cardinal angle assigned to each edge of the graph G and the direction that the AS is facing. 0º doesn't have to be north, it only has to be consistent.
-    	2. The physically layout of the sector grid is abstracted away into this grid, as it only matters how to get from one sector to another sector to be able to traverse the whole grid. This can be calculated using the direction. (i.e. only relative space matters, not absolute.)
-    3. Length
-    	1. One unit of length is modelled using a real-valued number in the properties of the edges of the graph (in EP). This is set to 1 for all edges.
-    	2. The length of an edge (i.e. a corridor) can be abstracted away as in version 1 all corridors have the same length, meaning the AS only has to move in multiples of the length of one of the edges of the graph.
-    4. Time
-    	1. Time is not modelled in the abstraction of version 1.
-    	2. This is a safe abstraction as conditions are stable.
-    5. Mass
-    	1. Mass is modelled as a unitless value uniform between the supply units, and another maximum load value for the AS.
-    	2. The unit is abstracted away as the relative mass is all that matters. Individual mass of the supply units however, isn't abstracted away.
-    6. Corridors
-    	1. These are modelled as two edges between the sectors it is between, representing the two ways that one can pass through a corridor. The direction of the corridor is modelled as an cardinal angle.
-    	2. The shape of the corridor and the roughness of it is abstracted away as it is assumed that all corridors are traversable by the AS. This may or may not be a safe abstraction. The length of these corridors are abstracted away as they have the same length and the stability is abstracted away as it is assumed that conditions are stable in version 1.
-    7. Sectors
-    	1. These are modelled as Vertices on the graph G.
-    	2. The size and shape of the sectors are abstracted away as they are all assumed to be the same and traversable by the AS. Also the stability isn't modelled as it is assumed to be stable.
-    8. Walls
-    	1. These are modelled by the lack of an edge connecting the Vertices representing the sectors either side of it, marking it as untraversable.
-    	2. Its existence is somewhat abstracted away and only marked with a 'this is not a route' label, which is fine since the AS can then choose simply never to try going through the wall.
-    9. Supply Units
-    	1.  These are modelled with a location (being the vertex of G on which they sit) and their weight.
-    	2. The supply units are assumed to all be strong enough to handle the AS's handling of them and have an arbitrarily long lifespan. They are also assumed to be of a size that the AS can handle and all be equally important. These are assumed as there has been no indication otherwise while also not impacting the AS's task.
-    10. Autonomous Systems (AS)
-    	1. These are modelled (in the environment) with a location (being a vertex on the graph), a cardinal direction and a maximum load capacity.
-    	2.
-    		- a real number indicating how many supply units AS can carry at once. (that is different from the weight, right now they are the same so this is not necessary)
-    		- total energy of the AS. (currently irrelevant in the version 1 problem scope, the AS has more than enough energy)
-    		- SUs that the AS has been assigned to extract. (all of them so doesn't need to be explicitly mentioned to the AS)
-    		- assigned extraction point for the AS. (doesn't matter as AS can exit at any extraction point)
-    		- speed of the AS. (doesn't matter as time is irrelevant in the version 1 problem scope)
+    Position
+    1. The position of on object is defined as a vertex of the graph G, with edges describing its position relative to other vertices.
+    2. The direct position (for example as GPS coordinates) is abstracted away and only shown in reference to that of the starting vertex (the entry), as the AS only needs to know where it is in the sector grid relative to other vertices.
+
+    Direction
+    1. This is modelled as a cardinal angle assigned to each edge of the graph G and the direction that the AS is facing. 0º doesn't have to be north, it only has to be consistent.
+    2. The physically layout of the sector grid is abstracted away into this grid, as it only matters how to get from one sector to another sector to be able to traverse the whole grid. This can be calculated using the cardinal direction. (i.e. only relative space matters, not absolute.)
+
+    Length
+    1. The length of an edge (i.e. a corridor) can be abstracted away as in version 1, all corridors have the same length, meaning the AS only has to move in multiples of one edge length of the graph.
+
+    Time
+    1. Time is not modelled in the abstraction of version 1.
+    2. This is a safe abstraction as conditions are stable.
+
+    Mass
+    1. Mass is modelled in units. The weight of supply units are all identical (weight = 1) so they can be abstracted away.
+    2. As the AS can carry up to 5 units of weight, this is identical to saying the AS can carry up to 5 supply units.
+    3. The unit is some weight, which is irrelative, it only matters relative to other masses.
+
+    Corridors
+    1. These are modelled as two edges between the sectors it is between, representing the two ways that one can pass through a corridor. The direction of the corridor is modelled as an cardinal angle.
+    2. The shape of the corridor and the roughness of it is abstracted away as it is assumed that all corridors are traversable by the AS. This may or may not be a safe abstraction. The length of these corridors are abstracted away as they have the same length and the stability is abstracted away as it is assumed that conditions are stable in version 1.
+
+    Sectors
+    1. These are modelled as vertices on the graph G.
+    2. The size and shape of the sectors are abstracted away as they are all assumed to be the same and traversable by the AS. Also the stability isn't modelled as it is assumed to be stable.
+
+    Walls
+    1. These are modelled by the lack of an edge connecting the vertices representing the sectors either side of it, marking it as untraversable.
+    2. Its existence is somewhat abstracted away and only marked with a 'this is not a route' label, which is fine since the AS can then choose simply never to try going through the wall.
+
+    Supply Units
+    1.  These are modelled with a location (being the vertex of G on which they sit).
+    2. The supply units are assumed to all be strong enough to handle the AS's handling of them, have an arbitrarily long lifespan, be a size that the AS can handle and all be equally important. These are assumed as there has been no indication otherwise.
+
+    Autonomous Systems (AS)
+    1. These are modelled (in the environment) with a location (being a vertex on the graph) and a maximum load capacity.
+        - a real number indicating how many supply units AS can carry at once. (that is different from the weight, right now they are the same so this is not necessary)
+        - total energy of the AS. (currently irrelevant in the version 1 problem scope, the AS has more than enough energy)
+        - SUs that the AS has been assigned to extract. (all of them so doesn't need to be explicitly mentioned to the AS)
+        - assigned extraction point for the AS. (doesn't matter as AS can exit at any extraction point)
+        - speed of the AS. (doesn't matter as time is irrelevant in the version 1 problem scope)
     """)
     return
 
@@ -1072,8 +1081,7 @@ def _(mo):
     contains(m: Map, k: Key) → Boolean<br>
     keys(m: Map) → Set[Keys]
 
-    **Note:**<br>
-
+    Note:<br>
     - map_name[k] ⇔ map_name.lookup(k) (when getting the value with key k)
     - map_name[k] ← e ⇔ map_name.set(k,e) (when setting the value at key k to e)
 
@@ -1144,11 +1152,9 @@ def _(mo):
 
     #### Inputs:
 
-    Graph (of the Sector Grid),
-
-    maps (of properties of the graph, vertices, edges, autonomous systems ASs, supply units SUs),
-
-    sets (of the ASs and the SUs.)
+    - A Graph of the Sector Grid,
+    - Maps of properties of the graph, vertices, edges, autonomous systems ASs and supply units SUs.
+    - Sets of the ASs and the SUs.
 
     The graph is ideal to model a 2d space with discrite points where one can be, as graphs are well suited to finding paths and walks in space.<br>
     The sets are ideal to convey what is in the environment as order doesn't matter and it can store many items effectively.
@@ -1321,11 +1327,11 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Every option above has its merits and its drawbacks, but option 3 seems to be the most optimal for the version 1 problem as it balances speed with finding the optimal solution. Its time complexity is O(#Exits(V+E)) (though it should be noted that for small V or E other solutions are likely faster), which is only always beaten by the DFS algorithm.
+    Every option above has its merits and its drawbacks, but option 3 seems to be the most optimal for the version 1 problem as it balances speed with finding the optimal solution. Its time complexity is O(#Exits(V+E)), which is only always beaten by the DFS algorithm in terms of speed.
 
     Compared to the Brute force option, with time complexity O((V+E)S+S!) where S is #of supply units, the BFS + DFS solution is significantly faster for large values of S.
 
-    A significant drawback of the BFS + DFS algorithm is that it relies on the graph being a tree, which might not be the case sometimes, leading to no solutions in that case.
+    A significant drawback of the BFS + DFS algorithm is that it relies on the graph being a tree which might not be the case in versions beyond version 1, leading to a potentially suboptimal solution for graphs with cycles.
     """)
     return
 
@@ -1751,7 +1757,7 @@ def _(mo):
     - GP: (Graph Properties)
 
 
-    **The Inputs:**
+    **Input values:**
     """)
     return
 
@@ -1760,7 +1766,7 @@ def _(mo):
 def _(AS, ASP, EP, G, GP, SU, SUP, VP, mo):
     _G = f"""
     ```python
-    G = "{G}" = "(in adjencey list form)" { {v:list(dict(G[v]).keys()) for v in G.nodes()} }
+    G = {G} = (in adjancey-list form) { {v:list(dict(G[v]).keys()) for v in G.nodes()} }
     ```
     """
     _SU = f"""
@@ -1896,7 +1902,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Scope: undirected trees.
+    Scope: undirected trees. (can be weighted)
 
     POI = Points of Interest, here meaning entries, exits and supply units.
 
@@ -1934,6 +1940,16 @@ def _(mo):
     - This means that all leaf nodes will be POI as otherwise they could be trimmed.
     - Lemma 5 applies here meaning that the shortest walk to contain the POI is 2sum(E) - dist(source,exit) but sum(E) is of edges in the the subgraph.
     - Q.E.D.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #### Proof Summary
+
+    As the BFS+DFS algorithm utilises DFS in the manner discussed in the proof, BFS+DFS returns the shortest walk for the version 1 problem.
     """)
     return
 
