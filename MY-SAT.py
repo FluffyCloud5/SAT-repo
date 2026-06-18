@@ -86,9 +86,34 @@ def _(seed_input):
     return (seed,)
 
 
+@app.cell
+def _(mo):
+    memo_input = mo.ui.dropdown(
+        value="memo 1",
+        options = ["memo 1", "memo A1", "memo A2"],
+        label="Memo: "
+    )
+    mo.vstack([
+        mo.md("### Select the memo you wish to view from the dropdown."),
+        memo_input
+    ]) 
+    return (memo_input,)
+
+
+@app.cell
+def _(memo_input):
+    v1 = memo_input.value == "memo 1"
+    v2 = memo_input.value == "memo A1"
+    v3 = memo_input.value == "memo A2"
+    return (v1,)
+
+
 @app.cell(hide_code=True)
-def _(COLS, ROWS, nx, random, seed):
+def _(COLS, ROWS, mo, nx, random, seed, v1):
     # make MR version
+
+    mo.stop(not v1)
+
     def _neighbours(cols, rows, c, r):
         for dc, dr in [(1,0),(-1,0),(0,1),(0,-1)]:
             nc, nr = c+dc, r+dr
@@ -150,7 +175,7 @@ def _(COLS, ROWS, nx, random, seed):
                 used.add(n)
         return result[:5]
 
-    def get_facility(seed):
+    def get_facility_v1(seed):
         rng = random.Random(int(seed))
         graph = _build_graph(COLS, ROWS, rng)
         entry  = (0, 0)
@@ -162,7 +187,7 @@ def _(COLS, ROWS, nx, random, seed):
         return graph, entry, exit_a, exit_b, supplies
 
     fac_graph_v1, fac_entry_v1, fac_exit_a_v1, fac_exit_b_v1, fac_supplies_v1 = \
-        get_facility(seed)
+        get_facility_v1(seed)
     return (
         fac_entry_v1,
         fac_exit_a_v1,
@@ -173,9 +198,9 @@ def _(COLS, ROWS, nx, random, seed):
 
 
 @app.cell(hide_code=True)
-def _(COLS, ROWS, mpatches, plt):
+def _(COLS, ROWS, mo, mpatches, plt, v1):
     # Define Draw Facility
-
+    mo.stop(not v1)
     COL_BG       = '#F5F7FA'
     COL_GRID     = '#C8D0DC'
     COL_WALL     = '#44546A'
@@ -660,8 +685,13 @@ def _(
     fac_supplies_v1,
     flat_to_tup_V1,
     make_sub_exits,
+    mo,
+    v1,
 ):
     # coloured graph for BFS+DFS
+
+    mo.stop(not v1)
+
     def _get_sub_dicts(G, AS, SU, VP, EP, SUP, ASP, GP):
         CRUDY_1 = 0
         entry = ASP[CRUDY_1]["location"]
@@ -700,7 +730,9 @@ def _(
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
+
     mo.md(r"""
     # Problem Specification (Version 1):
 
@@ -729,7 +761,8 @@ def _(
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     This notebook explores the development of a design stratergy to complete this task, including
     1. deciding how the facility and mission should be represented computationally;
@@ -745,7 +778,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     ## Definitions:
     Spaces:
@@ -783,7 +817,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     # Part A - Problem Specification:
     """)
@@ -791,7 +826,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     ## A1 - Algorithmic problem statement:
     """)
@@ -799,7 +835,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     ### Inputs:
 
@@ -850,7 +887,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md("""
     #### Maps
 
@@ -860,7 +898,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     ##### Map 1 - Edge Properties (EP):
 
@@ -1001,7 +1040,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     ## A2 - Salient Features:
     """)
@@ -1009,7 +1049,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     Position
     1. The position of on object is defined as a vertex of the graph G, with edges describing its position relative to other vertices.
@@ -1059,7 +1100,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     ## A3 - ADTs for Modelling
     """)
@@ -1067,7 +1109,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     ### ADTs
     **1. Graph (Nielsen, 2026)**<br>
@@ -1187,7 +1230,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     # Part B - Algorithm Design:
     """)
@@ -1195,7 +1239,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     ## Problem properties
     """)
@@ -1203,7 +1248,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     Known properties of the version 1 problem:
 
@@ -1224,7 +1270,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     ## Options
     """)
@@ -1232,7 +1279,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     ### Option 0: DFS
 
@@ -1323,7 +1371,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     ## Discussion
     """)
@@ -1331,7 +1380,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     Every option above has its merits and its drawbacks, but option 3 seems to be the most optimal for the version 1 problem as it balances speed with finding the optimal solution. Its time complexity is O(#Exits(V+E)), which is only always beaten by the DFS algorithm in terms of speed.
 
@@ -1343,7 +1393,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     # Part C - Pseudocode
     """)
@@ -1351,7 +1402,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     ## C1 - Algorithm in pseudocode (Nielsen, 2026)
     """)
@@ -1359,7 +1411,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     Pseudocode: (**Please note that marimo md renders indentation wrong for my pseudocode, please refer to the raw md**)
 
@@ -1552,7 +1605,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     ## C2 - Algorithm in python
     """)
@@ -1560,7 +1614,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     ```python
     # G = (V,E)
@@ -1734,7 +1789,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     ## C3 - Displaying the Process
     """)
@@ -1742,7 +1798,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     ### Inputs
     """)
@@ -1750,7 +1807,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(rf"""
     the inputs are: G, SU, AS, EP, VP, SUP, ASP, GP.
     - G: (Graph of a Sector Grid) = (V,E)
@@ -1769,7 +1827,8 @@ def _(mo):
 
 
 @app.cell
-def _(AS, ASP, EP, G, GP, SU, SUP, VP, mo):
+def _(AS, ASP, EP, G, GP, SU, SUP, VP, mo, v1):
+    mo.stop(not v1)
     _G = f"""
     ```python
     G = {G} = (in adjancey-list form) { {v:list(dict(G[v]).keys()) for v in G.nodes()} }
@@ -1826,7 +1885,8 @@ def _(AS, ASP, EP, G, GP, SU, SUP, VP, mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     ### Outputs
     """)
@@ -1834,7 +1894,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     Here is an animation showing the walk taken by the AS. The red node is the one currently occupied by the AS.
 
@@ -1844,9 +1905,9 @@ def _(mo):
 
 
 @app.cell
-def _(make_gif_v1, mo, seed, time):
+def _(make_gif_v1, mo, seed, time, v1):
     #DISPLAY GIF
-
+    mo.stop(not v1)
     if(make_gif_v1()):
         time.sleep(10)
     mo.image("figs\\"+ str(seed) + ".gif")
@@ -1854,15 +1915,17 @@ def _(make_gif_v1, mo, seed, time):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     **Features of the walk:**
     """)
     return
 
 
-@app.cell
-def _(BFS_DFS_time_taken, memory_used, mo, out_v1):
+@app.cell(hide_code=True)
+def _(BFS_DFS_time_taken, memory_used, mo, out_v1, v1):
+    mo.stop(not v1)
     mo.callout(mo.hstack([
             mo.stat(label="Length",    value=str(out_v1["length"])),
             mo.stat(label="Time to Compute",    value=str(round(BFS_DFS_time_taken,4))+" sec"),
@@ -1873,7 +1936,8 @@ def _(BFS_DFS_time_taken, memory_used, mo, out_v1):
 
 
 @app.cell(hide_code=True)
-def _(flat_to_tup_V1, mo, out_v1):
+def _(flat_to_tup_V1, mo, out_v1, v1):
+    mo.stop(not v1)
     mo.callout(mo.md(rf"""
     **walk list printed out in tuple form:**
     ```python
@@ -1889,7 +1953,8 @@ def _(flat_to_tup_V1, mo, out_v1):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     # Part D - Justification
     """)
@@ -1897,7 +1962,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     ### DFS returns best walk proof
     """)
@@ -1905,7 +1971,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     Scope: undirected trees. (can be weighted)
 
@@ -1950,7 +2017,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     #### Proof Summary
 
@@ -1960,7 +2028,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     ### Suitability:
     """)
@@ -1968,7 +2037,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     The ESRC is a **undirected, unweighted tree** meaning that my BFS+DFS algorithm--which requires an unweighted and undirected graph and returns an optimal solution for a tree--is a perfect match. It is also rather efficient (O((V+E)#Exits)), so for this particular problem (as #exits = 2 and it is sparse with ||E|| =143), it outperforms more general solutions, such as brute force and greedy.
     """)
@@ -1976,7 +2046,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     ### Coherence:
     """)
@@ -1984,7 +2055,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md("""
     ADTs Used:
     - the map VP--for vertex properties--is called with VP[v]["supply_unit"] to check if a sector has a supply unit, in order to help build a subtree of G.
@@ -1998,7 +2070,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     ### Constraints:
     """)
@@ -2006,7 +2079,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _(mo, v1):
+    mo.stop(not v1)
     mo.md(r"""
     1. The first vertex of the walk AS makes must be an entry.
         - The source node is the first node in the walk from DFS.
