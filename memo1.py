@@ -290,10 +290,10 @@ def _(
     # turn Mr Nielsens implimentation into mine :)
 
 
-    def tup_to_flat_V1(a):
+    def tup_to_flat_v1(a):
         return a[0] + COLS*a[1]
 
-    def flat_to_tup_V1(a):
+    def flat_to_tup_v1(a):
         return (a % COLS,int(( a- (a%COLS))/COLS))
 
     #def K_to_Mr(G, AS, SU, VP, EP, SUP, ASP, GP):
@@ -310,8 +310,8 @@ def _(
         G.add_nodes_from([v for v in range(ROWS*COLS)])
 
         for edge in fac_graph_v1.edges():
-            G.add_edge(tup_to_flat_V1(edge[0]),tup_to_flat_V1(edge[1]))
-            G.add_edge(tup_to_flat_V1(edge[1]),tup_to_flat_V1(edge[0]))
+            G.add_edge(tup_to_flat_v1(edge[0]),tup_to_flat_v1(edge[1]))
+            G.add_edge(tup_to_flat_v1(edge[1]),tup_to_flat_v1(edge[0]))
 
         SU = {i for i in range(len(fac_supplies_v1))}
 
@@ -319,11 +319,11 @@ def _(
 
 
         VP: dict[dict[bool,bool,int]] = {i:{"is_entry":False, "is_exit": False, "supply_unit": None} for i in range(ROWS*COLS)}
-        VP[tup_to_flat_V1(fac_entry_v1)]["is_entry"] = True
-        VP[tup_to_flat_V1(fac_exit_a_v1)]["is_exit"] = True
-        VP[tup_to_flat_V1(fac_exit_b_v1)]["is_exit"] = True
+        VP[tup_to_flat_v1(fac_entry_v1)]["is_entry"] = True
+        VP[tup_to_flat_v1(fac_exit_a_v1)]["is_exit"] = True
+        VP[tup_to_flat_v1(fac_exit_b_v1)]["is_exit"] = True
         for i in range(len(fac_supplies_v1)):
-            VP[tup_to_flat_V1(fac_supplies_v1[i])]["supply_unit"] = i
+            VP[tup_to_flat_v1(fac_supplies_v1[i])]["supply_unit"] = i
 
 
 
@@ -341,16 +341,16 @@ def _(
                 raise Exception("Something went wrong!")
 
 
-        SUP: dict[dict[int]] = {i:{"location": tup_to_flat_V1(fac_supplies_v1[i])} for i in range(len(fac_supplies_v1))}
+        SUP: dict[dict[int]] = {i:{"location": tup_to_flat_v1(fac_supplies_v1[i])} for i in range(len(fac_supplies_v1))}
 
-        ASP = {0:{"location":  tup_to_flat_V1(fac_entry_v1)}}
+        ASP = {0:{"location":  tup_to_flat_v1(fac_entry_v1)}}
 
         GP = {}
         return G, AS, SU, VP, EP, SUP, ASP, GP
 
 
     G, AS, SU, VP, EP, SUP, ASP, GP = Mr_to_K_V1(fac_graph_v1, fac_entry_v1, fac_exit_a_v1, fac_exit_b_v1, fac_supplies_v1)
-    return AS, ASP, EP, G, GP, SU, SUP, VP, flat_to_tup_V1
+    return AS, ASP, EP, G, GP, SU, SUP, VP, flat_to_tup_v1
 
 
 @app.cell(hide_code=True)
@@ -542,7 +542,7 @@ def _(AS, ASP, BFS_DFS, EP, G, GP, SU, SUP, VP, time, tracemalloc):
     walk_v1 = out_v1["walk"]
 
     tracemalloc.stop()
-    # draw_facility_v1(fac_graph_v1, fac_entry_v1, fac_exit_a_v1, fac_exit_b_v1, fac_supplies_v1, highlight_path=[flat_to_tup_V1(v) for v in walk_v1], node_colors= { flat_to_tup_V1(walk_v1[len(walk_v1)-1]):"red"})
+    # draw_facility_v1(fac_graph_v1, fac_entry_v1, fac_exit_a_v1, fac_exit_b_v1, fac_supplies_v1, highlight_path=[flat_to_tup_v1(v) for v in walk_v1], node_colors= { flat_to_tup_v1(walk_v1[len(walk_v1)-1]):"red"})
     return BFS_DFS_time_taken, memory_used, out_v1, walk_v1
 
 
@@ -555,10 +555,11 @@ def _(
     fac_exit_b_v1,
     fac_graph_v1,
     fac_supplies_v1,
-    flat_to_tup_V1,
+    flat_to_tup_v1,
     imageio,
     os,
     plt,
+    rect,
     seed,
     walk_v1,
 ):
@@ -567,9 +568,9 @@ def _(
         leading = "#FF0000"
         base_col = '#58D4D3'
 
-        _col_dict = {flat_to_tup_V1(v):base_col for v in _walk}
+        _col_dict = {flat_to_tup_v1(v):base_col for v in _walk}
 
-        _col_dict[flat_to_tup_V1(_walk[len(_walk)-1])] =  leading
+        _col_dict[flat_to_tup_v1(_walk[len(_walk)-1])] =  leading
 
         return _col_dict
 
@@ -583,23 +584,30 @@ def _(
 
         _fig, _ax= draw_facility_v1(fac_graph_v1, fac_entry_v1, fac_exit_a_v1, fac_exit_b_v1, fac_supplies_v1, legend = False)
 
+        leading = "#FF0000"
+        base_col = '#58D4D3'
+
+        prev_rect = None
+
+        _highlight_path = [flat_to_tup_v1(v) for v in walk_v1]
         for _i in range(len(walk_v1)): 
-            _highlight_path = [flat_to_tup_V1(v) for v in walk_v1[0:_i+1]]
-            _node_colors = front_focus_v1(walk_v1[0:_i+1])
+            #path
+            if _i > 0: 
+                px = [c + 0.5 for c,r in _highlight_path[_i:_i+1]]
+                py = [r + 0.5 for c,r in _highlight_path[_i:_i+1]]
+                _ax.plot(px, py, color=COL_PATH, lw=1.8, linestyle='--', alpha=0.75, zorder=4)
 
-            if _highlight_path and len(_highlight_path) > 1:
-                    px = [c + 0.5 for c,r in _highlight_path]
-                    py = [r + 0.5 for c,r in _highlight_path]
-                    path_plot, = _ax.plot(px, py, color=COL_PATH, lw=1.8, linestyle='--', alpha=0.75, zorder=4)
-
-
-            if _node_colors:
-                rectangles = []
-                for node, color in _node_colors.items():
-                    c, r = node
-                    rect = plt.Rectangle((c, r), 1, 1, color=color, alpha=0.50, zorder=2)
-                    rectangles.append(rect)
-                    _ax.add_patch(rect)
+            #coloring nodes
+            if _i > 0:
+                rect.remove()
+                c, r = flat_to_tup_v1(walk_v1[_i-1])
+                rect2 = plt.Rectangle((c, r), 1, 1, color=base_col, alpha=0.50, zorder=2)
+                _ax.add_patch(rect2)
+        
+            c, r = flat_to_tup_v1(walk_v1[_i])
+            rect = plt.Rectangle((c, r), 1, 1, color=leading, alpha=0.50, zorder=2)
+            _ax.add_patch(rect)
+        
 
 
             name = "figs\\"
@@ -608,12 +616,7 @@ def _(
             name += ".png"
 
             plt.savefig(name)
-            if _highlight_path and len(_highlight_path) > 1:
-                path_plot.remove()
 
-            if _node_colors:
-                for rect in rectangles:
-                    rect.remove()
         plt.close()
 
         list_of_im_paths = []
@@ -659,7 +662,7 @@ def _(
     fac_exit_b_v1,
     fac_graph_v1,
     fac_supplies_v1,
-    flat_to_tup_V1,
+    flat_to_tup_v1,
     make_sub_exits,
 ):
     # coloured graph for BFS+DFS
@@ -688,12 +691,12 @@ def _(
     _node_colours = {}
     for _k in _sub_SU.keys():
         if not _sub_exit[_k] and not _sub_SU[_k]:
-            _node_colours[flat_to_tup_V1(_k)] = "#000000"
+            _node_colours[flat_to_tup_v1(_k)] = "#000000"
         elif not _sub_exit[_k] and _sub_SU[_k]:
-            _node_colours[flat_to_tup_V1(_k)] = "#D0D0E0"
+            _node_colours[flat_to_tup_v1(_k)] = "#D0D0E0"
             pass
         else :
-            #_node_colours[flat_to_tup_V1(_k)] = "#58D4D3"
+            #_node_colours[flat_to_tup_v1(_k)] = "#58D4D3"
             pass
 
     draw_facility_v1(fac_graph_v1, fac_entry_v1, fac_exit_a_v1, fac_exit_b_v1, fac_supplies_v1,node_colors=_node_colours, legend= False)
@@ -1874,11 +1877,11 @@ def _(BFS_DFS_time_taken, memory_used, mo, out_v1):
 
 
 @app.cell(hide_code=True)
-def _(flat_to_tup_V1, mo, out_v1):
+def _(flat_to_tup_v1, mo, out_v1):
     mo.callout(mo.md(rf"""
     **walk list printed out in tuple form:**
     ```python
-    {[flat_to_tup_V1(v) for v in out_v1["walk"]]}
+    {[flat_to_tup_v1(v) for v in out_v1["walk"]]}
     ```
 
     **raw output:**

@@ -209,10 +209,10 @@ def _(mpatches, plt):
     COL_FRONTIER = '#F4C97A'
     COL_CURRENT  = '#E8603C'
     COL_JUNCTION = '#7A1E2C'
-    _GAP = 0  # grid-unit gap between wings in the visualisation
+    _GAP = 1  # grid-unit gap between wings in the visualisation
 
     def draw_facility_v2(fac, highlight_path=None, node_colors=None,
-                        supply_collected=None, title="Multi-Wing Facility", legend = True):
+                        supply_collected=None, title="Multi-Wing Facility", legend = True, grid = True):
         wc = fac['wing_cols']
         wr = fac['wing_rows']
         nw = fac['n_wings']
@@ -232,14 +232,14 @@ def _(mpatches, plt):
             ox = xoff(w)
 
             # Grid lines
-            _ = """
-            for c in range(wc + 1):
-                ax.plot([ox + c, ox + c], [0, wr],
-                        color=COL_GRID, lw=0.4, zorder=1)
-            for r in range(wr + 1):
-                ax.plot([ox, ox + wc], [r, r],
-                        color=COL_GRID, lw=0.4, zorder=1)
-                        """
+            if grid:
+                for c in range(wc + 1):
+                    ax.plot([ox + c, ox + c], [0, wr],
+                            color=COL_GRID, lw=0.4, zorder=1)
+                for r in range(wr + 1):
+                    ax.plot([ox, ox + wc], [r, r],
+                            color=COL_GRID, lw=0.4, zorder=1)
+                        
 
             # Wing border
             ax.add_patch(plt.Rectangle(
