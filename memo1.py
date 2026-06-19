@@ -190,7 +190,7 @@ def _(COLS, ROWS, mpatches, plt):
     def draw_facility_v1(graph, entry, exit_a, exit_b, supplies,
                       highlight_path=None, title="Facility Layout",
                       node_colors=None, supply_collected=None,
-                      figsize=(8, 8), legend=True):
+                      figsize=(8, 8), legend=True, grid = True):
 
 
 
@@ -200,10 +200,11 @@ def _(COLS, ROWS, mpatches, plt):
         fig.patch.set_facecolor(COL_BG)
 
         # Grid
-        for c in range(COLS + 1):
-            ax.plot([c, c], [0, ROWS], color=COL_GRID, lw=0.4, zorder=1)
-        for r in range(ROWS + 1):
-            ax.plot([0, COLS], [r, r], color=COL_GRID, lw=0.4, zorder=1)
+        if grid:
+            for c in range(COLS + 1):
+                ax.plot([c, c], [0, ROWS], color=COL_GRID, lw=0.4, zorder=1)
+            for r in range(ROWS + 1):
+                ax.plot([0, COLS], [r, r], color=COL_GRID, lw=0.4, zorder=1)
 
         # Border
         for x0,y0,x1,y1 in [(0,0,COLS,0),(COLS,0,COLS,ROWS),(COLS,ROWS,0,ROWS),(0,ROWS,0,0)]:
@@ -1365,7 +1366,7 @@ def _(mo):
 
     ```
     //1 indexed.
-    FUNCTION ember_rescue(G: Directed Unweighted Graph, SU: Set, AS: Set, VP: Map, EP: Map, SUP: Map, ASP: Map, GP: Map) -> Map
+    FUNCTION BFS_DFS(G: Directed Unweighted Graph, SU: Set, AS: Set, VP: Map, EP: Map, SUP: Map, ASP: Map, GP: Map) -> Map
     	// G = (V,E)
 
 
@@ -1865,7 +1866,7 @@ def _(mo):
 def _(BFS_DFS_time_taken, memory_used, mo, out_v1):
     mo.callout(mo.hstack([
             mo.stat(label="Length",    value=str(out_v1["length"])),
-            mo.stat(label="Time to Compute",    value=str(round(BFS_DFS_time_taken,4))+" sec"),
+            mo.stat(label="Time to Compute",    value=str((int)(BFS_DFS_time_taken*1000))+" ms"),
             mo.stat(label="Memory to Compute",    value=str(round(memory_used/1000,1))+" KB"),
             mo.stat(label="Supply Units Recovered",  value="All"),
         ], gap=0, wrap=True),kind = "info")

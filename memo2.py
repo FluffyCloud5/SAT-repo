@@ -63,6 +63,11 @@ def _(mo):
 
 
 @app.cell
+def _():
+    return
+
+
+@app.cell
 def _(mo):
     #VALUES
     COLS, ROWS =12,12
@@ -77,7 +82,7 @@ def _(mo):
         mo.md("### Enter your seed, then press Tab to rebuild the facility."),
         seed_input
     ])
-    return COLS, ROWS, seed_input
+    return (seed_input,)
 
 
 @app.cell
@@ -86,21 +91,24 @@ def _(seed_input):
     return (seed,)
 
 
-@app.cell(hide_code=True)
-def _(COLS, ROWS, nx, random, seed):
-    # make MR version
+@app.cell
+def _(nx, random, seed_input):
+
+    WING_COLS, WING_ROWS = 10, 10
+
     def _neighbours(cols, rows, c, r):
-        for dc, dr in [(1,0),(-1,0),(0,1),(0,-1)]:
-            nc, nr = c+dc, r+dr
+        for dc, dr in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
+            nc, nr = c + dc, r + dr
             if 0 <= nc < cols and 0 <= nr < rows:
                 yield nc, nr
 
-    def _build_graph(cols, rows, rng):
+    def _build_wing(cols, rows, rng):
+        """Build a single-wing maze as a spanning tree of the grid."""
         visited = [[False] * rows for _ in range(cols)]
-        graph = nx.Graph()
+        g = nx.Graph()
         for c in range(cols):
             for r in range(rows):
-                graph.add_node((c, r), pos=(c + 0.5, r + 0.5))
+                g.add_node((c, r))
 
         def carve(c, r):
             visited[c][r] = True
@@ -108,74 +116,88 @@ def _(COLS, ROWS, nx, random, seed):
             rng.shuffle(dirs)
             for nc, nr in dirs:
                 if not visited[nc][nr]:
-                    graph.add_edge((c, r), (nc, nr), weight=1)
+                    g.add_edge((c, r), (nc, nr), weight=1)
                     carve(nc, nr)
 
         carve(0, 0)
-        for c in range(cols):
-            for r in range(rows):
-                if not visited[c][r]:
-                    for nc, nr in _neighbours(cols, rows, c, r):
-                        if visited[nc][nr]:
-                            graph.add_edge((c, r), (nc, nr), weight=1)
-                            carve(c, r)
-                            break
-        return graph
+        return g
 
-    def _place_supplies(graph, cols, rows, rng, reserved):
-        dead_ends = [n for n in graph.nodes
-                     if graph.degree(n) == 1 and n not in reserved]
-        rng.shuffle(dead_ends)
-        quadrants = [
-            (0, cols//2, 0, rows//2),
-            (cols//2, cols, 0, rows//2),
-            (0, cols//2, rows//2, rows),
-            (cols//2, cols, rows//2, rows),
-        ]
-        result, used = [], set(reserved)
-        for qc1, qc2, qr1, qr2 in quadrants:
-            if len(result) >= 5:
-                break
-            cands = [n for n in dead_ends
-                     if qc1 <= n[0] < qc2 and qr1 <= n[1] < qr2
-                     and n not in used]
-            if cands:
-                result.append(cands[0])
-                used.add(cands[0])
-        for n in dead_ends:
-            if len(result) >= 5:
-                break
-            if n not in used:
-                result.append(n)
-                used.add(n)
-        return result[:5]
+    def facility_v2(seed):
+        int_seed = int(seed)
+        n_wings   = 2 + (int_seed % 3)          # 2, 3, or 4 wings from seed
+        wing_names = ['Alpha', 'Beta', 'Gamma', 'Delta'][:n_wings]
 
-    def get_facility_v1(seed):
-        rng = random.Random(int(seed))
-        graph = _build_graph(COLS, ROWS, rng)
-        entry  = (0, 0)
-        exit_a = (COLS-1, ROWS-1)
-        exit_b = (COLS-1, 0)
+        # Build each wing from a deterministic derived seed
+        wings = []
+        for w in range(n_wings):
+            wrng = random.Random(int_seed * 31 + w * 7919)
+            wings.append(_build_wing(WING_COLS, WING_ROWS, wrng))
+
+        # Inter-wing junctions: 2 corridors per adjacent wing pair
+        # Each junction connects (w, WING_COLS-1, r) to (w+1, 0, r)
+        junctions = []
+        for w in range(n_wings - 1):
+            jrng = random.Random(int_seed * 17 + w * 5003)
+            rows_avail = list(range(2, WING_ROWS - 2))
+            jrng.shuffle(rows_avail)
+            r1, r2 = sorted(rows_avail[:2])
+            junctions.append(((w, WING_COLS - 1, r1), (w + 1, 0, r1)))
+            junctions.append(((w, WING_COLS - 1, r2), (w + 1, 0, r2)))
+
+        # Fixed entry and exits
+        entry  = (0, 0, 0)
+        exit_a = (n_wings - 1, WING_COLS - 1, WING_ROWS - 1)
+        exit_b = (n_wings - 1, WING_COLS - 1, 0)
+
+        # Supply placement: spread across wings, prefer dead-end nodes
+        srng = random.Random(int_seed * 13 + 42)
         reserved = {entry, exit_a, exit_b}
-        rng2 = random.Random(int(seed))
-        supplies = _place_supplies(graph, COLS, ROWS, rng2, reserved)
-        return graph, entry, exit_a, exit_b, supplies
+        for n1, n2 in junctions:
+            reserved.add(n1)
+            reserved.add(n2)
 
-    fac_graph_v1, fac_entry_v1, fac_exit_a_v1, fac_exit_b_v1, fac_supplies_v1 = \
-        get_facility_v1(seed)
-    return (
-        fac_entry_v1,
-        fac_exit_a_v1,
-        fac_exit_b_v1,
-        fac_graph_v1,
-        fac_supplies_v1,
-    )
+        # Collect dead-end candidates per wing
+        per_wing_cands = []
+        for w, wg in enumerate(wings):
+            de = [
+                (w, c, r) for (c, r) in wg.nodes()
+                if wg.degree((c, r)) == 1 and (w, c, r) not in reserved
+            ]
+            srng.shuffle(de)
+            per_wing_cands.append(de)
+
+        # Round-robin: up to 2 supplies per wing, 5 total
+        supplies = []
+        for _ in range(2):
+            for wl in per_wing_cands:
+                if len(supplies) >= 5:
+                    break
+                for n in wl:
+                    if n not in supplies:
+                        supplies.append(n)
+                        break
+            if len(supplies) >= 5:
+                break
+
+        return {
+            'n_wings':    n_wings,
+            'wing_names': wing_names,
+            'wings':      wings,
+            'wing_cols':  WING_COLS,
+            'wing_rows':  WING_ROWS,
+            'entry':      entry,
+            'exit_a':     exit_a,
+            'exit_b':     exit_b,
+            'supplies':   supplies[:5],
+            'junctions':  junctions,
+        }
+
+    fac_v2 = facility_v2(seed_input.value)
+    return (fac_v2,)
 
 
-@app.cell(hide_code=True)
-def _(COLS, ROWS, mpatches, plt):
-    # Define Draw Facility
-
+@app.cell
+def _(mpatches, plt):
     COL_BG       = '#F5F7FA'
     COL_GRID     = '#C8D0DC'
     COL_WALL     = '#44546A'
@@ -186,106 +208,162 @@ def _(COLS, ROWS, mpatches, plt):
     COL_VISITED  = '#B8D8D7'
     COL_FRONTIER = '#F4C97A'
     COL_CURRENT  = '#E8603C'
+    COL_JUNCTION = '#7A1E2C'
+    _GAP = 0  # grid-unit gap between wings in the visualisation
 
-    def draw_facility_v1(graph, entry, exit_a, exit_b, supplies,
-                      highlight_path=None, title="Facility Layout",
-                      node_colors=None, supply_collected=None,
-                      figsize=(8, 8), legend=True):
+    def draw_facility_v2(fac, highlight_path=None, node_colors=None,
+                        supply_collected=None, title="Multi-Wing Facility", legend = True):
+        wc = fac['wing_cols']
+        wr = fac['wing_rows']
+        nw = fac['n_wings']
+        total_w = nw * wc + (nw - 1) * _GAP
 
-
-
-
-        fig, ax = plt.subplots(figsize=figsize)
+        fig_w = max(10, total_w * 0.58)
+        fig_h = max(5, wr * 0.58 + 1.2)
+        fig, ax = plt.subplots(figsize=(fig_w, fig_h))
         ax.set_facecolor(COL_BG)
         fig.patch.set_facecolor(COL_BG)
 
-        # Grid
-        for c in range(COLS + 1):
-            ax.plot([c, c], [0, ROWS], color=COL_GRID, lw=0.4, zorder=1)
-        for r in range(ROWS + 1):
-            ax.plot([0, COLS], [r, r], color=COL_GRID, lw=0.4, zorder=1)
+        def xoff(w):
+            return w * (wc + _GAP)
 
-        # Border
-        for x0,y0,x1,y1 in [(0,0,COLS,0),(COLS,0,COLS,ROWS),(COLS,ROWS,0,ROWS),(0,ROWS,0,0)]:
-            ax.plot([x0,x1],[y0,y1], color=COL_WALL, lw=2.2, zorder=3)
+        # Draw each wing
+        for w, wing in enumerate(fac['wings']):
+            ox = xoff(w)
 
-        # Internal walls
-        for c in range(COLS):
-            for r in range(ROWS):
-                if c+1 < COLS and not graph.has_edge((c,r),(c+1,r)):
-                    ax.plot([c+1,c+1],[r,r+1], color=COL_WALL, lw=1.6, zorder=3)
-                if r+1 < ROWS and not graph.has_edge((c,r),(c,r+1)):
-                    ax.plot([c,c+1],[r+1,r+1], color=COL_WALL, lw=1.6, zorder=3)
+            # Grid lines
+            _ = """
+            for c in range(wc + 1):
+                ax.plot([ox + c, ox + c], [0, wr],
+                        color=COL_GRID, lw=0.4, zorder=1)
+            for r in range(wr + 1):
+                ax.plot([ox, ox + wc], [r, r],
+                        color=COL_GRID, lw=0.4, zorder=1)
+                        """
 
-        # Highlighted nodes
-        if node_colors:
-            for node, color in node_colors.items():
-                c, r = node
-                rect = plt.Rectangle((c, r), 1, 1, color=color, alpha=0.50, zorder=2)
-                ax.add_patch(rect)
+            # Wing border
+            ax.add_patch(plt.Rectangle(
+                (ox, 0), wc, wr,
+                fill=False, edgecolor=COL_WALL, lw=2.2, zorder=3))
 
-        # Solution path
-        if highlight_path and len(highlight_path) > 1:
-            px = [c + 0.5 for c,r in highlight_path]
-            py = [r + 0.5 for c,r in highlight_path]
-            ax.plot(px, py, color=COL_PATH, lw=1.8, linestyle='--', alpha=0.75, zorder=4)
+            # Wing label
+            ax.text(ox + wc / 2, wr + 0.38,
+                    f"Wing {fac['wing_names'][w]}",
+                    ha='center', va='bottom', fontsize=9,
+                    fontweight='bold', color='#0B1F3B', zorder=8)
+
+            # Internal walls (draw where no edge exists)
+            for c in range(wc):
+                for r in range(wr):
+                    if c + 1 < wc and not wing.has_edge((c, r), (c + 1, r)):
+                        ax.plot([ox + c + 1, ox + c + 1], [r, r + 1],
+                                color=COL_WALL, lw=1.4, zorder=3)
+                    if r + 1 < wr and not wing.has_edge((c, r), (c, r + 1)):
+                        ax.plot([ox + c, ox + c + 1], [r + 1, r + 1],
+                                color=COL_WALL, lw=1.4, zorder=3)
+
+            # Node highlights
+            if node_colors:
+                for (ww, c, r), color in node_colors.items():
+                    if ww == w:
+                        ax.add_patch(plt.Rectangle(
+                            (ox + c, r), 1, 1,
+                            color=color, alpha=0.5, zorder=2))
+
+        # Inter-wing corridors and junction nodes
+        for (w1, c1, r1), (w2, c2, r2) in fac['junctions']:
+            x1, y1 = xoff(w1) + c1 + 0.5, r1 + 0.5
+            x2, y2 = xoff(w2) + c2 + 0.5, r2 + 0.5
+            ax.plot([x1, x2], [y1, y2],
+                    color=COL_JUNCTION, lw=1.8,
+                    linestyle='--', alpha=0.7, zorder=4)
+            ax.plot(x1, y1, 'o', ms=8, color=COL_JUNCTION, zorder=5)
+            ax.plot(x2, y2, 'o', ms=8, color=COL_JUNCTION, zorder=5)
 
         # Supply markers
-        for i, (sc, sr) in enumerate(supplies):
-            already = supply_collected and (sc, sr) in supply_collected
+        for i, (ws, cs, rs) in enumerate(fac['supplies']):
+            ox = xoff(ws)
+            already = supply_collected and (ws, cs, rs) in supply_collected
             col = '#AAAAAA' if already else COL_SUPPLY
-            mkr = 'x'      if already else '*'
-            ax.plot(sc+0.5, sr+0.5, marker=mkr, markersize=14, color=col,
+            mkr = 'x' if already else '*'
+            ax.plot(ox + cs + 0.5, rs + 0.5,
+                    marker=mkr, markersize=14, color=col,
                     markeredgecolor=COL_ENTRY if not already else '#999',
                     markeredgewidth=0.8, zorder=5)
-            ax.text(sc+0.62, sr+0.58, f'S{i+1}', fontsize=6, color=COL_WALL, zorder=6)
+            ax.text(ox + cs + 0.62, rs + 0.58, f'S{i + 1}',
+                    fontsize=6, color=COL_WALL, zorder=6)
 
-        # Entry circle
-        ec, er = entry
-        ax.add_patch(plt.Circle((ec+0.5,er+0.5), 0.22, color=COL_ENTRY, zorder=6))
-        ax.text(ec+0.5, er+0.5, 'E', ha='center', va='center',
+        # Entry marker
+        we, ce, re = fac['entry']
+        ox = xoff(we)
+        ax.add_patch(plt.Circle(
+            (ox + ce + 0.5, re + 0.5), 0.28,
+            color=COL_ENTRY, zorder=6))
+        ax.text(ox + ce + 0.5, re + 0.5, 'E',
+                ha='center', va='center',
                 fontsize=6, color='white', fontweight='bold', zorder=7)
 
-        # Exit circles
-        for lbl, node in [('A', exit_a), ('B', exit_b)]:
-            xc, xr = node
-            ax.add_patch(plt.Circle((xc+0.5,xr+0.5), 0.22, color=COL_EXIT, zorder=6))
-            ax.text(xc+0.5, xr+0.5, lbl, ha='center', va='center',
+        # Exit markers
+        for lbl, (wx, cx, rx) in [('A', fac['exit_a']), ('B', fac['exit_b'])]:
+            ox = xoff(wx)
+            ax.add_patch(plt.Circle(
+                (ox + cx + 0.5, rx + 0.5), 0.28,
+                color=COL_EXIT, zorder=6))
+            ax.text(ox + cx + 0.5, rx + 0.5, lbl,
+                    ha='center', va='center',
                     fontsize=6, color='white', fontweight='bold', zorder=7)
 
-        legend_items = [
-            mpatches.Patch(color=COL_ENTRY,  label='Entry'),
-            mpatches.Patch(color=COL_EXIT,   label='Exit A / B'),
-            mpatches.Patch(color=COL_SUPPLY, label='Supply unit'),
-        ]
-        if node_colors:
-            legend_items += [
-                mpatches.Patch(color=COL_VISITED,  alpha=0.5, label='Visited'),
-                mpatches.Patch(color=COL_FRONTIER, alpha=0.5, label='Frontier'),
-                mpatches.Patch(color=COL_CURRENT,  alpha=0.7, label='Current'),
+        # Highlight path
+        if highlight_path and len(highlight_path) > 1:
+            for i in range(len(highlight_path) - 1):
+                w1, c1, r1 = highlight_path[i]
+                w2, c2, r2 = highlight_path[i + 1]
+                ax.plot(
+                    [xoff(w1) + c1 + 0.5, xoff(w2) + c2 + 0.5],
+                    [r1 + 0.5, r2 + 0.5],
+                    color=COL_PATH, lw=1.8, linestyle='--',
+                    alpha=0.75, zorder=4)
+
+        # Legend
+        if(legend):
+            legend_items = [
+                mpatches.Patch(color=COL_ENTRY,    label='Entry'),
+                mpatches.Patch(color=COL_EXIT,     label='Exit A / B'),
+                mpatches.Patch(color=COL_SUPPLY,   label='Supply unit'),
+                mpatches.Patch(color=COL_JUNCTION, label='Inter-wing junction'),
             ]
-        if (legend):
-            ax.legend(handles=legend_items, loc='upper left', fontsize=8, framealpha=0.9)
-        ax.set_xlim(0, COLS); ax.set_ylim(0, ROWS)
-        ax.set_aspect('equal'); ax.axis('off')
-        ax.set_title(title, fontsize=11, fontweight='bold', color='#0B1F3B', pad=10)
+            if node_colors:
+                legend_items += [
+                    mpatches.Patch(color=COL_VISITED,  alpha=0.5, label='Visited'),
+                    mpatches.Patch(color=COL_FRONTIER, alpha=0.5, label='Frontier'),
+                    mpatches.Patch(color=COL_CURRENT,  alpha=0.7, label='Current'),
+                ]
+            ax.legend(handles=legend_items, loc='upper left',
+                      fontsize=7, framealpha=0.9)
+
+        ax.set_xlim(-0.5, total_w + 0.5)
+        ax.set_ylim(-0.9, wr + 1.1)
+        ax.set_aspect('equal')
+        ax.axis('off')
+        ax.set_title(title, fontsize=11, fontweight='bold',
+                     color='#0B1F3B', pad=10)
         plt.tight_layout()
         return fig, ax
 
-    return COL_PATH, draw_facility_v1
+    return COL_PATH, draw_facility_v2
 
 
-@app.cell(hide_code=True)
-def _(
-    COLS,
-    ROWS,
-    fac_entry_v1,
-    fac_exit_a_v1,
-    fac_exit_b_v1,
-    fac_graph_v1,
-    fac_supplies_v1,
-    nx,
-):
+@app.cell
+def _(draw_facility_v2, fac_v2, seed):
+    draw_facility_v2(fac_v2,
+                    title=(f"Multi-Wing Facility -- Seed {int(seed)} · "
+               f"{fac_v2['n_wings']} wings · "
+               f"{fac_v2['wing_cols']}×{fac_v2['wing_rows']} sectors each"), legend = False)
+    return
+
+
+app._unparsable_cell(
+    r"""
     # turn Mr Nielsens implimentation into mine :)
 
 
@@ -297,32 +375,43 @@ def _(
 
     #def K_to_Mr(G, AS, SU, VP, EP, SUP, ASP, GP):
 
-
+     {
+            'n_wings':    n_wings,
+            'wing_names': wing_names,
+            'wings':      wings,
+            'wing_cols':  WING_COLS,
+            'wing_rows':  WING_ROWS,
+            'entry':      entry,
+            'exit_a':     exit_a,
+            'exit_b':     exit_b,
+            'supplies':   supplies[:5],
+            'junctions':  junctions,
+        }
 
        # return fac_graph_v1, fac_entry_v1, fac_exit_a_v1, fac_exit_b_v1, fac_supplies_v1
 
-    def Mr_to_K_V1(fac_graph_v1, fac_entry_v1, fac_exit_a_v1, fac_exit_b_v1, fac_supplies_v1):
+    def Mr_to_K_V2(fac):
 
         vertices = []
         G = nx.DiGraph()
 
         G.add_nodes_from([v for v in range(ROWS*COLS)])
 
-        for edge in fac_graph_v1.edges():
+        for edge in fac_graph.edges():
             G.add_edge(tup_to_flat_V1(edge[0]),tup_to_flat_V1(edge[1]))
             G.add_edge(tup_to_flat_V1(edge[1]),tup_to_flat_V1(edge[0]))
 
-        SU = {i for i in range(len(fac_supplies_v1))}
+        SU = {i for i in range(len(fac_supplies))}
 
         AS = {0}
 
 
         VP: dict[dict[bool,bool,int]] = {i:{"is_entry":False, "is_exit": False, "supply_unit": None} for i in range(ROWS*COLS)}
-        VP[tup_to_flat_V1(fac_entry_v1)]["is_entry"] = True
-        VP[tup_to_flat_V1(fac_exit_a_v1)]["is_exit"] = True
-        VP[tup_to_flat_V1(fac_exit_b_v1)]["is_exit"] = True
-        for i in range(len(fac_supplies_v1)):
-            VP[tup_to_flat_V1(fac_supplies_v1[i])]["supply_unit"] = i
+        VP[tup_to_flat_V1(fac_entry)]["is_entry"] = True
+        VP[tup_to_flat_V1(fac_exit_a)]["is_exit"] = True
+        VP[tup_to_flat_V1(fac_exit_b)]["is_exit"] = True
+        for i in range(len(fac_supplies)):
+            VP[tup_to_flat_V1(fac_supplies[i])]["supply_unit"] = i
 
 
 
@@ -340,16 +429,18 @@ def _(
                 raise Exception("Something went wrong!")
 
 
-        SUP: dict[dict[int]] = {i:{"location": tup_to_flat_V1(fac_supplies_v1[i])} for i in range(len(fac_supplies_v1))}
+        SUP: dict[dict[int]] = {i:{"location": tup_to_flat_V1(fac_supplies[i])} for i in range(len(fac_supplies))}
 
-        ASP = {0:{"location":  tup_to_flat_V1(fac_entry_v1)}}
+        ASP = {0:{"location":  tup_to_flat_V1(fac_entry)}}
 
         GP = {}
         return G, AS, SU, VP, EP, SUP, ASP, GP
 
 
-    G, AS, SU, VP, EP, SUP, ASP, GP = Mr_to_K_V1(fac_graph_v1, fac_entry_v1, fac_exit_a_v1, fac_exit_b_v1, fac_supplies_v1)
-    return AS, ASP, EP, G, GP, SU, SUP, VP, flat_to_tup_V1
+    #G, AS, SU, VP, EP, SUP, ASP, GP = Mr_to_K_V1(fac_graph_v1, fac_entry_v1, fac_exit_a_v1, fac_exit_b_v1, fac_supplies_v1)
+    """,
+    column=None, disabled=False, hide_code=True, name="_"
+)
 
 
 @app.cell(hide_code=True)
@@ -519,7 +610,7 @@ def _(VP, deque):
 
 
 
-    return BFS, BFS_DFS, backtrace_tree, make_sub_exits
+    return (BFS_DFS,)
 
 
 @app.cell(hide_code=True)
@@ -541,7 +632,6 @@ def _(AS, ASP, BFS_DFS, EP, G, GP, SU, SUP, VP, time, tracemalloc):
     walk_v1 = out_v1["walk"]
 
     tracemalloc.stop()
-    # draw_facility_v1(fac_graph_v1, fac_entry_v1, fac_exit_a_v1, fac_exit_b_v1, fac_supplies_v1, highlight_path=[flat_to_tup_V1(v) for v in walk_v1], node_colors= { flat_to_tup_V1(walk_v1[len(walk_v1)-1]):"red"})
     return BFS_DFS_time_taken, memory_used, out_v1, walk_v1
 
 
@@ -640,72 +730,33 @@ def _(
     return (make_gif_v1,)
 
 
-@app.cell(disabled=True, hide_code=True)
-def _(
-    AS,
-    ASP,
-    BFS,
-    EP,
-    G,
-    GP,
-    SU,
-    SUP,
-    VP,
-    backtrace_tree,
-    draw_facility_v1,
-    fac_entry_v1,
-    fac_exit_a_v1,
-    fac_exit_b_v1,
-    fac_graph_v1,
-    fac_supplies_v1,
-    flat_to_tup_V1,
-    make_sub_exits,
-):
-    # coloured graph for BFS+DFS
-    def _get_sub_dicts(G, AS, SU, VP, EP, SUP, ASP, GP):
-        CRUDY_1 = 0
-        entry = ASP[CRUDY_1]["location"]
-        V = G.nodes()
-
-        #--------------------------------------------------
-        # ------------------Main loop----------------------
-        #--------------------------------------------------
-
-        #1. BFS
-
-        parent, child_count, leaf_nodes = BFS(G, entry)
-
-        #2. Backtrace Tree 
-
-        exit_count, sub_exit = make_sub_exits(G, VP)
-        sub_SU = {v: not (VP[v]["supply_unit"] == None) for v in V}
-        sub_exit, sub_SU = backtrace_tree(parent, child_count, leaf_nodes, sub_exit, sub_SU)
-        return sub_exit, sub_SU
-
-    _sub_exit, _sub_SU = _get_sub_dicts(G, AS, SU, VP, EP, SUP, ASP, GP)
-
-    _node_colours = {}
-    for _k in _sub_SU.keys():
-        if not _sub_exit[_k] and not _sub_SU[_k]:
-            _node_colours[flat_to_tup_V1(_k)] = "#000000"
-        elif not _sub_exit[_k] and _sub_SU[_k]:
-            _node_colours[flat_to_tup_V1(_k)] = "#D0D0E0"
-            pass
-        else :
-            #_node_colours[flat_to_tup_V1(_k)] = "#58D4D3"
-            pass
-
-    draw_facility_v1(fac_graph_v1, fac_entry_v1, fac_exit_a_v1, fac_exit_b_v1, fac_supplies_v1,node_colors=_node_colours, legend= False)
-    return
-
-
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     ### Ammendments to memo 1
 
-    A - Problem Specification
-    -
+    **A - Problem Specitication:**
+
+    A1:
+    - Inputs:
+        - add location property to VP giving a tuple as a location
+        - add wing property to VP
+        - remove cardinal angle from EP
+    - Outputs:
+        - change move(a: angle, l: length) functions to move(x: East, y: North)
+
+    A2 - Salient Features:
+    - Location and direction are stored differently and abstracted differently.
+
+    A3:
+    - ADTs used in the algorithm
+
+    B - Algorithmic Design:
+    - Remove the DFS option as it is quite bad.
+    - Add a new **<u>Brute force</u>** option that divides and conquers (ish).
+
+    C - Code:
+    - change based of algo.
     """)
     return
 
@@ -727,15 +778,8 @@ def _(mo):
 
 
 @app.cell
-def _(
-    draw_facility_v1,
-    fac_entry_v1,
-    fac_exit_a_v1,
-    fac_exit_b_v1,
-    fac_graph_v1,
-    fac_supplies_v1,
-):
-    draw_facility_v1(fac_graph_v1, fac_entry_v1, fac_exit_a_v1, fac_exit_b_v1, fac_supplies_v1)
+def _():
+    #draw_facility
     return
 
 
@@ -1857,7 +1901,6 @@ def _(mo):
 @app.cell
 def _(make_gif_v1, mo, seed, time):
     #DISPLAY GIF
-
     if(make_gif_v1()):
         time.sleep(10)
     mo.image("figs\\"+ str(seed) + ".gif")
@@ -1876,7 +1919,7 @@ def _(mo):
 def _(BFS_DFS_time_taken, memory_used, mo, out_v1):
     mo.callout(mo.hstack([
             mo.stat(label="Length",    value=str(out_v1["length"])),
-            mo.stat(label="Time to Compute",    value=str(round(BFS_DFS_time_taken,4))+" sec"),
+            mo.stat(label="Time to Compute",    value=str((int)(BFS_DFS_time_taken*1000))+" ms"),
             mo.stat(label="Memory to Compute",    value=str(round(memory_used/1000,1))+" KB"),
             mo.stat(label="Supply Units Recovered",  value="All"),
         ], gap=0, wrap=True),kind = "info")

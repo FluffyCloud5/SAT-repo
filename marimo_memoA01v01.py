@@ -352,10 +352,9 @@ def _(draw_multi_wing, get_multi_wing_facility, plt):
             title=(f"Multi-Wing Facility -- Seed {int(_i)} · "
                f"{_fac['n_wings']} wings · "
                f"{_fac['wing_cols']}×{_fac['wing_rows']} sectors each") )
-    
+
         plt.savefig(f"figs\\multi{_i}.png")
         plt.close()
-
     return
 
 
