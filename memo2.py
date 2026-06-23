@@ -30,7 +30,6 @@ def _():
 
 @app.cell(hide_code=True)
 def _(mo):
-    #style
     mo.md(r"""
     <style>
         h1 {
@@ -56,6 +55,12 @@ def _(mo):
         h6 {
           font-size: 14px;
           color: darkblue;
+        }
+        .r {
+        background-color: #FF6666;
+        }
+        .g {
+         background-color: limegreen;
         }
     </style>
     """)
@@ -209,10 +214,10 @@ def _(mpatches, plt):
     COL_FRONTIER = '#F4C97A'
     COL_CURRENT  = '#E8603C'
     COL_JUNCTION = '#7A1E2C'
-    _GAP = 0  # grid-unit gap between wings in the visualisation
+    _GAP = 2  # grid-unit gap between wings in the visualisation
 
     def draw_facility_v2(fac, highlight_path=None, node_colors=None,
-                        supply_collected=None, title="Multi-Wing Facility", legend = True):
+                        supply_collected=None, title="Multi-Wing Facility", legend = True, grid = True):
         wc = fac['wing_cols']
         wr = fac['wing_rows']
         nw = fac['n_wings']
@@ -232,14 +237,14 @@ def _(mpatches, plt):
             ox = xoff(w)
 
             # Grid lines
-            _ = """
-            for c in range(wc + 1):
-                ax.plot([ox + c, ox + c], [0, wr],
-                        color=COL_GRID, lw=0.4, zorder=1)
-            for r in range(wr + 1):
-                ax.plot([ox, ox + wc], [r, r],
-                        color=COL_GRID, lw=0.4, zorder=1)
-                        """
+            if grid:
+                for c in range(wc + 1):
+                    ax.plot([ox + c, ox + c], [0, wr],
+                            color=COL_GRID, lw=0.4, zorder=1)
+                for r in range(wr + 1):
+                    ax.plot([ox, ox + wc], [r, r],
+                            color=COL_GRID, lw=0.4, zorder=1)
+                        
 
             # Wing border
             ax.add_patch(plt.Rectangle(
@@ -351,15 +356,6 @@ def _(mpatches, plt):
         return fig, ax
 
     return COL_PATH, draw_facility_v2
-
-
-@app.cell
-def _(draw_facility_v2, fac_v2, seed):
-    draw_facility_v2(fac_v2,
-                    title=(f"Multi-Wing Facility -- Seed {int(seed)} · "
-               f"{fac_v2['n_wings']} wings · "
-               f"{fac_v2['wing_cols']}×{fac_v2['wing_rows']} sectors each"), legend = False)
-    return
 
 
 app._unparsable_cell(
@@ -735,7 +731,7 @@ def _(mo):
     mo.md(r"""
     ### Ammendments to memo 1
 
-    **A - Problem Specitication:**
+    **A - Problem Specification:**
 
     A1:
     - Inputs:
@@ -756,7 +752,10 @@ def _(mo):
     - Add a new **<u>Brute force</u>** option that divides and conquers (ish).
 
     C - Code:
-    - change based of algo.
+    - change based of algo, make it to accomodate for different algorithms.
+
+    D - Justification:
+    - make the justification for the new algorithm.
     """)
     return
 
@@ -764,11 +763,15 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # Problem Outline (memo 2): <!-- #TODO change from memo 1 to 2 -->
+    # Problem Outline (memo  <span class = "r">~~1~~</span> <span class = "g">A1</span> ): <!-- #TODO change from memo 1 to 2 -->
 
     Seismic activity has destabilised the Emberlight Subterranean Research Complex (ESRC). Five critical supply units — designated S1 through S5 — remain scattered throughout the structure and are to be recovered.
 
-    The ESRC is organised as a sector grid. Each sector is a discrete navigable unit. Sectors are connected by reinforced corridors. The sector grid can be seen below.
+    <span class = "r">~~The ESRC is organised as a sector grid. Each sector is a discrete navigable unit. Sectors are connected by reinforced corridors. The sector grid can be seen below.~~</span>
+
+    <span class = "g">
+    The ESRC is organised as multiple sector grids. Each sector is a discrete navigable unit. Sectors are connected by reinforced corridors, and sector grids are connected by inter-wing corridors. The sector grid can be seen below.
+    </span>
 
     The objective is to command CRUDY-1 (Corridor Reconnaissance and Utility Drone — Year 1)--an Autonomous System (AS)--to navigate the facility’s corridor network and transport recovered supply units to an extraction point while maximising recovered supply units and ensuring a safe extraction.
 
@@ -778,8 +781,20 @@ def _(mo):
 
 
 @app.cell
-def _():
+def _(draw_facility_v2, fac_v2, seed):
     #draw_facility
+    draw_facility_v2(fac_v2,
+                    title=(f"Multi-Wing Facility -- Seed {int(seed)} · "
+               f"{fac_v2['n_wings']} wings · "
+               f"{fac_v2['wing_cols']}×{fac_v2['wing_rows']} sectors each"), legend = False)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    <mark>Facility Changed.</mark>
+    """)
     return
 
 
@@ -921,7 +936,7 @@ def _(mo):
 
     The first map, EP (Edge Properties), takes the edges as keys and returns a map that contains:
 
-    - a real number indicating which direction this edge is pointing (cardinal angle). 0° faces north, 90° east, 180° south and 270° west.
+    <mark>~~- a real number indicating which direction this edge is pointing (cardinal angle). 0° faces north, 90° east, 180° south and 270° west.~~</mark>
 
     Beyond the scope of memo 1:
 
