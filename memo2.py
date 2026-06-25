@@ -58,17 +58,13 @@ def _(mo):
         }
         .r {
         background-color: #FF6666;
+        text-decoration: line-through;
         }
         .g {
          background-color: limegreen;
         }
     </style>
     """)
-    return
-
-
-@app.cell
-def _():
     return
 
 
@@ -244,7 +240,7 @@ def _(mpatches, plt):
                 for r in range(wr + 1):
                     ax.plot([ox, ox + wc], [r, r],
                             color=COL_GRID, lw=0.4, zorder=1)
-                        
+
 
             # Wing border
             ax.add_patch(plt.Rectangle(
@@ -371,7 +367,7 @@ app._unparsable_cell(
 
     #def K_to_Mr(G, AS, SU, VP, EP, SUP, ASP, GP):
 
-     {
+     _ = {
             'n_wings':    n_wings,
             'wing_names': wing_names,
             'wings':      wings,
@@ -763,14 +759,14 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # Problem Outline (memo  <span class = "r">~~1~~</span> <span class = "g">A1</span> ): <!-- #TODO change from memo 1 to 2 -->
+    # Problem Outline (memo  <span class = "r">1</span> <span class = "g">A1</span> ): <!-- #TODO change from memo 1 to 2 -->
 
     Seismic activity has destabilised the Emberlight Subterranean Research Complex (ESRC). Five critical supply units — designated S1 through S5 — remain scattered throughout the structure and are to be recovered.
 
-    <span class = "r">~~The ESRC is organised as a sector grid. Each sector is a discrete navigable unit. Sectors are connected by reinforced corridors. The sector grid can be seen below.~~</span>
+    <span class = "r">The ESRC is organised as a sector grid. Each sector is a discrete navigable unit. Sectors are connected by reinforced corridors. The sector grid can be seen below.</span>
 
     <span class = "g">
-    The ESRC is organised as multiple sector grids. Each sector is a discrete navigable unit. Sectors are connected by reinforced corridors, and sector grids are connected by inter-wing corridors. The sector grid can be seen below.
+    The ESRC is organised as multiple sector grids. Each sector grid is a rectangle containing 10 by 10 sectors. Each sector is a discrete navigable unit. Sectors are connected by reinforced corridors, and sector grids are connected by inter-wing corridors. The sector grid can be seen below.
     </span>
 
     The objective is to command CRUDY-1 (Corridor Reconnaissance and Utility Drone — Year 1)--an Autonomous System (AS)--to navigate the facility’s corridor network and transport recovered supply units to an extraction point while maximising recovered supply units and ensuring a safe extraction.
@@ -825,7 +821,10 @@ def _(mo):
 
 
     Movement Options:
-    - Corridor: Connects two adjacent sectors in the same sector grid that don't have a wall in-between them. Can be bidirectional or one-way.
+    - <span class = "r">Corridor: Connects two adjacent sectors in the same sector grid that don't have a wall in-between them. Can be bidirectional or one-way.</span>
+    - <span class = "g">Inter-wing Corridor: This is shown as the red dotted line connecting two sectors from two different sector grids, which allows for direct movement between those two sectors.</span>
+    - <span class = "g">Intra-wing Corridor: an intra-wing corridor is the absence of a wall between two adjacent sectors in the same sector grid</span>
+    - <span class = "g">Corridor: A corridor is an intra-wing corridor or an inter-wing corridor.</span>
 
     Types of Sectors:
     - Exit: (or Extraction Point), this is where an AS can end its journey.
@@ -848,6 +847,7 @@ def _(mo):
     ## Assumptions:
     1.  An Autonomous System (AS) knows the layout of the ESRC sector grid before it navigates it (e.g. it has the blueprints).
     2.  The ASs can navigate in all directions without turning, and the AS knows its original orientation.
+    3.  <span class = "g">inter-wing corridors have a length of 4 and intra-wing corridors have a length of 1, to match the facility representation. this is not corralated to traversal cost.</span>
     """)
     return
 
@@ -936,7 +936,9 @@ def _(mo):
 
     The first map, EP (Edge Properties), takes the edges as keys and returns a map that contains:
 
-    <mark>~~- a real number indicating which direction this edge is pointing (cardinal angle). 0° faces north, 90° east, 180° south and 270° west.~~</mark>
+    <span class = "r">- a real number indicating which direction this edge is pointing (cardinal angle). 0° faces north, 90° east, 180° south and 270° west.</span>
+
+    <span class = "g">- nothing in memo A1 problem scope</span>
 
     Beyond the scope of memo 1:
 
@@ -946,8 +948,10 @@ def _(mo):
 
     In memo 1, a possible implementation of this is:
 
-    EP = {(u,v):{ "cardinal_angle": real number (cardinal angle from u to v)}
-    	| u,v ∈ V ∧ (u,v) ∈ E}
+    <span class = "r">EP = {(u,v):{ "cardinal_angle": real number (cardinal angle from u to v)}
+    	| u,v ∈ V ∧ (u,v) ∈ E}</span>
+
+    <span class = "g">EP = {(u,v):{}}</span>
 
     ##### Map 2 - Vertex Properties (VP):
 
@@ -956,6 +960,9 @@ def _(mo):
     - a string indicating what supply unit lies within the sector, or null if no supply unit is contained.
     - a Boolean value indicating whether it is an entry.
     - a Boolean value indicating whether it is an exit.
+
+    - <span class = "g">a tuple of real valued numbers indicating position, where 1 unit length is equal to 1 cintra-wing corridor's length.</span>
+    - <span class = "g">a string indicating which wing the vertex is located in.</span>
 
     Beyond the scope of memo 1:
 
@@ -966,10 +973,12 @@ def _(mo):
     In memo 1, a possible implementation of this is:
 
     VP = {v : {
-    	"supply_unit": nullable string (name of supply unit within the sector, null if it doesn't contain a supply unit),
-    	"is_entry": Boolean (true if the sector is an entry, false otherwise) ,
-    	"is_exit": Boolean (true if the sector is an extraction point, false otherwise )}
-    	| v ∈ V}
+        "supply_unit": nullable string (name of supply unit within the sector, null if it doesn't contain a supply unit),<br>
+        "is_entry": Boolean (true if the sector is an entry, false otherwise), <br>
+        "is_exit": Boolean (true if the sector is an extraction point, false otherwise), <br>
+        <span class = "g">"wing": String (name of the wing v is in), </span><br>
+        <span class = "g">"location": (Integer, Integer)} </span><br>
+        | v ∈ V}
 
     ##### Map 3 - Supply Unit Properties (SUP):
 
@@ -1026,7 +1035,7 @@ def _(mo):
     #### Computational Outputs
 
     The output of the algorithm that the AS is running is a map containing:
-    - A walk taken by the AS that maximises the number of supply units extracted. It starts at an entry and ends at an exit. (as a list)
+    - A walk taken by the AS that maximises the number of supply units extracted. It starts at an entry and ends at an exit. (as a list). <span class = "g">The list for the walk is the sequence of locations of the vertices visited</span>
     - Total energy expended (as a real number)
     - Supply Units recovered (as these are collected instantaneously) (as a set)
 
@@ -1034,15 +1043,20 @@ def _(mo):
 
     so the output might look like:
 
-    output = {"walk":  [$v_1$,,$v_2$,,$v_3$,...,,$v_n$],<br>
+    <div class = "r">output = {"walk":  [$v_1$,$v_2$,$v_3$,...,$v_n$],<br>
     "energy_expended": real number,<br>
-    "supply_units_recovered": {$s_1$,$s_2$,$s_3$,...$s_m$}}
+    "supply_units_recovered": {$s_1$,$s_2$,$s_3$,...$s_m$}}</div>
+
+    <div class = "g">output = {"walk":  [$(x_1,y_1)$,$(x_2,y_2)$,$(x_3,y_3)$,...,$(x_n,y_n)$],<br>
+    "energy_expended": real number,<br>
+    "supply_units_recovered": {$s_1$,$s_2$,$s_3$,...$s_m$}}</div>
 
     #### Environmental Outputs
 
     It also has a continuous set of environmental outputs (controlling its actions) in the form of commands including:
-    	1. move(a: angle, d: distance) → None         # allows the AS to move 'd' distance at 'a' cardinal angle.
-    	2. exit() → None         # if at an exit (extraction point), it allows the AS to exit the sector grid.
+    <div class = "r">1. move(a: angle, d: distance) → None         # allows the AS to move 'd' distance at 'a' cardinal angle.</div>
+    <div class = "g">1. move(x: distance in x direction, y: distance in y direction) → None         # allows the AS to move 'x' distance in the x direction and 'y' distance in the y direction.</div>
+    <div>2. exit() → None         # if at an exit (extraction point), it allows the AS to exit the sector grid</div>
 
     Note: There is no command that specifically orders to pickup a supply unit as that is automatically done when occupying the same sector as the supply unit.<br>
     Note: There is no command to scan the environment as it is assumed that the AS already knows the layout of the ESRC.
@@ -1082,11 +1096,14 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     Position
-    1. The position of on object is defined as a vertex of the graph G, with edges describing its position relative to other vertices.
+    <div class = "r">1. The position of an object is defined as a vertex of the graph G, with edges describing its position relative to other vertices.</div>
+    <div class = "g">1. The position of on object is defined as a tuple (x,y) indicating cooridinate location where 1 unit distance is equal to the length of 1 intra-wing corridor.</div>
     2. The direct position (for example as GPS coordinates) is abstracted away and only shown in reference to that of the starting vertex (the entry), as the AS only needs to know where it is in the sector grid relative to other vertices.
 
     Direction
-    1. This is modelled as a cardinal angle assigned to each edge of the graph G and the direction that the AS is facing. 0º doesn't have to be north, it only has to be consistent.
+    <div class = "r">1. This is modelled as a cardinal angle assigned to each edge of the graph G and the direction that the AS is facing. 0º doesn't have to be north, it only has to be consistent.</div>
+    <div class = "g">1. The direction can be calculated from the vector going from one vertex to another
+        $\delta x, \delta y$</div>
     2. The physically layout of the sector grid is abstracted away into this grid, as it only matters how to get from one sector to another sector to be able to traverse the whole grid. This can be calculated using the cardinal direction. (i.e. only relative space matters, not absolute.)
 
     Length
