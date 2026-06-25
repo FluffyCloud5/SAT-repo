@@ -975,7 +975,7 @@ def _(mo):
     VP = {v : {
         "supply_unit": nullable string (name of supply unit within the sector, null if it doesn't contain a supply unit),<br>
         "is_entry": Boolean (true if the sector is an entry, false otherwise), <br>
-        "is_exit": Boolean (true if the sector is an extraction point, false otherwise), <br>
+        "is_exit": Boolean (true if the sector is an extraction point, false otherwise),<br>
         <span class = "g">"wing": String (name of the wing v is in), </span><br>
         <span class = "g">"location": (Integer, Integer)} </span><br>
         | v ∈ V}
@@ -1047,9 +1047,12 @@ def _(mo):
     "energy_expended": real number,<br>
     "supply_units_recovered": {$s_1$,$s_2$,$s_3$,...$s_m$}}</div>
 
-    <div class = "g">output = {"walk":  [$(x_1,y_1)$,$(x_2,y_2)$,$(x_3,y_3)$,...,$(x_n,y_n)$],<br>
-    "energy_expended": real number,<br>
-    "supply_units_recovered": {$s_1$,$s_2$,$s_3$,...$s_m$}}</div>
+    <span class = "g">output = {"walk":</span><br>
+    <span class = "g">[ $(x_1,y_1)$ , $(x_2,y_2)$ , $(x_3,y_3)$ ,..., $(x_n,y_n)$ ],</span><br>
+    <span class = "g">"energy_expended": real number,</span><br>
+    <span class = "g">"supply_units_recovered": {$s_1$,$s_2$,$s_3$,...$s_m$}}</span>
+
+
 
     #### Environmental Outputs
 
@@ -1102,8 +1105,9 @@ def _(mo):
 
     Direction
     <div class = "r">1. This is modelled as a cardinal angle assigned to each edge of the graph G and the direction that the AS is facing. 0º doesn't have to be north, it only has to be consistent.</div>
-    <div class = "g">1. The direction can be calculated from the vector going from one vertex to another
-        $\delta x, \delta y$</div>
+    <span class = "g">1. The direction can be calculated from the vector going from one vertex to another
+        $,\vec{v} = (\Delta x, \Delta y)$ and
+        $\theta = tan(\Delta y/ \Delta x)$</span><br>
     2. The physically layout of the sector grid is abstracted away into this grid, as it only matters how to get from one sector to another sector to be able to traverse the whole grid. This can be calculated using the cardinal direction. (i.e. only relative space matters, not absolute.)
 
     Length
