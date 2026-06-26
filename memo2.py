@@ -1111,7 +1111,8 @@ def _(mo):
     2. The physically layout of the sector grid is abstracted away into this grid, as it only matters how to get from one sector to another sector to be able to traverse the whole grid. This can be calculated using the cardinal direction. (i.e. only relative space matters, not absolute.)
 
     Length
-    1. The length of an edge (i.e. a corridor) can be abstracted away as in memo 1, all corridors have the same length, meaning the AS only has to move in multiples of one edge length of the graph.
+    <div class = "r">1. The length of an edge (i.e. a corridor) can be abstracted away as in memo 1, all corridors have the same length, meaning the AS only has to move in multiples of one edge length of the graph.</div>
+    <div class = "g">1. Length in Memo A1 is modelled through pythagoreans theorem applied to the displacement vector from one location tuple to another.</div>
 
     Time
     1. Time is not modelled in the abstraction of memo 1.
@@ -1325,23 +1326,29 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### Option 0: DFS
+    <div class = "r">
 
-    #### Pros and Cons:
+    <h3>Option 0: DFS</h3>
 
-    Pros:
+    <h4>Pros and Cons:</h4>
 
-    - Time complexity is O(V+E)
-    - Simple to understand
-    - Works in about any situation
+    Pros:<br>
 
-    Cons:
+    - Time complexity is O(V+E)<br>
+    - Simple to understand<br>
+    - Works in about any situation<br>
 
-    - Walk is often suboptimal
+    Cons:<br>
 
-    #### Algorithm:
+    - Walk is often suboptimal<br>
 
-    Do a DFS until all the supply units have been collected and then do another DFS until an exit has been reached.
+    <h4>Algorithm:</h4>
+
+    Do a DFS until all the supply units have been collected and then do another DFS until an exit has been reached.<br>
+
+    </div>
+
+
 
     ### Option 1: Greedy (BFS)
 

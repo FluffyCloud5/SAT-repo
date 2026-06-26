@@ -16,13 +16,13 @@ A1:
     - ==change output to have location of vertices not vertex names as the location of vertices.== 
 
 A2 - Salient Features:
-- Location and direction are stored differently and abstracted differently.
+- ==Location and direction are stored differently and abstracted differently.==
 
 A3:
 - ADTs used in the algorithm
 
 B - Algorithmic Design:
-- Remove the DFS option as it is quite bad.
+- ==Remove the DFS option as it is quite bad.==
 - Add a new **<u>brute force</u>** option that divides and conquers (ish).
 
 C - Code:
