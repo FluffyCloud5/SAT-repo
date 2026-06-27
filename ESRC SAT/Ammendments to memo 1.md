@@ -24,6 +24,7 @@ A3:
 B - Algorithmic Design:
 - ==Remove the DFS option as it is quite bad.==
 - Add a new **<u>brute force</u>** option that divides and conquers (ish).
+- change the discussion around the new algorithm
 
 C - Code:
 - change based of algo, make it to accommodate for different algorithms.

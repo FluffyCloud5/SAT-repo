@@ -194,7 +194,7 @@ def _(nx, random, seed_input):
         }
 
     fac_v2 = facility_v2(seed_input.value)
-    return (fac_v2,)
+    return WING_COLS, fac_v2
 
 
 @app.cell
@@ -354,85 +354,93 @@ def _(mpatches, plt):
     return COL_PATH, draw_facility_v2
 
 
-app._unparsable_cell(
-    r"""
+@app.cell
+def _(fac_v2):
+    fac_v2["junctions"]
+    return
+
+
+@app.cell(hide_code=True)
+def _(WING_COLS, fac_v2, nx, string):
     # turn Mr Nielsens implimentation into mine :)
 
+    inter_wing_corridor_length = 4
 
-    def tup_to_flat_V1(a):
-        return a[0] + COLS*a[1]
+    #TODO got some editing to do.
+    def node_K_Mr_v2(a):
+        return (int((a[0]-(a[0]%(WING_COLS + inter_wing_corridor_length-1)))/(WING_COLS + inter_wing_corridor_length-1)),a[0]%(WING_COLS + inter_wing_corridor_length-1),a[1])
 
-    def flat_to_tup_V1(a):
-        return (a % COLS,int(( a- (a%COLS))/COLS))
+    def node_Mr_K_v2(a):
+        return (a[1] + (WING_COLS+inter_wing_corridor_length-1)*a[0], a[2])
 
     #def K_to_Mr(G, AS, SU, VP, EP, SUP, ASP, GP):
 
-     _ = {
-            'n_wings':    n_wings,
-            'wing_names': wing_names,
-            'wings':      wings,
-            'wing_cols':  WING_COLS,
-            'wing_rows':  WING_ROWS,
-            'entry':      entry,
-            'exit_a':     exit_a,
-            'exit_b':     exit_b,
-            'supplies':   supplies[:5],
-            'junctions':  junctions,
-        }
+
+    _p = """
+     {
+    'n_wings':    n_wings,
+    'wing_names': wing_names,
+    'wings':      wings,
+    'wing_cols':  WING_COLS,
+    'wing_rows':  WING_ROWS,
+    'entry':      entry,
+    'exit_a':     exit_a,
+    'exit_b':     exit_b,
+    'supplies':   supplies[:5],
+    'junctions':  junctions,
+    }
+    """
 
        # return fac_graph_v1, fac_entry_v1, fac_exit_a_v1, fac_exit_b_v1, fac_supplies_v1
 
-    def Mr_to_K_V2(fac):
-
+    def Mr_to_K_v2(fac):
+    
         vertices = []
         G = nx.DiGraph()
 
-        G.add_nodes_from([v for v in range(ROWS*COLS)])
+        n_nodes = fac["n_wings"]*fac["wing_cols"]*fac["wing_rows"]
 
-        for edge in fac_graph.edges():
-            G.add_edge(tup_to_flat_V1(edge[0]),tup_to_flat_V1(edge[1]))
-            G.add_edge(tup_to_flat_V1(edge[1]),tup_to_flat_V1(edge[0]))
+        wing = [node_Mr_K_v2((i,c,r)) for c in range(fac["wing_cols"]) for r in range(fac["wing_rows"]) for i in range(fac["n_wings"])]
+        G.add_nodes_from(wing)
+    
+    
+    
 
-        SU = {i for i in range(len(fac_supplies))}
+        for i in range(fac["n_wings"]):
+            for edge in fac["wings"][i].edges():
+                G.add_edge(node_Mr_K_v2((i,edge[0][0],edge[0][1])), node_Mr_K_v2((i,edge[1][0],edge[1][1])))
+                G.add_edge(node_Mr_K_v2((i,edge[1][0],edge[1][1])), node_Mr_K_v2((i,edge[0][0],edge[0][1])))
+
+        for junc in fac["junctions"]:
+            G.add_edge(node_Mr_K_v2(junc[0]),node_Mr_K_v2(junc[1]))
+        
+        SU = {i for i in range(len(fac["supplies"]))}
 
         AS = {0}
 
 
-        VP: dict[dict[bool,bool,int]] = {i:{"is_entry":False, "is_exit": False, "supply_unit": None} for i in range(ROWS*COLS)}
-        VP[tup_to_flat_V1(fac_entry)]["is_entry"] = True
-        VP[tup_to_flat_V1(fac_exit_a)]["is_exit"] = True
-        VP[tup_to_flat_V1(fac_exit_b)]["is_exit"] = True
-        for i in range(len(fac_supplies)):
-            VP[tup_to_flat_V1(fac_supplies[i])]["supply_unit"] = i
+        VP: dict[dict[bool,bool,int,string,(int,int)]] = {i:{"is_entry":False, "is_exit": False, "supply_unit": None, "wing": fac["wing_names"][node_K_Mr_v2(i)[0]],"location": i} for i in G.nodes()}
+        VP[node_Mr_K_v2(fac["entry"])]["is_entry"] = True
+        VP[node_Mr_K_v2(fac["exit_a"])]["is_exit"] = True
+        VP[node_Mr_K_v2(fac["exit_b"])]["is_exit"] = True
+        for i in range(len(fac["supplies"])):
+            VP[node_Mr_K_v2(fac["supplies"][i])]["supply_unit"] = i
 
 
 
-        EP: dict[dict[float]] = {edge: {"cardinal_angle": 0}  for edge in G.edges}
-        for edge in G.edges():
-            if edge[0] == edge[1]-1:
-                EP[edge]["cardinal_angle"] = 90
-            elif edge[0] == edge[1]+1:
-                EP[edge]["cardinal_angle"] = 270
-            elif edge[0] == edge[1]-COLS:
-                EP[edge]["cardinal_angle"] = 0
-            elif edge[0] == edge[1]+COLS:
-                EP[edge]["cardinal_angle"] = 180
-            else:
-                raise Exception("Something went wrong!")
+        EP: dict[dict] = {edge: {}  for edge in G.edges}
 
 
-        SUP: dict[dict[int]] = {i:{"location": tup_to_flat_V1(fac_supplies[i])} for i in range(len(fac_supplies))}
+        SUP: dict[dict[(int,int)]] = {i:{"location": node_Mr_K_v2(fac["supplies"][i])} for i in range(len(fac["supplies"]))}
 
-        ASP = {0:{"location":  tup_to_flat_V1(fac_entry)}}
+        ASP: dict[(int,int)] = {0:{"location":  node_Mr_K_v2(fac["entry"])}}
 
         GP = {}
         return G, AS, SU, VP, EP, SUP, ASP, GP
 
 
-    #G, AS, SU, VP, EP, SUP, ASP, GP = Mr_to_K_V1(fac_graph_v1, fac_entry_v1, fac_exit_a_v1, fac_exit_b_v1, fac_supplies_v1)
-    """,
-    column=None, disabled=False, hide_code=True, name="_"
-)
+    G, AS, SU, VP, EP, SUP, ASP, GP = Mr_to_K_v2(fac_v2)
+    return AS, ASP, EP, G, GP, SU, SUP, VP
 
 
 @app.cell(hide_code=True)
@@ -1395,7 +1403,7 @@ def _(mo):
 
     Pros:
 
-    - Returns the optimal route
+    - Returns the optimal <span class = "r">route</span> <span class = "g">walk</span>
     - Not bad time efficiency  O(#Exits(V+E))
 
     Cons:
@@ -1416,6 +1424,25 @@ def _(mo):
     4. Find which of the walks is shortest and return that. O(#Exits V)
 
     Total time complexity O(V+E) + O(V) + O(#Exits(V+E)) + O(#Exits V) = O(#Exits(V+E))
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    <div class = "g">
+
+    <h3>Option 4: Brute Divide and Conquer</h3>
+
+    <h4>Pros and Cons</h4>
+
+    Pros:<br>
+    - Returns optimal walk<br>
+    - Simplifies the problem significantly to a much smaller graph.<br>
+    - divides the simplified graph into smaller sub problems.<br>
+    Cons: <br>
+    </div>
     """)
     return
 
@@ -1663,6 +1690,8 @@ def _(mo):
     ```python
     # G = (V,E)
     import networkx as nx
+
+
 
     def BFS_DFS(G, AS, SU, VP, EP, SUP, ASP, GP):
         #--------------------------------------------------
