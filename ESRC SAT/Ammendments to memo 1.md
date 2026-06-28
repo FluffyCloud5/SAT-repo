@@ -19,6 +19,7 @@ A2 - Salient Features:
 - ==Location and direction are stored differently and abstracted differently.==
 
 A3:
+ - Add tuple and pairing data type.
 - ADTs used in the algorithm
 
 B - Algorithmic Design:
@@ -27,7 +28,12 @@ B - Algorithmic Design:
 - change the discussion around the new algorithm
 
 C - Code:
+- To BFS code and pseudocode: 
+	- ==change move and exit calls==
 - change based of algo, make it to accommodate for different algorithms.
+- Change the representation to accommodate for new facility
+- ==Change the output to only give raw output==
+
 
 D - Justification: 
 - make the justification for the new algorithm.

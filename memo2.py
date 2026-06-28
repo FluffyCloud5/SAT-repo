@@ -63,6 +63,9 @@ def _(mo):
         .g {
          background-color: limegreen;
         }
+        .y {
+            background-color: yellow;
+        }
     </style>
     """)
     return
@@ -123,7 +126,7 @@ def _(nx, random, seed_input):
         carve(0, 0)
         return g
 
-    def facility_v2(seed):
+    def m_fac_v2(seed): #make facility version 2
         int_seed = int(seed)
         n_wings   = 2 + (int_seed % 3)          # 2, 3, or 4 wings from seed
         wing_names = ['Alpha', 'Beta', 'Gamma', 'Delta'][:n_wings]
@@ -193,8 +196,8 @@ def _(nx, random, seed_input):
             'junctions':  junctions,
         }
 
-    fac_v2 = facility_v2(seed_input.value)
-    return WING_COLS, fac_v2
+    fac_v2 = m_fac_v2(seed_input.value)
+    return WING_COLS, fac_v2, m_fac_v2
 
 
 @app.cell
@@ -210,14 +213,14 @@ def _(mpatches, plt):
     COL_FRONTIER = '#F4C97A'
     COL_CURRENT  = '#E8603C'
     COL_JUNCTION = '#7A1E2C'
-    _GAP = 2  # grid-unit gap between wings in the visualisation
+    GAP = 3  # grid-unit gap between wings in the visualisation
 
-    def draw_facility_v2(fac, highlight_path=None, node_colors=None,
+    def draw_fac_v2(fac, highlight_path=None, node_colors=None,
                         supply_collected=None, title="Multi-Wing Facility", legend = True, grid = True):
         wc = fac['wing_cols']
         wr = fac['wing_rows']
         nw = fac['n_wings']
-        total_w = nw * wc + (nw - 1) * _GAP
+        total_w = nw * wc + (nw - 1) * GAP
 
         fig_w = max(10, total_w * 0.58)
         fig_h = max(5, wr * 0.58 + 1.2)
@@ -226,7 +229,7 @@ def _(mpatches, plt):
         fig.patch.set_facecolor(COL_BG)
 
         def xoff(w):
-            return w * (wc + _GAP)
+            return w * (wc + GAP)
 
         # Draw each wing
         for w, wing in enumerate(fac['wings']):
@@ -351,27 +354,19 @@ def _(mpatches, plt):
         plt.tight_layout()
         return fig, ax
 
-    return COL_PATH, draw_facility_v2
-
-
-@app.cell
-def _(fac_v2):
-    fac_v2["junctions"]
-    return
+    return COL_PATH, GAP, draw_fac_v2
 
 
 @app.cell(hide_code=True)
-def _(WING_COLS, fac_v2, nx, string):
+def _(GAP, WING_COLS, fac_v2, nx, string):
     # turn Mr Nielsens implimentation into mine :)
 
-    inter_wing_corridor_length = 4
-
     #TODO got some editing to do.
-    def node_K_Mr_v2(a):
-        return (int((a[0]-(a[0]%(WING_COLS + inter_wing_corridor_length-1)))/(WING_COLS + inter_wing_corridor_length-1)),a[0]%(WING_COLS + inter_wing_corridor_length-1),a[1])
+    def Av2(a):
+        return (int((a[0]-(a[0]%(WING_COLS + GAP)))/(WING_COLS + GAP)),a[0]%(WING_COLS + GAP),a[1])
 
-    def node_Mr_K_v2(a):
-        return (a[1] + (WING_COLS+inter_wing_corridor_length-1)*a[0], a[2])
+    def Bv2(a):
+        return (a[1] + (WING_COLS+GAP)*a[0], a[2])
 
     #def K_to_Mr(G, AS, SU, VP, EP, SUP, ASP, GP):
 
@@ -393,54 +388,54 @@ def _(WING_COLS, fac_v2, nx, string):
 
        # return fac_graph_v1, fac_entry_v1, fac_exit_a_v1, fac_exit_b_v1, fac_supplies_v1
 
-    def Mr_to_K_v2(fac):
-    
+    def fac_Bv2(fac):
+
         vertices = []
         G = nx.DiGraph()
 
         n_nodes = fac["n_wings"]*fac["wing_cols"]*fac["wing_rows"]
 
-        wing = [node_Mr_K_v2((i,c,r)) for c in range(fac["wing_cols"]) for r in range(fac["wing_rows"]) for i in range(fac["n_wings"])]
+        wing = [Bv2((i,c,r)) for c in range(fac["wing_cols"]) for r in range(fac["wing_rows"]) for i in range(fac["n_wings"])]
         G.add_nodes_from(wing)
-    
-    
-    
+
+
+
 
         for i in range(fac["n_wings"]):
             for edge in fac["wings"][i].edges():
-                G.add_edge(node_Mr_K_v2((i,edge[0][0],edge[0][1])), node_Mr_K_v2((i,edge[1][0],edge[1][1])))
-                G.add_edge(node_Mr_K_v2((i,edge[1][0],edge[1][1])), node_Mr_K_v2((i,edge[0][0],edge[0][1])))
+                G.add_edge(Bv2((i,edge[0][0],edge[0][1])), Bv2((i,edge[1][0],edge[1][1])))
+                G.add_edge(Bv2((i,edge[1][0],edge[1][1])), Bv2((i,edge[0][0],edge[0][1])))
 
         for junc in fac["junctions"]:
-            G.add_edge(node_Mr_K_v2(junc[0]),node_Mr_K_v2(junc[1]))
-        
+            G.add_edge(Bv2(junc[0]),Bv2(junc[1]))
+
         SU = {i for i in range(len(fac["supplies"]))}
 
         AS = {0}
 
 
-        VP: dict[dict[bool,bool,int,string,(int,int)]] = {i:{"is_entry":False, "is_exit": False, "supply_unit": None, "wing": fac["wing_names"][node_K_Mr_v2(i)[0]],"location": i} for i in G.nodes()}
-        VP[node_Mr_K_v2(fac["entry"])]["is_entry"] = True
-        VP[node_Mr_K_v2(fac["exit_a"])]["is_exit"] = True
-        VP[node_Mr_K_v2(fac["exit_b"])]["is_exit"] = True
+        VP: dict[dict[bool,bool,int,string,(int,int)]] = {i:{"is_entry":False, "is_exit": False, "supply_unit": None, "wing": fac["wing_names"][Av2(i)[0]],"location": i} for i in G.nodes()}
+        VP[Bv2(fac["entry"])]["is_entry"] = True
+        VP[Bv2(fac["exit_a"])]["is_exit"] = True
+        VP[Bv2(fac["exit_b"])]["is_exit"] = True
         for i in range(len(fac["supplies"])):
-            VP[node_Mr_K_v2(fac["supplies"][i])]["supply_unit"] = i
+            VP[Bv2(fac["supplies"][i])]["supply_unit"] = i
 
 
 
         EP: dict[dict] = {edge: {}  for edge in G.edges}
 
 
-        SUP: dict[dict[(int,int)]] = {i:{"location": node_Mr_K_v2(fac["supplies"][i])} for i in range(len(fac["supplies"]))}
+        SUP: dict[dict[(int,int)]] = {i:{"location": Bv2(fac["supplies"][i])} for i in range(len(fac["supplies"]))}
 
-        ASP: dict[(int,int)] = {0:{"location":  node_Mr_K_v2(fac["entry"])}}
+        ASP: dict[(int,int)] = {0:{"location":  Bv2(fac["entry"])}}
 
         GP = {}
         return G, AS, SU, VP, EP, SUP, ASP, GP
 
 
-    G, AS, SU, VP, EP, SUP, ASP, GP = Mr_to_K_v2(fac_v2)
-    return AS, ASP, EP, G, GP, SU, SUP, VP
+    G, AS, SU, VP, EP, SUP, ASP, GP = fac_Bv2(fac_v2)
+    return AS, ASP, Av2, Bv2, EP, G, GP, SU, SUP, VP
 
 
 @app.cell(hide_code=True)
@@ -488,13 +483,14 @@ def _(VP, deque):
         #Outputing to the physical environment the instructions for the AS
 
         for i in range(length):
-            _move(EP[(walk[i], walk[i+1])]["cardinal_angle"],1)
+            dif_vec = (walk[i+1][0]-walk[i][0],walk[i+1][1]-walk[i][1])
+            _move(dif_vec[0], dif_vec[1])
         _exit()
 
-        return {"walk": walk, "length": length, "supply_units_recovered": SU}  
+        return {"walk": walk, "length": length, "supply_units_recovered": SU}
 
-    def _move(a,b):
-        #move at a angle b distance
+    def _move(x,y):
+        #move at x distance in x direction any y distance in y direction.
         return
     def _exit():
         #exit
@@ -622,77 +618,90 @@ def _(AS, ASP, BFS_DFS, EP, G, GP, SU, SUP, VP, time, tracemalloc):
     _size1, _peak1 = tracemalloc.get_traced_memory()
 
     _start_time = time.perf_counter()
-    out_v1 = BFS_DFS(G, AS, SU, VP, EP, SUP, ASP, GP)
+    out_v2 = BFS_DFS(G, AS, SU, VP, EP, SUP, ASP, GP)
     BFS_DFS_time_taken = time.perf_counter() - _start_time
     _size2, _peak2 = tracemalloc.get_traced_memory()
 
     #print("size: "+str(_size2)+", peak:" + str(_peak2))
     #print("size: "+str(_size2-_size1)+", peak:" + str(_peak2-_peak1))
-    memory_used = _peak2 - _size1
-    walk_v1 = out_v1["walk"]
+    memory_used_v2 = _peak2 - _size1
+    walk_v2 = out_v2["walk"]
 
     tracemalloc.stop()
-    return BFS_DFS_time_taken, memory_used, out_v1, walk_v1
+    return BFS_DFS_time_taken, memory_used_v2, out_v2, walk_v2
 
 
 @app.cell(hide_code=True)
 def _(
+    Av2,
+    Bv2,
     COL_PATH,
-    draw_facility_v1,
-    fac_entry_v1,
-    fac_exit_a_v1,
-    fac_exit_b_v1,
-    fac_graph_v1,
-    fac_supplies_v1,
-    flat_to_tup_V1,
+    draw_fac_v2,
+    fac_v2,
+    highligh_path,
+    highlight_path,
     imageio,
+    m_fac_v2,
     os,
     plt,
     seed,
     walk_v1,
+    walk_v2,
 ):
-    #define make_gif_v1
-    def front_focus_v1(_walk):
+    #define make_gif_v2
+    def front_focus_v2(_walk):
         leading = "#FF0000"
         base_col = '#58D4D3'
 
-        _col_dict = {flat_to_tup_V1(v):base_col for v in _walk}
+        _col_dict = {Av2(v):base_col for v in _walk}
 
-        _col_dict[flat_to_tup_V1(_walk[len(_walk)-1])] =  leading
+        _col_dict[Av2(_walk[len(_walk)-1])] = leading
 
         return _col_dict
 
 
-    def make_gif_v1():
+    def make_gif_v2(custom_seed = None, algorithm = "BFS_DFS", title = None):
+        _seed = seed
+    
+        if(custom_seed != None):
+            _seed = custom_seed
+    
         if not os.path.exists("figs\\"):
            os.mkdir("figs\\")
 
-        if (os.path.exists("figs\\"+ str(seed) + ".gif")):
+        if (os.path.exists("figs\\"+ str(_seed)+ "_v2" + ".gif")):
             return False
 
-        _fig, _ax= draw_facility_v1(fac_graph_v1, fac_entry_v1, fac_exit_a_v1, fac_exit_b_v1, fac_supplies_v1, legend = False)
+        _fac = None
+        _walk = None
+    
+        if(custom_seed != None):
+            _fac = m_fac_v2
+        
+        _fig, _ax= draw_fac_v2(fac_v2, legend = False)
 
         for _i in range(len(walk_v1)): 
-            _highlight_path = [flat_to_tup_V1(v) for v in walk_v1[0:_i+1]]
-            _node_colors = front_focus_v1(walk_v1[0:_i+1])
+            _highlight_path = [Av2(v) for v in walk_v2[0:_i+1]]
+            _node_colors = front_focus_v2(walk_v2[0:_i+1])
 
-            if _highlight_path and len(_highlight_path) > 1:
-                    px = [c + 0.5 for c,r in _highlight_path]
-                    py = [r + 0.5 for c,r in _highlight_path]
-                    path_plot, = _ax.plot(px, py, color=COL_PATH, lw=1.8, linestyle='--', alpha=0.75, zorder=4)
 
+            if highlight_path and len(highlight_path) > 1:
+                px = [0.5 + Bv2(w,c,r)[0] for w,c,r in highligh_path] 
+                py = [0.5 + r for w,c,r in highligh_path] 
+                path_plot, = _ax.plot(px, py, color=COL_PATH, lw=1.8, linestyle='--', alpha=0.75, zorder=4)
 
             if _node_colors:
                 rectangles = []
-                for node, color in _node_colors.items():
-                    c, r = node
+                for w,c1,r1, color in _node_colors.items():
+                    c, r = Bv2(w,c1,r1)
                     rect = plt.Rectangle((c, r), 1, 1, color=color, alpha=0.50, zorder=2)
                     rectangles.append(rect)
                     _ax.add_patch(rect)
 
 
             name = "figs\\"
-            name += str(seed) + "_"
+            name += str(_seed) + "_"
+            name += "v2_"
             name += str(_i)
             name += ".png"
 
@@ -708,16 +717,17 @@ def _(
         list_of_im_paths = []
         for _i in range(len(walk_v1)): 
             _name = "figs\\"
-            _name += str(seed) + "_"
+            _name += str(_seed) + "_"
+            _name += "v2_"
             _name += str(_i)
             _name += ".png"
             list_of_im_paths.append(_name)
 
-        path_to_save_gif = "figs\\"+ str(seed) + ".gif" 
+        path_to_save_gif = "figs\\"+ str(_seed)+ "_v2" + ".gif" 
         ims = [imageio.imread(f) for f in list_of_im_paths]
         dur = [0.1 for f in list_of_im_paths]
         dur[len(dur)-1] = 1.5
-        imageio.mimsave(path_to_save_gif, ims, loop = 10000)
+        imageio.mimsave(path_to_save_gif, ims, duration = dur, loop = 10000)
 
         for _i in range(len(list_of_im_paths)):
             if os.path.exists(list_of_im_paths[_i]):
@@ -727,7 +737,13 @@ def _(
 
 
 
-    return (make_gif_v1,)
+    return (front_focus_v2,)
+
+
+@app.cell
+def _(Av2, draw_fac_v2, fac_v2, front_focus_v2, walk_v2):
+    draw_fac_v2(fac_v2, node_colors = front_focus_v2(walk_v2), highlight_path = [Av2(v) for v in walk_v2], legend = False)
+    return
 
 
 @app.cell(hide_code=True)
@@ -785,9 +801,9 @@ def _(mo):
 
 
 @app.cell
-def _(draw_facility_v2, fac_v2, seed):
+def _(draw_fac_v2, fac_v2, seed):
     #draw_facility
-    draw_facility_v2(fac_v2,
+    draw_fac_v2(fac_v2,
                     title=(f"Multi-Wing Facility -- Seed {int(seed)} · "
                f"{fac_v2['n_wings']} wings · "
                f"{fac_v2['wing_cols']}×{fac_v2['wing_rows']} sectors each"), legend = False)
@@ -1479,6 +1495,11 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     ## C1 - Algorithm in pseudocode (Nielsen, 2026)
+
+    <div class = "y">
+    <h4>Changes to pseudocode code:</h4>
+    &#x2022; move() function have been changed to take x,y as the vector v in the direction it needs to go.
+    </div>
     """)
     return
 
@@ -1535,7 +1556,8 @@ def _(mo):
         //Outputing to the physical environment the instructions for the AS
 
         FOR i ← 1 to length DO
-    	    move(EP[(walk[i], walk[i+1])]["cardinal_angle"],1)
+            dif_vec = walk[i+1]-walk[i] # a tuple
+    	    move(dif_vec[0], dif_vec[1])
     	END FOR
     	exit()
 
@@ -1680,6 +1702,12 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     ## C2 - Algorithm in python
+
+
+    <div class = "y">
+    <h4>Changes to python code:</h4>
+    &#x2022; move() function have been changed to take x,y as the vector v in the direction it needs to go.
+    </div>
     """)
     return
 
@@ -1734,13 +1762,14 @@ def _(mo):
         #Outputing to the physical environment the instructions for the AS
 
         for i in range(length):
-            move(EP[(walk[i], walk[i+1])]["cardinal_angle"],1)
+            dif_vec = (walk[i+1][0]-walk[i][0],walk[i+1][1]-walk[i][1])
+            move(dif_vec[0], dif_vec[1])
         exit()
 
         return {"walk": walk, "length": length, "supply_units_recovered": SU}
 
-    def move(a,b):
-        #move at a angle b distance
+    def move(x,y):
+        #move at x distance in x direction any y distance in y direction.
         return
     def exit():
         #exit
@@ -1988,27 +2017,30 @@ def _(mo):
 
 
 @app.cell
-def _(BFS_DFS_time_taken, memory_used, mo, out_v1):
+def _(BFS_DFS_time_taken, memory_used_v2, mo, out_v2):
     mo.callout(mo.hstack([
-            mo.stat(label="Length",    value=str(out_v1["length"])),
+            mo.stat(label="Length",    value=str(out_v2["length"])),
             mo.stat(label="Time to Compute",    value=str((int)(BFS_DFS_time_taken*1000))+" ms"),
-            mo.stat(label="Memory to Compute",    value=str(round(memory_used/1000,1))+" KB"),
+            mo.stat(label="Memory to Compute",    value=str(round(memory_used_v2/1000,1))+" KB"),
             mo.stat(label="Supply Units Recovered",  value="All"),
         ], gap=0, wrap=True),kind = "info")
     return
 
 
 @app.cell(hide_code=True)
-def _(flat_to_tup_V1, mo, out_v1):
-    mo.callout(mo.md(rf"""
-    **walk list printed out in tuple form:**
-    ```python
-    {[flat_to_tup_V1(v) for v in out_v1["walk"]]}
-    ```
+def _(mo):
+    mo.md(r"""
+    <span class = "y">Removed "Walk list printed out in tuple form: [code block]"</span>
+    """)
+    return
 
+
+@app.cell(hide_code=True)
+def _(mo, out_v2):
+    mo.callout(mo.md(rf"""
     **raw output:**
     ```python
-    {out_v1}
+    {out_v2}
     ```
     """), kind = "info")
     return
