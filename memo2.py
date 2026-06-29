@@ -24,8 +24,9 @@ def _():
     import imageio
     import time
     import tracemalloc
+    import multiprocess as mp
 
-    return deque, imageio, mo, mpatches, nx, os, plt, random, time, tracemalloc
+    return deque, imageio, mo, mp, nx, os, plt, random, time, tracemalloc
 
 
 @app.cell(hide_code=True)
@@ -95,9 +96,9 @@ def _(seed_input):
     return (seed,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(nx, random, seed_input):
-
+    #make the A1 facility (m_fac_v2)
     WING_COLS, WING_ROWS = 10, 10
 
     def _neighbours(cols, rows, c, r):
@@ -200,8 +201,9 @@ def _(nx, random, seed_input):
     return WING_COLS, fac_v2, m_fac_v2
 
 
-@app.cell
-def _(mpatches, plt):
+@app.cell(hide_code=True)
+def _():
+    #draw the facility for memo A1 (draw_fac_v2)
     COL_BG       = '#F5F7FA'
     COL_GRID     = '#C8D0DC'
     COL_WALL     = '#44546A'
@@ -217,6 +219,23 @@ def _(mpatches, plt):
 
     def draw_fac_v2(fac, highlight_path=None, node_colors=None,
                         supply_collected=None, title="Multi-Wing Facility", legend = True, grid = True):
+
+        import matplotlib.pyplot as plt
+        import matplotlib.patches as mpatches
+    
+        COL_BG       = '#F5F7FA'
+        COL_GRID     = '#C8D0DC'
+        COL_WALL     = '#44546A'
+        COL_ENTRY    = '#0B6E6B'
+        COL_EXIT     = '#7A1E2C'
+        COL_SUPPLY   = '#4AA8A0'
+        COL_PATH     = '#0B6E6B'
+        COL_VISITED  = '#B8D8D7'
+        COL_FRONTIER = '#F4C97A'
+        COL_CURRENT  = '#E8603C'
+        COL_JUNCTION = '#7A1E2C'
+        GAP = 3  # grid-unit gap between wings in the visualisation
+    
         wc = fac['wing_cols']
         wr = fac['wing_rows']
         nw = fac['n_wings']
@@ -361,32 +380,12 @@ def _(mpatches, plt):
 def _(GAP, WING_COLS, fac_v2, nx, string):
     # turn Mr Nielsens implimentation into mine :)
 
-    #TODO got some editing to do.
     def Av2(a):
         return (int((a[0]-(a[0]%(WING_COLS + GAP)))/(WING_COLS + GAP)),a[0]%(WING_COLS + GAP),a[1])
 
     def Bv2(a):
         return (a[1] + (WING_COLS+GAP)*a[0], a[2])
 
-    #def K_to_Mr(G, AS, SU, VP, EP, SUP, ASP, GP):
-
-
-    _p = """
-     {
-    'n_wings':    n_wings,
-    'wing_names': wing_names,
-    'wings':      wings,
-    'wing_cols':  WING_COLS,
-    'wing_rows':  WING_ROWS,
-    'entry':      entry,
-    'exit_a':     exit_a,
-    'exit_b':     exit_b,
-    'supplies':   supplies[:5],
-    'junctions':  junctions,
-    }
-    """
-
-       # return fac_graph_v1, fac_entry_v1, fac_exit_a_v1, fac_exit_b_v1, fac_supplies_v1
 
     def fac_Bv2(fac):
 
@@ -435,7 +434,7 @@ def _(GAP, WING_COLS, fac_v2, nx, string):
 
 
     G, AS, SU, VP, EP, SUP, ASP, GP = fac_Bv2(fac_v2)
-    return AS, ASP, Av2, Bv2, EP, G, GP, SU, SUP, VP
+    return AS, ASP, Av2, Bv2, EP, G, GP, SU, SUP, VP, fac_Bv2
 
 
 @app.cell(hide_code=True)
@@ -490,7 +489,7 @@ def _(VP, deque):
         return {"walk": walk, "length": length, "supply_units_recovered": SU}
 
     def _move(x,y):
-        #move at x distance in x direction any y distance in y direction.
+        #move at x distance in x direction and y distance in y direction.
         return
     def _exit():
         #exit
@@ -613,42 +612,45 @@ def _(VP, deque):
 def _(AS, ASP, BFS_DFS, EP, G, GP, SU, SUP, VP, time, tracemalloc):
     # RUN BFS+DFS
 
-    tracemalloc.start()
-    tracemalloc.reset_peak()
-    _size1, _peak1 = tracemalloc.get_traced_memory()
+    def test_algorithm():
+        tracemalloc.start()
+        tracemalloc.reset_peak()
+        _size1, _peak1 = tracemalloc.get_traced_memory()
 
-    _start_time = time.perf_counter()
-    out_v2 = BFS_DFS(G, AS, SU, VP, EP, SUP, ASP, GP)
-    BFS_DFS_time_taken = time.perf_counter() - _start_time
-    _size2, _peak2 = tracemalloc.get_traced_memory()
+        _start_time = time.perf_counter()
+        out = BFS_DFS(G, AS, SU, VP, EP, SUP, ASP, GP)
+        time_taken = time.perf_counter() - _start_time
+        _size2, _peak2 = tracemalloc.get_traced_memory()
 
-    #print("size: "+str(_size2)+", peak:" + str(_peak2))
-    #print("size: "+str(_size2-_size1)+", peak:" + str(_peak2-_peak1))
-    memory_used_v2 = _peak2 - _size1
+        #print("size: "+str(_size2)+", peak:" + str(_peak2))
+        #print("size: "+str(_size2-_size1)+", peak:" + str(_peak2-_peak1))
+        tracemalloc.stop()
+        return out, _peak2 - _size1, time_taken
+
+
+    out_v2, memory_used_v2, BFS_DFS_time_taken = test_algorithm()
     walk_v2 = out_v2["walk"]
-
-    tracemalloc.stop()
     return BFS_DFS_time_taken, memory_used_v2, out_v2, walk_v2
 
 
 @app.cell(hide_code=True)
 def _(
     Av2,
+    BFS_DFS,
     Bv2,
     COL_PATH,
     draw_fac_v2,
+    fac_Bv2,
     fac_v2,
-    highligh_path,
-    highlight_path,
     imageio,
     m_fac_v2,
+    mp,
     os,
     plt,
     seed,
-    walk_v1,
     walk_v2,
 ):
-    #define make_gif_v2
+    #define m_gif_v2
     def front_focus_v2(_walk):
         leading = "#FF0000"
         base_col = '#58D4D3'
@@ -659,41 +661,79 @@ def _(
 
         return _col_dict
 
+    def default_title(mini = "Multi-Wing Facility",seed = seed, has_walk = False, walk_length = -1, algorithm = None, memo = None,n_wing = -1,animated = False):
+        title = ""
+        if mini != "" and mini != None:
+            title += mini
 
-    def make_gif_v2(custom_seed = None, algorithm = "BFS_DFS", title = None):
+
+        if seed != None:
+            if title != "": title += " -- "
+            title += "Seed " + str(seed)
+
+        if memo != None:
+            if title != "": title += " · "
+            title += "memo "+ memo
+
+        if n_wing >= 0: 
+            if title != "": title += " · "
+            title += f"{n_wing} Wings"
+
+
+        if has_walk and algorithm != None:
+            if title != "": title += " · "
+            if animated:
+                title += "Animation of "
+            title += f"{algorithm}'s "
+            if walk_length >= 0:
+                title += f"{walk_length} Long "
+            title += "Walk"
+
+        return title
+
+
+    def m_gif_v2(custom_seed = None, algorithm = "BFS+DFS", title = None):
         _seed = seed
-    
+
         if(custom_seed != None):
             _seed = custom_seed
-    
+
         if not os.path.exists("figs\\"):
            os.mkdir("figs\\")
 
         if (os.path.exists("figs\\"+ str(_seed)+ "_v2" + ".gif")):
-            return False
+            return "exists already"
 
         _fac = None
         _walk = None
-    
+
         if(custom_seed != None):
-            _fac = m_fac_v2
-        
-        _fig, _ax= draw_fac_v2(fac_v2, legend = False)
+            _fac = m_fac_v2(_seed)
+            _G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP = fac_Bv2(_fac)
+            _walk = BFS_DFS(_G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP)
+        else:
+            _fac = fac_v2
+            _walk = walk_v2
 
-        for _i in range(len(walk_v1)): 
-            _highlight_path = [Av2(v) for v in walk_v2[0:_i+1]]
-            _node_colors = front_focus_v2(walk_v2[0:_i+1])
+        if(title == None):
+            title = default_title(mini = "", seed = _seed, has_walk = True, algorithm = "BFS+DFS",animated = True)
+
+        _fig, _ax= draw_fac_v2(_fac, legend = False, title = title)
+
+        for _i in range(len(_walk)): 
+            _highlight_path = [Av2(v) for v in _walk[0:_i+1]]
+            _node_colors = front_focus_v2(_walk[0:_i+1])
 
 
-            if highlight_path and len(highlight_path) > 1:
-                px = [0.5 + Bv2(w,c,r)[0] for w,c,r in highligh_path] 
-                py = [0.5 + r for w,c,r in highligh_path] 
+            if _highlight_path and len(_highlight_path) > 1:
+                px = [0.5 + Bv2((w,c,r))[0] for w,c,r in _highlight_path] 
+                py = [0.5 + r for w,c,r in _highlight_path] 
                 path_plot, = _ax.plot(px, py, color=COL_PATH, lw=1.8, linestyle='--', alpha=0.75, zorder=4)
 
             if _node_colors:
                 rectangles = []
-                for w,c1,r1, color in _node_colors.items():
-                    c, r = Bv2(w,c1,r1)
+                for node, color in _node_colors.items():
+                    c, r = Bv2(node)
                     rect = plt.Rectangle((c, r), 1, 1, color=color, alpha=0.50, zorder=2)
                     rectangles.append(rect)
                     _ax.add_patch(rect)
@@ -715,7 +755,7 @@ def _(
         plt.close()
 
         list_of_im_paths = []
-        for _i in range(len(walk_v1)): 
+        for _i in range(len(_walk)): 
             _name = "figs\\"
             _name += str(_seed) + "_"
             _name += "v2_"
@@ -725,24 +765,143 @@ def _(
 
         path_to_save_gif = "figs\\"+ str(_seed)+ "_v2" + ".gif" 
         ims = [imageio.imread(f) for f in list_of_im_paths]
-        dur = [0.1 for f in list_of_im_paths]
-        dur[len(dur)-1] = 1.5
+        dur = [0.05 for f in list_of_im_paths]
+        dur[len(dur)-1] = 2
         imageio.mimsave(path_to_save_gif, ims, duration = dur, loop = 10000)
 
         for _i in range(len(list_of_im_paths)):
             if os.path.exists(list_of_im_paths[_i]):
                 os.remove(list_of_im_paths[_i])
 
-        return True
+        return "ran successfully"
+
+    def _create_frames(a):
+
+        import matplotlib.pyplot as plt
+    
+        i = a[0]
+        n_parallel = a[1]
+        _walk = a[2]
+        _fac = a[3]
+        title = a[4]
+        _seed = a[5]
+        _draw_fac_v2 = a[6]
+        _Av2 = a[7]
+        _Bv2 = a[8]
+        _front_focus_v2 = a[9]
+        _COL_PATH = a[10]
+    
+        _fig, _ax= _draw_fac_v2(_fac, legend = False, title = title)
+
+        _imin = (int)((i*len(_walk))/n_parallel)
+        _imax = (int)(((i+1)*len(_walk))/n_parallel)
+
+        for _i in range(_imin,_imax): 
+            _highlight_path = [_Av2(v) for v in _walk[0:_i+1]]
+            _node_colors = _front_focus_v2(_walk[0:_i+1])
 
 
+            if _highlight_path and len(_highlight_path) > 1:
+                px = [0.5 + _Bv2((w,c,r))[0] for w,c,r in _highlight_path] 
+                py = [0.5 + r for w,c,r in _highlight_path] 
+                path_plot, = _ax.plot(px, py, color=_COL_PATH, lw=1.8, linestyle='--', alpha=0.75, zorder=4)
 
-    return (front_focus_v2,)
+            if _node_colors:
+                rectangles = []
+                for node, color in _node_colors.items():
+                    c, r = _Bv2(node)
+                    rect = plt.Rectangle((c, r), 1, 1, color=color, alpha=0.50, zorder=2)
+                    rectangles.append(rect)
+                    _ax.add_patch(rect)
+
+
+            name = "figs\\"
+            name += str(_seed) + "_"
+            name += "v2_"
+            name += str(_i)
+            name += ".png"
+
+            plt.savefig(name)
+            if _highlight_path and len(_highlight_path) > 1:
+                path_plot.remove()
+
+            if _node_colors:
+                for rect in rectangles:
+                    rect.remove()
+        plt.close()
+
+
+    def multi_m_dif_v2(custom_seed = None, algorithm = "BFS+DFS", title = None, n_parallel = 18):
+
+        #Checking Seed
+
+        _seed = seed
+
+        if(custom_seed != None):
+            _seed = custom_seed
+
+        if not os.path.exists("figs\\"):
+           os.mkdir("figs\\")
+
+        if (os.path.exists("figs\\"+ str(_seed)+ "_v2" + ".gif")):
+            return "exists already"
+
+
+        _fac = None
+        _walk = None
+
+        if(custom_seed != None):
+            _fac = m_fac_v2(_seed)
+            _G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP = fac_Bv2(_fac)
+            _walk = BFS_DFS(_G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP)
+        else:
+            _fac = fac_v2
+            _walk = walk_v2
+
+        if(title == None):
+            title = default_title(mini = "", seed = _seed, has_walk = True, algorithm = "BFS+DFS",animated = True)
+
+        #Starting making the GIF
+
+        _inputs = []
+
+        for i in range(n_parallel):
+            _inputs.append([i,n_parallel, _walk, _fac, title, _seed, draw_fac_v2, Av2, Bv2, front_focus_v2, COL_PATH])
+        
+        def main():
+            with mp.Pool() as pool:
+                pool.map(_create_frames, _inputs)
+
+        if (__name__ == '__main__'):
+            main()
+
+        list_of_im_paths = []
+        for _i in range(len(_walk)): 
+            _name = "figs\\"
+            _name += str(_seed) + "_"
+            _name += "v2_"
+            _name += str(_i)
+            _name += ".png"
+            list_of_im_paths.append(_name)
+
+        path_to_save_gif = "figs\\"+ str(_seed)+ "_v2" + ".gif" 
+        ims = [imageio.imread(f) for f in list_of_im_paths]
+        dur = [0.05 for f in list_of_im_paths]
+        dur[len(dur)-1] = 2
+        imageio.mimsave(path_to_save_gif, ims, duration = dur, loop = 10000)
+
+        for _i in range(len(list_of_im_paths)):
+            if os.path.exists(list_of_im_paths[_i]):
+                os.remove(list_of_im_paths[_i])
+
+        return "ran successfully"
+
+    return default_title, front_focus_v2, multi_m_dif_v2
 
 
 @app.cell
-def _(Av2, draw_fac_v2, fac_v2, front_focus_v2, walk_v2):
-    draw_fac_v2(fac_v2, node_colors = front_focus_v2(walk_v2), highlight_path = [Av2(v) for v in walk_v2], legend = False)
+def _(Av2, default_title, draw_fac_v2, fac_v2, front_focus_v2, walk_v2):
+    draw_fac_v2(fac_v2, node_colors = front_focus_v2(walk_v2), highlight_path = [Av2(v) for v in walk_v2], legend = False, title = default_title())
     return
 
 
@@ -1769,7 +1928,7 @@ def _(mo):
         return {"walk": walk, "length": length, "supply_units_recovered": SU}
 
     def move(x,y):
-        #move at x distance in x direction any y distance in y direction.
+        #move at x distance in x direction and y distance in y direction.
         return
     def exit():
         #exit
@@ -1994,17 +2153,20 @@ def _(mo):
     mo.md(r"""
     Here is an animation showing the walk taken by the AS. The red node is the one currently occupied by the AS.
 
-    Note: Creating the animation (stored at figs\\\\) often takes 1-2 minutes.
+    Note: Creating the animation (stored at figs\\\\) often takes <span class = "r">1-2</span><span class = "g">2-3</span>  minutes.
     """)
     return
 
 
 @app.cell
-def _(make_gif_v1, mo, seed, time):
+def _(mo, multi_m_dif_v2, seed, time):
     #DISPLAY GIF
-    if(make_gif_v1()):
+    #_out = m_gif_v2()
+    _out = multi_m_dif_v2()
+    if(_out == "ran successfully"):
         time.sleep(10)
-    mo.image("figs\\"+ str(seed) + ".gif")
+    mo.stop(_out == "error")
+    mo.image("figs\\"+ str(seed) +"_v2"+ ".gif")
     return
 
 
