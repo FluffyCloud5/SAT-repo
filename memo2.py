@@ -24,7 +24,6 @@ def _():
     import imageio
     import time
     import tracemalloc
-    import multiprocess as mp
 
     return deque, imageio, mo, mpatches, nx, os, plt, random, time, tracemalloc
 
@@ -219,7 +218,7 @@ def _(mpatches, plt):
 
     def draw_fac_v2(fac, highlight_path=None, node_colors=None,
                         supply_collected=None, title="Multi-Wing Facility", legend = True, grid = True):
-    
+
         wc = fac['wing_cols']
         wr = fac['wing_rows']
         nw = fac['n_wings']
@@ -423,8 +422,9 @@ def _(GAP, WING_COLS, fac_v2, nx, string):
 
 @app.cell(hide_code=True)
 def _(VP, deque):
-    # G = (V,E)
+    #BFS+DFS
 
+    # G = (V,E)
     def BFS_DFS(G, AS, SU, VP, EP, SUP, ASP, GP):
         #--------------------------------------------------
         #------------Initialise data structures------------
@@ -460,7 +460,7 @@ def _(VP, deque):
         length = len(walk) - 1
 
         #--------------------------------------------------
-        #-----------------Return the output----------------
+        #-----------------return the output----------------
         #--------------------------------------------------
 
         #Outputing to the physical environment the instructions for the AS
@@ -590,6 +590,14 @@ def _(VP, deque):
 
 
     return (BFS_DFS,)
+
+
+@app.function
+#Brute Force
+
+def brute_force(G, AS, SU, VP, EP, SUP, ASP, GP):
+    #Brute force
+     return {"walk": [], "length": 0, "supply_units_recovered": {}}
 
 
 @app.cell(hide_code=True)
@@ -764,7 +772,7 @@ def _(
 
 @app.cell
 def _(Av2, default_title, draw_fac_v2, fac_v2, front_focus_v2, walk_v2):
-    draw_fac_v2(fac_v2, node_colors = front_focus_v2(walk_v2), highlight_path = [Av2(v) for v in walk_v2], legend = False, title = default_title())
+    draw_fac_v2(fac_v2, node_colors = front_focus_v2(walk_v2), highlight_path = [Av2(v) for v in walk_v2], legend = False, title = default_title(has_walk = True, algorithm="BFS+DFS"))
     return
 
 
@@ -823,12 +831,13 @@ def _(mo):
 
 
 @app.cell
-def _(draw_fac_v2, fac_v2, seed):
+def _(default_title, draw_fac_v2, fac_v2):
     #draw_facility
-    draw_fac_v2(fac_v2,
-                    title=(f"Multi-Wing Facility -- Seed {int(seed)} · "
-               f"{fac_v2['n_wings']} wings · "
-               f"{fac_v2['wing_cols']}×{fac_v2['wing_rows']} sectors each"), legend = False)
+    #draw_fac_v2(fac_v2,
+    #                title=(f"Multi-Wing Facility -- Seed {int(seed)} · "
+    #           f"{fac_v2['n_wings']} wings · "
+    #           f"{fac_v2['wing_cols']}×{fac_v2['wing_rows']} sectors each"), legend = False)
+    draw_fac_v2(fac_v2, title = default_title(n_wing=2))
     return
 
 
@@ -1513,75 +1522,97 @@ def _(mo):
     return
 
 
+@app.cell
+def _(mo):
+    algorithm_input = mo.ui.dropdown(
+        value= "Divide and Conquer",
+        options= ["Divide and Conquer", "BFS+DFS", "Brute Force", "Greedy"],
+        allow_select_none= False,
+        label="Choose an algorithm: "
+    )
+    mo.callout(mo.vstack([ algorithm_input, mo.md("""**Only Divide and Conquer will be discussed in part D**""")]),kind = "success")
+    return (algorithm_input,)
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## C1 - Algorithm in pseudocode (Nielsen, 2026)
-
-    <div class = "y">
-    <h4>Changes to pseudocode code:</h4>
-    &#x2022; move() function have been changed to take x,y as the vector v in the direction it needs to go.
-    </div>
+    <span class = "y">The dropdown to select different algorithms is new. All algorithm implimentations are new, except for BFS+DFS.</span>
     """)
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    Pseudocode: (**Please note that marimo md renders indentation wrong for my pseudocode, please refer to the raw md**)
+def _(algorithm_input, mo):
+    mo.md(rf"""
+    ## C1 - Algorithm in pseudocode - {algorithm_input.value}
+
+    **Please note that marimo md renders indentation wrong for my pseudocode, please refer to the raw md**
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(algorithm_input, mo):
+    BFS_DFS_pseudocode = r"""
+    <div class = "y">
+    <h4>Changes to pseudocode code:</h4>
+    &#x2022; Name changed from ember_rescue to BFS_DFS
+    &#x2022; move() function have been changed to take x,y as the vector v in the direction it needs to go.
+    </div>
 
     ```
-    //1 indexed.
-    FUNCTION ember_rescue(G: Directed Unweighted Graph, SU: Set, AS: Set, VP: Map, EP: Map, SUP: Map, ASP: Map, GP: Map) -> Map
-    	// G = (V,E)
+
+    //1 indexed
+    FUNCTION BFS_DFS(G: Directed Unweighted Graph, SU: Set, AS: Set, VP: Map, EP: Map, SUP: Map, ASP: Map, GP: Map) -> Map
+        // G = (V,E)
 
 
-    	//--------------------------------------------------
+        //--------------------------------------------------
         // -----------Initialise data structures------------
         //--------------------------------------------------
 
         CRUDY_1 ← AS.get_random()
-    	entry ← ASP[CRUDY_1]["location"]
-    	V ← G.Vertices()
+        entry ← ASP[CRUDY_1]["location"]
+        V ← G.Vertices()
 
-    	//--------------------------------------------------
+        //--------------------------------------------------
         // ------------------Main loop----------------------
         //--------------------------------------------------
 
-    	//1. BFS
+        //1. BFS
 
-    	parent, child_count, leaf_nodes ← BFS(G, entry)
+        parent, child_count, leaf_nodes ← BFS(G, entry)
 
-    	//2. Backtrace Tree
+        //2. Backtrace Tree
 
-    	exit_count, sub_exit ← make_sub_exits(G, VP)
-    	sub_SU ← {v: not (VP[v]["supply_unit"] = null) | v ∈ V}
-    	sub_exit, sub_SU ← backtrace_tree(parent, child_count, leaf_nodes, sub_exit, sub_SU)
+        exit_count, sub_exit ← make_sub_exits(G, VP)
+        sub_SU ← {v: not (VP[v]["supply_unit"] = null) | v ∈ V}
+        sub_exit, sub_SU ← backtrace_tree(parent, child_count, leaf_nodes, sub_exit, sub_SU)
 
-    	//3. DFS for all exits
+        //3. DFS for all exits
 
-    	walks ← empty list
-    	FOR i ← 1 to exit_count DO
-    		walks.append(DFS(G, entry, parent, sub_exit, sub_SU, i))
-    	END FOR
+        walks ← empty list
+        FOR i ← 1 to exit_count DO
+            walks.append(DFS(G, entry, parent, sub_exit, sub_SU, i))
+        END FOR
 
-    	//4. Calculating traversal_cost
+        //4. Calculating traversal_cost
 
-    	walk ← shortest_walk(walks)
-    	length ← walk.length() - 1
+        walk ← shortest_walk(walks)
+        length ← walk.length() - 1
 
-    	//--------------------------------------------------
-        // ----------------Return the output----------------
+        //--------------------------------------------------
+        // ----------------RETURN the output----------------
         //--------------------------------------------------
 
         //Outputing to the physical environment the instructions for the AS
 
         FOR i ← 1 to length DO
-            dif_vec = walk[i+1]-walk[i] # a tuple
-    	    move(dif_vec[0], dif_vec[1])
-    	END FOR
-    	exit()
+            dif_vec = walk[i+1]-walk[i] // a tuple
+            move(dif_vec[1], dif_vec[2])
+        END FOR
+        exit()
 
         RETURN {"walk": walk, "energy_expended": length, "supply_units_recovered": SU}
     END FUNCTION
@@ -1614,7 +1645,7 @@ def _(mo):
     		END FOR
     	END WHILE
 
-    	return parent, child_count, leaf_nodes
+    	RETURN parent, child_count, leaf_nodes
     END FUNCTION
 
     FUNCTION make_sub_exits(G: Graph, VP: Map) -> Integer, Map
@@ -1716,27 +1747,134 @@ def _(mo):
     	RETURN walks[min_index]
     END FUNCTION
     ```
-    """)
+    """
+    _out = """"""
+    if(algorithm_input.value == "BFS+DFS"):
+        _out = BFS_DFS_pseudocode
+
+    mo.md(_out)
+
+
+    
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## C2 - Algorithm in python
+    ```
+
+    #brute force
+
+    FUNCTION brute_force(G: Directed Unweighted Graph, SU: Set, AS: Set, VP: Map, EP: Map, SUP: Map, ASP: Map, GP: Map) -> Map
+
+            CRUDY_1 ← AS.get_random()
+        	entry ← ASP[CRUDY_1]["location"]
+        	V ← G.vertices()
+
+            exits ← {}
+            FOREACH v ∈ V DO
+                IF VP[v]["is_exit"] = true THEN
+                    exits.add(v)
+
+            SU_locations  {SUP[su]["location"] | su ∈ SU} // a set of SU locations
+
+            POI ← clone of exits
+            POI ← POI.Union(SU_locations)
+            POI.add(entry)
+
+            dm ← {v:{u:∞ | u∈POI} | v∈POI} // Distance Matrix
+            pm ← {v:{u:null | u∈POI} | v∈POI} //Path Matrix
+
+            //Getting distance and path between exits, the entry and SUs.
+            FOREACH v ∈ POI DO
+                parent ← BFS(G,v)
+                FOREACH u ∈ POI DO
+                    w ← u
+                    path ←[]
+                    WHILE parent[w] != null DO
+                        path.insert_at(0, parent[w])
+                        w ← parent[w]
+                    pm[v][u] ← path
+                    dm[v][u] ← path.length()
 
 
+            //Finding shortest walk.
+
+            min_perm = []
+            min_dist = ∞
+            FOREACH permutation of SU_locations: su_perm DO
+                FOREACH exit in exits DO // su_perm is a list.
+                dist ← 0
+                perm ← [entry]
+                perm ← perm.append(su_perm)
+                perm ← perm.append(exit)
+                FOR i from 1 (inclusive) to perm.length() (exclusive) DO
+                    dist ← dist + dm[perm[i],perm[i+1]]
+                IF dist < min_dist THEN
+                    min_perm ← perm
+                    min_dist ← dist
+
+            walk ← [entry]
+            FOR i from 1 (inclusive) to min_perm.length() (exclusive) DO
+                walk.append(pm[min_perm[i],min_perm[i+1]])
+
+            FOR i ← 1 (inclusive) to walk.length() (exclusive) DO
+                dif_vec ← VP[walk[i+1]]["location"]-VP[walk[i]]["location"] // a tuple
+                move(dif_vec[1], dif_vec[2])
+            exit()
+
+            RETURN {"walk": walk, "energy_expended": walk.length()-1, "supply_units_recovered": SU}
+
+
+    FUNCTION BFS(G: Graph, s: Vertex) -> Map
+    	//s is first vertex
+    	V ← G.vertices()
+    	BFS_Queue ← queue
+    	BFS_Queue.push(s)
+    	visited ← {v: false | v ∈ V} //map
+    	visited[s] ← true
+
+    	parent ← {v: null | v ∈ V} //map
+
+    	WHILE not BFS_Queue.is_empty() DO
+    		u ← BFS_Queue.pop()
+    		FOR v ∈ G.Neighbours(u) DO
+    			IF not visited[v] THEN
+
+    				visited[v] ← true
+    				BFS_Queue.push(v)
+
+    				parent[v] ← u
+
+    			END IF
+    		END FOR
+    	END WHILE
+
+    	RETURN parent
+    END FUNCTION
+
+    ```
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(algorithm_input, mo):
+    mo.md(rf"""
+    ## C2 - Algorithm in python - {algorithm_input.value}
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(algorithm_input, mo):
+    BFS_DFS_python = r"""
     <div class = "y">
     <h4>Changes to python code:</h4>
     &#x2022; move() function have been changed to take x,y as the vector v in the direction it needs to go.
     </div>
-    """)
-    return
 
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
     ```python
     # G = (V,E)
     import networkx as nx
@@ -1778,7 +1916,7 @@ def _(mo):
         length = len(walk) - 1
 
         #--------------------------------------------------
-        #-----------------Return the output----------------
+        #-----------------return the output----------------
         #--------------------------------------------------
 
         #Outputing to the physical environment the instructions for the AS
@@ -1907,8 +2045,113 @@ def _(mo):
 
 
     ```
-    """)
+    """
+
+    _out = """"""
+
+    if(algorithm_input.value == "BFS+DFS"):
+        _out = BFS_DFS_python
+
+    mo.md(_out)
+
     return
+
+
+app._unparsable_cell(
+    r"""
+    #brute force
+
+    def brute_force(G, SU, AS, VP, EP, SUP, ASP, GP)
+
+            CRUDY_1 = 0
+            entry = ASP[CRUDY_1]["location"]
+            V = G.nodes()
+
+            exits: Set = {}
+            for v in V:
+                if VP[v]["is_exit"] == True: 
+                    exits.add(v)
+
+            SU_locations  {SUP[su]["location"] | su ∈ SU} // a set of SU locations
+
+            POI ← clone of exits
+            POI ← POI.Union(SU_locations)
+            POI.add(entry)
+
+            dm ← {v:{u:∞ | u∈POI} | v∈POI} // Distance Matrix
+            pm ← {v:{u:null | u∈POI} | v∈POI} //Path Matrix
+
+            //Getting distance and path between exits, the entry and SUs.
+            FOREACH v ∈ POI DO
+                parent ← BFS(G,v)
+                FOREACH u ∈ POI DO 
+                    w ← u
+                    path ←[]
+                    WHILE parent[w] != null DO
+                        path.insert_at(0, parent[w])
+                        w ← parent[w]
+                    pm[v][u] ← path
+                    dm[v][u] ← path.length()
+
+
+            //Finding shortest walk.
+
+            min_perm = []
+            min_dist = ∞
+            FOREACH permutation of SU_locations: su_perm DO 
+                FOREACH exit in exits DO // su_perm is a list.
+                dist ← 0
+                perm ← [entry]
+                perm ← perm.append(su_perm)
+                perm ← perm.append(exit)
+                FOR i from 1 (inclusive) to perm.length() (exclusive) DO
+                    dist ← dist + dm[perm[i],perm[i+1]]
+                IF dist < min_dist THEN
+                    min_perm ← perm
+                    min_dist ← dist
+
+            walk ← [entry]
+            FOR i from 1 (inclusive) to min_perm.length() (exclusive) DO
+                walk.append(pm[min_perm[i],min_perm[i+1]])
+
+            FOR i ← 1 (inclusive) to walk.length() (exclusive) DO
+                dif_vec ← VP[walk[i+1]]["location"]-VP[walk[i]]["location"] // a tuple
+                move(dif_vec[1], dif_vec[2])
+            exit()
+
+            RETURN {"walk": walk, "energy_expended": walk.length()-1, "supply_units_recovered": SU}
+
+
+    FUNCTION BFS(G: Graph, s: Vertex) -> Map
+            //s is first vertex
+            V ← G.vertices()
+            BFS_Queue ← queue
+            BFS_Queue.push(s)
+            visited ← {v: false | v ∈ V} //map
+            visited[s] ← true
+
+            parent ← {v: null | v ∈ V} //map
+
+            WHILE not BFS_Queue.is_empty() DO
+                    u ← BFS_Queue.pop()
+                    FOR v ∈ G.Neighbours(u) DO
+                            IF not visited[v] THEN
+
+                                    visited[v] ← true
+                                    BFS_Queue.push(v)
+
+                                    parent[v] ← u
+
+                            END IF
+                    END FOR
+            END WHILE
+
+            RETURN parent
+    END FUNCTION
+
+    """,
+    name="_"
+)
 
 
 @app.cell(hide_code=True)
