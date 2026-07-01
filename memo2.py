@@ -1801,8 +1801,8 @@ def _(mo):
 
             //Finding shortest walk.
 
-            min_perm = []
-            min_dist = ∞
+            min_perm ← []
+            min_dist ← ∞
             FOREACH permutation of SU_locations: su_perm DO
                 FOREACH exit in exits DO // su_perm is a list.
                 dist ← 0
@@ -2063,91 +2063,105 @@ app._unparsable_cell(
 
     def brute_force(G, SU, AS, VP, EP, SUP, ASP, GP)
 
-            CRUDY_1 = 0
-            entry = ASP[CRUDY_1]["location"]
-            V = G.nodes()
+        CRUDY_1 = 0
+        entry = ASP[CRUDY_1]["location"]
+        V = G.nodes()
 
-            exits: Set = {}
-            for v in V:
-                if VP[v]["is_exit"] == True: 
-                    exits.add(v)
+        exits: Set = {}
+        for v in V:
+            if VP[v]["is_exit"] == True: 
+                exits.add(v)
 
-            SU_locations  {SUP[su]["location"] | su ∈ SU} // a set of SU locations
+        SU_locations: set= {SUP[su]["location"] for su in SU} # a set of SU locations
 
-            POI ← clone of exits
-            POI ← POI.Union(SU_locations)
-            POI.add(entry)
+        POI = exits.copy()
+        POI = POI.union(SU_locations)
+        POI.add(entry)
 
-            dm ← {v:{u:∞ | u∈POI} | v∈POI} // Distance Matrix
-            pm ← {v:{u:null | u∈POI} | v∈POI} //Path Matrix
+        dm ← {v:{u:None for u in POI} for v in POI} # Distance Matrix
+        pm ← {v:{u:None for u in POI} for v in POI} #Path Matrix
 
-            //Getting distance and path between exits, the entry and SUs.
-            FOREACH v ∈ POI DO
-                parent ← BFS(G,v)
-                FOREACH u ∈ POI DO 
-                    w ← u
-                    path ←[]
-                    WHILE parent[w] != null DO
-                        path.insert_at(0, parent[w])
-                        w ← parent[w]
-                    pm[v][u] ← path
-                    dm[v][u] ← path.length()
+        #Getting distance and path between exits, the entry and SUs.
+        for v in POI:
+            parent = BFS(G,v)
+            for u in POI:
+                w = u
+                path = []
+                while parent[w] != None:
+                    path.insert_at(0, parent[w])
+                    w = parent[w]
+                pm[v][u] = path
+                dm[v][u] = len(path)
 
 
-            //Finding shortest walk.
+        #Finding shortest walk.
 
-            min_perm = []
-            min_dist = ∞
-            FOREACH permutation of SU_locations: su_perm DO 
-                FOREACH exit in exits DO // su_perm is a list.
-                dist ← 0
-                perm ← [entry]
-                perm ← perm.append(su_perm)
-                perm ← perm.append(exit)
-                FOR i from 1 (inclusive) to perm.length() (exclusive) DO
-                    dist ← dist + dm[perm[i],perm[i+1]]
-                IF dist < min_dist THEN
-                    min_perm ← perm
-                    min_dist ← dist
+        min_perm = []
+        min_dist = math.infty
+        for permutation of SU_locations: su_perm DO 
+            FOREACH exit in exits DO // su_perm is a list.
+            dist ← 0
+            perm ← [entry]
+            perm ← perm.append(su_perm)
+            perm ← perm.append(exit)
+            FOR i from 1 (inclusive) to perm.length() (exclusive) DO
+                dist ← dist + dm[perm[i],perm[i+1]]
+            IF dist < min_dist THEN
+                min_perm ← perm
+                min_dist ← dist
 
-            walk ← [entry]
-            FOR i from 1 (inclusive) to min_perm.length() (exclusive) DO
-                walk.append(pm[min_perm[i],min_perm[i+1]])
+        walk ← [entry]
+        FOR i from 1 (inclusive) to min_perm.length() (exclusive) DO
+            walk.append(pm[min_perm[i],min_perm[i+1]])
 
-            FOR i ← 1 (inclusive) to walk.length() (exclusive) DO
-                dif_vec ← VP[walk[i+1]]["location"]-VP[walk[i]]["location"] // a tuple
-                move(dif_vec[1], dif_vec[2])
-            exit()
+        FOR i ← 1 (inclusive) to walk.length() (exclusive) DO
+            dif_vec ← VP[walk[i+1]]["location"]-VP[walk[i]]["location"] // a tuple
+            move(dif_vec[1], dif_vec[2])
+        exit()
 
-            RETURN {"walk": walk, "energy_expended": walk.length()-1, "supply_units_recovered": SU}
+        RETURN {"walk": walk, "energy_expended": walk.length()-1, "supply_units_recovered": SU}
 
+    def next_perm(original,current):
+        #1,2,3,4,5
+        #1,5,3,4,2
+        #gives
+        #1,5,4,2,3
+    
+        _dict : dict = {}
+        for i in range(len(original)):
+            _dict[original[i]]=i
+
+        new = []
+        for i in range(len(current)-1):
+            if(_dict[current[i]]<_dict[current[i+1]]):
+                max
+    
 
     FUNCTION BFS(G: Graph, s: Vertex) -> Map
-            //s is first vertex
-            V ← G.vertices()
-            BFS_Queue ← queue
-            BFS_Queue.push(s)
-            visited ← {v: false | v ∈ V} //map
-            visited[s] ← true
+        //s is first vertex
+        V ← G.vertices()
+        BFS_Queue ← queue
+        BFS_Queue.push(s)
+        visited ← {v: false | v ∈ V} //map
+        visited[s] ← true
 
-            parent ← {v: null | v ∈ V} //map
+        parent ← {v: null | v ∈ V} //map
 
-            WHILE not BFS_Queue.is_empty() DO
-                    u ← BFS_Queue.pop()
-                    FOR v ∈ G.Neighbours(u) DO
-                            IF not visited[v] THEN
+        WHILE not BFS_Queue.is_empty() DO
+                u ← BFS_Queue.pop()
+                FOR v ∈ G.Neighbours(u) DO
+                        IF not visited[v] THEN
 
-                                    visited[v] ← true
-                                    BFS_Queue.push(v)
+                                visited[v] ← true
+                                BFS_Queue.push(v)
 
-                                    parent[v] ← u
+                                parent[v] ← u
 
-                            END IF
-                    END FOR
-            END WHILE
+                        END IF
+                END FOR
+        END WHILE
 
-            RETURN parent
-    END FUNCTION
+        RETURN parent
 
     """,
     name="_"
