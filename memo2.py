@@ -362,7 +362,7 @@ def _(mpatches, plt):
 
 @app.cell(hide_code=True)
 def _(GAP, WING_COLS, fac_v2, nx, string):
-    # turn Mr Nielsens implimentation into mine :)
+    # turn Mr Nielsen's implementation into mine :)
 
     def Av2(a):
         return (int((a[0]-(a[0]%(WING_COLS + GAP)))/(WING_COLS + GAP)),a[0]%(WING_COLS + GAP),a[1])
@@ -780,7 +780,7 @@ def _(Av2, default_title, draw_fac_v2, fac_v2, front_focus_v2, walk_v2):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### Ammendments to memo 1
+    ### Amendments to memo 1
 
     **A - Problem Specification:**
 
@@ -803,7 +803,7 @@ def _(mo):
     - Add a new **<u>Brute force</u>** option that divides and conquers (ish).
 
     C - Code:
-    - change based of algo, make it to accomodate for different algorithms.
+    - change based of the algorithm, make it to accommodate for different algorithms.
 
     D - Justification:
     - make the justification for the new algorithm.
@@ -853,13 +853,13 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    This notebook explores the development of a design stratergy to complete this task, including
+    This notebook explores the development of a design strategy to complete this task, including
     1. deciding how the facility and mission should be represented computationally;
-    2. identifing the constraints governing the AS's operation;
+    2. identifying the constraints governing the AS's operation;
     3. designing an initial strategy and communicating it clearly;
     4. analysing efficiency and feasibility;
     5. refining and improving the design as new constraints emerge;
-    6. justifing decisions and comparing alternatives with depth.
+    6. justifying decisions and comparing alternatives with depth.
 
     (Nielsen, 2026)
     """)
@@ -903,7 +903,7 @@ def _(mo):
     ## Assumptions:
     1.  An Autonomous System (AS) knows the layout of the ESRC sector grid before it navigates it (e.g. it has the blueprints).
     2.  The ASs can navigate in all directions without turning, and the AS knows its original orientation.
-    3.  <span class = "g">inter-wing corridors have a length of 4 and intra-wing corridors have a length of 1, to match the facility representation. this is not corralated to traversal cost.</span>
+    3.  <span class = "g">inter-wing corridors have a length of 4 and intra-wing corridors have a length of 1, to match the facility representation. this is not correlated to traversal cost.</span>
     """)
     return
 
@@ -1000,7 +1000,7 @@ def _(mo):
 
     - a real number indicating the cost to traverse (as it is all the same)
     - a real number indicating the stability of the corridor.
-    - a real number indication the length of the corridor.
+    - a real number indicating the length of the corridor.
 
     In memo 1, a possible implementation of this is:
 
@@ -1017,7 +1017,7 @@ def _(mo):
     - a Boolean value indicating whether it is an entry.
     - a Boolean value indicating whether it is an exit.
 
-    - <span class = "g">a tuple of real valued numbers indicating position, where 1 unit length is equal to 1 cintra-wing corridor's length.</span>
+    - <span class = "g">a tuple of real valued numbers indicating position, where 1 unit length is equal to 1 intra-wing corridor's length.</span>
     - <span class = "g">a string indicating which wing the vertex is located in.</span>
 
     Beyond the scope of memo 1:
@@ -1156,7 +1156,7 @@ def _(mo):
     mo.md(r"""
     Position
     <div class = "r">1. The position of an object is defined as a vertex of the graph G, with edges describing its position relative to other vertices.</div>
-    <div class = "g">1. The position of on object is defined as a tuple (x,y) indicating cooridinate location where 1 unit distance is equal to the length of 1 intra-wing corridor.</div>
+    <div class = "g">1. The position of on object is defined as a tuple (x,y) indicating coordinate location where 1 unit distance is equal to the length of 1 intra-wing corridor.</div>
     2. The direct position (for example as GPS coordinates) is abstracted away and only shown in reference to that of the starting vertex (the entry), as the AS only needs to know where it is in the sector grid relative to other vertices.
 
     Direction
@@ -1164,7 +1164,7 @@ def _(mo):
     <span class = "g">1. The direction can be calculated from the vector going from one vertex to another
         $,\vec{v} = (\Delta x, \Delta y)$ and
         $\theta = tan(\Delta y/ \Delta x)$</span><br>
-    2. The physically layout of the sector grid is abstracted away into this grid, as it only matters how to get from one sector to another sector to be able to traverse the whole grid. This can be calculated using the cardinal direction. (i.e. only relative space matters, not absolute.)
+    2. The physical layout of the sector grid is abstracted away into this grid, as it only matters how to get from one sector to another sector to be able to traverse the whole grid. This can be calculated using the cardinal direction. (i.e. only relative space matters, not absolute.)
 
     Length
     <div class = "r">1. The length of an edge (i.e. a corridor) can be abstracted away as in memo 1, all corridors have the same length, meaning the AS only has to move in multiples of one edge length of the graph.</div>
@@ -1177,7 +1177,7 @@ def _(mo):
     Mass
     1. Mass is modelled in units. The weight of supply units are all identical (weight = 1) so they can be abstracted away.
     2. As the AS can carry up to 5 units of weight, this is identical to saying the AS can carry up to 5 supply units.
-    3. The unit is some weight, which is irrelative, it only matters relative to other masses.
+    3. The unit is some weight, which is irrelevant, it only matters relative to other masses.
 
     Corridors
     1. These are modelled as two edges between the sectors it is between, representing the two ways that one can pass through a corridor. The direction of the corridor is modelled as an cardinal angle.
@@ -1310,7 +1310,7 @@ def _(mo):
     - Maps of properties of the graph, vertices, edges, autonomous systems ASs and supply units SUs.
     - Sets of the ASs and the SUs.
 
-    The graph is ideal to model a 2d space with discrite points where one can be, as graphs are well suited to finding paths and walks in space.<br>
+    The graph is ideal to model a 2d space with discrete points where one can be, as graphs are well suited to finding paths and walks in space.<br>
     The sets are ideal to convey what is in the environment as order doesn't matter and it can store many items effectively.
     The maps are ideal to convey information about elements in the environment as they take an element and return a value (which can be made of multiple values) giving key information about said element.
 
@@ -1423,7 +1423,7 @@ def _(mo):
 
     #### Algorithm:
 
-    Use BFS (single source all shortest paths) to find the path to the closest supply unit. Repeat from that node to the next closest unvisited supply unit and so on until there are no more supply units. Then use BFS to find the nearest exit and navigate their for extraction.
+    Use BFS (single source all shortest paths) to find the path to the closest supply unit. Repeat from that node to the next closest unvisited supply unit and so on until there are no more supply units. Then use BFS to find the nearest exit and navigate there for extraction.
 
     ### Option 2: Brute Force (BFS)
 
@@ -1538,7 +1538,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    <span class = "y">The dropdown to select different algorithms is new. All algorithm implimentations are new, except for BFS+DFS.</span>
+    <span class = "y">The dropdown to select different algorithms is new. All algorithm implementations are new, except for BFS+DFS.</span>
     """)
     return
 
@@ -1754,7 +1754,6 @@ def _(algorithm_input, mo):
         _out = BFS_DFS_pseudocode
 
     mo.md(_out)
-
 
 
     return
@@ -2073,7 +2072,7 @@ def _(AS, ASP, EP, G, GP, SU, SUP, VP, deque, move):
                 exits.add(v)
 
 
-    
+
         SU_locations= {SUP[su]["location"] for su in SU} # a set of SU locations
 
         POI = exits.copy()
@@ -2083,8 +2082,8 @@ def _(AS, ASP, EP, G, GP, SU, SUP, VP, deque, move):
         dm = {v:{u:None for u in POI} for v in POI} # Distance Matrix
         pm = {v:{u:None for u in POI} for v in POI} #Path Matrix
 
-    
-    
+
+
         #Getting distance and path between exits, the entry and SUs.
         for v in POI:
             parent = BFS_for_brute(G,v)
@@ -2102,11 +2101,11 @@ def _(AS, ASP, EP, G, GP, SU, SUP, VP, deque, move):
 
         min_perm = []
         min_dist = None
-    
+
         su_perm = [i for i in range(len(SU_locations))]
         original_perm = su_perm.copy()
         su_loc = [v for v in SU_locations]
-    
+
         while True: 
             for exit in exits: # su_perm is a list.
                 dist = 0
@@ -2135,7 +2134,7 @@ def _(AS, ASP, EP, G, GP, SU, SUP, VP, deque, move):
                     break
             if back_to_original:
                 break
-    
+
         walk = [entry]
         for i in range(len(min_perm)-1):
             walk.append(pm[min_perm[i]][min_perm[i+1]])
@@ -2239,7 +2238,7 @@ def _(mo):
 def _(AS, ASP, EP, G, GP, SU, SUP, VP, mo):
     _G = f"""
     ```python
-    G = {G} = (in adjancey-list form) { {v:list(dict(G[v]).keys()) for v in G.nodes()} }
+    G = {G} = (in adjacency-list form) { {v:list(dict(G[v]).keys()) for v in G.nodes()} }
     ```
     """
     _SU = f"""
@@ -2386,7 +2385,7 @@ def _(mo):
 
     Lemma 1: to visit all nodes and return to the source, DFS provides a shortest walk.
     1. Since to get to a node from another node there is only one path as G is a tree.
-    2. To get to a single node and back to the source all edges in that path have to be traversed at least twice as there is only one path to go there and back.
+    2. To get to a single node and back to the source, all edges in that path have to be traversed at least twice as there is only one path to go there and back.
     3. Each edge in the graph has to connect at least one node to the tree connected to the source meaning that all edges have to be traversed at least twice to visit all nodes and return to the source.
     4. Therefore the walk has to have length at <u>**least**</u> 2sum(E) (where sum(E) is the sum of all edge weights) as each edge is traversed twice.
     5. But DFS produces a walk of length 2sum(E) as it has to traverse all edges (in a tree) and then back again.
@@ -2396,12 +2395,12 @@ def _(mo):
     1. Consider if DFS stacks the node with v as a decendant or v itself first at each iteration. Then DFS will explore all other branches before it pops v, and at that point it will explore the desendants of v. once it has explored all nodes, DFS will start returning to the source, and v has to be on that route as it (or a desendant of v) was explored last.
     2. Therefore as it will end at v having explored all nodes and on a direct path to the source with distance dist(source,v) and we know that a full DFS takes 2sum(E), the length of this walk must be 2sum(E) - dist(source,v).
 
-    Lemma 3 There is no walk shorter that 2sum(E) - dist(source,v), if it has to visit all nodes from a source and end at v.
+    Lemma 3 There is no walk shorter than 2sum(E) - dist(source,v), if it has to visit all nodes from a source and end at v.
     1. Assume the opposite, there is a walk with length l < 2sum(E) - dist(source,v) that visits all nodes starting at the source and ending at v.
     2. Then l + dist(source,v) equals the return trip length of a walk visiting all nodes starting and ending at the source, as one just has to go from v to source and dist(source,v) = dist(v, source), which must be at least 2sum(E) from lemma 1.
     3. but l + dist(source,v) < 2sum(E) - dist(source,v) + dist(source,v) = 2sum(E).
     4. 2sum(E) $\leq$ l + dist(source,v) < 2sum(E) $\implies$ 2sum(E) < 2sum(E)
-    5. There by contradiction Lemma 3 is true.
+    5. Therefore by contradiction Lemma 3 is true.
 
     Lemma 4: DFS provides a shortest walk to traverse all nodes from an arbitrary node to an arbitrary node.
     1. By lemma 2 and lemma 3 DFS must produce the shortest walk possible from an arbitrary node to an arbitrary node traversing all nodes as its length is equal to the lower bound.
