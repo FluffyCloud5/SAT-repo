@@ -33,6 +33,8 @@ C - Code:
 - change based of algo, make it to accommodate for different algorithms.
 - Change the representation to accommodate for new facility
 - ==Change the output to only give raw output==
+- Add a comparison section
+- Changes to Pseudocode conventions
 
 
 D - Justification: 

@@ -391,6 +391,7 @@ def _(GAP, WING_COLS, fac_v2, nx, string):
 
         for junc in fac["junctions"]:
             G.add_edge(Bv2(junc[0]),Bv2(junc[1]))
+            G.add_edge(Bv2(junc[1]),Bv2(junc[0]))
 
         SU = {i for i in range(len(fac["supplies"]))}
 
@@ -593,12 +594,150 @@ def _(VP, deque):
     return (BFS_DFS,)
 
 
-@app.function
-#Brute Force
+@app.cell
+def _(AS, ASP, EP, G, GP, SU, SUP, VP, deque):
+    #Brute Force
 
-def brute_force(G, AS, SU, VP, EP, SUP, ASP, GP):
-    #Brute force
-     return {"walk": [], "length": 0, "supply_units_recovered": {}}
+    def Brute_Force(G, SU, AS, VP, EP, SUP, ASP, GP):
+
+        CRUDY_1 = 0
+        entry = ASP[CRUDY_1]["location"]
+        V = G.nodes()
+
+        exits: set = set()
+        for v in V:
+            if VP[v]["is_exit"] == True: 
+                exits.add(v)
+
+
+
+        SU_locations= {SUP[su]["location"] for su in SU} # a set of SU locations
+
+        POI = exits.copy()
+        POI = POI.union(SU_locations)
+        POI.add(entry)
+
+        dm = {v:{u:None for u in POI} for v in POI} # Distance Matrix
+        pm = {v:{u:None for u in POI} for v in POI} #Path Matrix
+
+
+
+        #Getting distance and path between exits, the entry and SUs.
+        for v in POI:
+            parent = _BFS(G,v)
+            for u in POI:
+                w = u
+                path = []
+                while parent[w] != None:
+                    path.insert(0, w) #leaves out the first node
+                    w = parent[w]
+                pm[v][u] = path
+                dm[v][u] = len(path)
+
+
+        #Finding shortest walk.
+
+        min_perm = []
+        min_dist = None
+
+        su_perm = [i for i in range(len(SU_locations))]
+        original_perm = su_perm.copy()
+        su_loc = [v for v in SU_locations]
+
+        while True: 
+            for exit in exits: # su_perm is a list.
+                dist = 0
+                perm = [entry]
+                for i in range(len(su_perm)):
+                    perm.append(su_loc[su_perm[i]])
+                perm.append(exit)
+                for i in range(len(perm)-1):
+                    dist = dist + dm[perm[i]][perm[i+1]]
+                if min_dist == None:
+                    min_perm = perm
+                    min_dist = dist
+                elif dist < min_dist:
+                    min_perm = perm
+                    min_dist = dist
+            su_perm = _next_perm(su_perm)
+            back_to_original = True
+            for i in range(len(su_perm)):
+                if su_perm[i] != original_perm[i]:
+                    back_to_original = False
+                    break
+            if back_to_original:
+                break
+
+        walk = [entry]
+        for i in range(len(min_perm)-1):
+            walk += pm[min_perm[i]][min_perm[i+1]]
+
+        for i in range(len(walk)-1):
+            dif_vec = (VP[walk[i+1]]["location"][0]-VP[walk[i]]["location"][0],VP[walk[i+1]]["location"][1]-VP[walk[i]]["location"][1]) 
+            # a tuple
+            _move(dif_vec[0], dif_vec[1])
+        _exit()
+
+        return {"walk": walk, "energy_expended": len(walk)-1, "supply_units_recovered": SU}
+
+    def _move(x,y):
+        #move
+        return
+
+    def _exit():
+        #exit
+        return
+
+    def _next_perm(perm):
+        #first = 12345
+        #last = 54321
+        layer = -1
+        max_index = -1
+        for i in range(len(perm)-1):
+            if perm[i] < perm[i+1]:
+                layer = i+1
+                for j in range(1,i+1):
+                    if perm[j] < perm[i+1]:
+                        if max_index == -1:
+                            max_index = j
+                        elif perm[j] > perm[max_index]:
+                            max_index = j
+                break
+        if(layer != -1):  
+            z = perm[layer]
+            perm[layer] = perm[max_index]
+            perm[max_index] = z
+        else:
+            layer = len(perm)
+        new_perm = perm.copy()
+        for i in range(layer):
+            new_perm[i] = perm[layer-i-1]
+        return new_perm
+
+
+    def _BFS(G, s):
+        #s is first vertex
+        V = G.nodes()
+        BFS_Queue = deque()
+        BFS_Queue.append(s)
+        visited = {v: False for v in V} #map
+        visited[s] = True
+
+        parent = {v: None for v in V} #map
+
+        while BFS_Queue:
+            u = BFS_Queue.popleft()
+            for v in G[u]:
+                if not visited[v]:
+
+                    visited[v] = True
+                    BFS_Queue.append(v)
+                    parent[v] = u
+
+        return parent
+
+    print(Brute_Force(G, SU, AS, VP, EP, SUP, ASP, GP))
+    return
 
 
 @app.cell(hide_code=True)
@@ -1255,10 +1394,11 @@ def _(mo):
     - U ⊆ V ⇔ V.is_subset(U)
 
     **4. Lists**<br>
+    <span class = "y">To avoid ambiguity, names have been changed:</span><br>
     insert_at(l: list, i: Index, e: Element) → list<br>
-    insert_at(l1: list, i: Index, l2: list) → list<br>
+    <span class = "r">insert_at</span> <span class = "g">concatenate_at</span>(l1: list, i: Index, l2: list) → list<br>
     append(l: list, e: Element) → list<br>
-    append(l1: list, l2: List) → list<br>
+    <span class = "r">append</span> <span class = "g">concatenate</span>(l1: list, l2: List) → list<br>
     set(l: list, i: Index, e: Element) → list<br>
     remove_at(l: list, i: Index) → list<br>
     lookup(l: list, i: Index) → Element<br>
@@ -1557,9 +1697,10 @@ def _(algorithm_input, mo):
 def _(algorithm_input, mo):
     BFS_DFS_pseudocode = r"""
     <div class = "y">
-    <h4>Changes to pseudocode code:</h4>
-    &#x2022; Name changed from ember_rescue to BFS_DFS
-    &#x2022; move() function have been changed to take x,y as the vector v in the direction it needs to go.
+    <h4>Changes to BFS+DFS pseudocode:</h4>
+    &#x2022; Name changed from ember_rescue to BFS_DFS<br>
+    &#x2022; move() function have been changed to take x,y as the vector v in the direction it needs to go.<br>
+    &#x2022; END FUNCTION WHILE FOR IF etc have been removed for simplified pseudocode.
     </div>
 
     ```
@@ -1596,7 +1737,6 @@ def _(algorithm_input, mo):
         walks ← empty list
         FOR i ← 1 to exit_count DO
             walks.append(DFS(G, entry, parent, sub_exit, sub_SU, i))
-        END FOR
 
         //4. Calculating traversal_cost
 
@@ -1612,11 +1752,9 @@ def _(algorithm_input, mo):
         FOR i ← 1 to length DO
             dif_vec = walk[i+1]-walk[i] // a tuple
             move(dif_vec[1], dif_vec[2])
-        END FOR
         exit()
 
         RETURN {"walk": walk, "energy_expended": length, "supply_units_recovered": SU}
-    END FUNCTION
 
     FUNCTION BFS(G: Graph, s: Vertex) -> Map, Map, Set
     	//s is first vertex
@@ -1642,12 +1780,7 @@ def _(algorithm_input, mo):
     				child_count[u] ← child_count[u] + 1
     				leaf_nodes.remove(u)
 
-    			END IF
-    		END FOR
-    	END WHILE
-
     	RETURN parent, child_count, leaf_nodes
-    END FUNCTION
 
     FUNCTION make_sub_exits(G: Graph, VP: Map) -> Integer, Map
     	exit_map ← {v: {} | v ∈ V} //Map of empty sets
@@ -1657,11 +1790,8 @@ def _(algorithm_input, mo):
     		IF VP[v]["is_exit"] THEN
     			exit_count ← exit_count + 1
     			exit_map[v].add(exit_count)
-    		END IF
-    	END FOR
 
     	RETURN exit_count, exit_map
-    END FUNCTION
 
     FUNCTION backtrace_tree(parent: Map, child_count: Map, leaf_nodes: Set, sub_exit: Map, sub_SU: Map) -> Map, Map
 
@@ -1674,12 +1804,8 @@ def _(algorithm_input, mo):
     			child_count[parent[u]] ← child_count[parent[u]] - 1
     			IF child_count[parent[u]] = 0 THEN
     				leaf_nodes.add(parent[u])
-    			END IF
-    		END IF
-    	END WHILE
 
     	RETURN sub_exit, sub_SU
-    END FUNCTION
 
     FUNCTION DFS(G: Graph, s: Vertex, parent: Map, sub_exit: Map, sub_SU: Map, i: Integer) -> list
     	//initialisation
@@ -1702,8 +1828,6 @@ def _(algorithm_input, mo):
     		IF not (previous_u = parent[u]) THEN
     			WHILE not parent[u] = walk[walk.length()]
     				walk.append(parent[walk[walk.length()]])
-    			END WHILE
-    		END IF
     		walk.append(u)
 
     		//makes sure that vertices with exits below them are pushed first.
@@ -1713,27 +1837,20 @@ def _(algorithm_input, mo):
     				DFS_Stack.push(v)
     			ELSE IF not visited[v] and sub_SU[v] THEN
     				Q.push(v)
-    			END IF // ignores all vertices not in sub_exit or sub_SU
-    		END FOR
+                // ignores all vertices not in sub_exit or sub_SU
 
     		//the nodes with just supply units below them are then pushed ontop.
     		WHILE not Q.is_empty() DO
     			v ← Q.pop()
     			visited[v] ← true
     			DFS_Stack.push(v)
-    		END WHILE
 
     		previous_u ← u
 
-
-    	END WHILE
-
     	WHILE not VP[walk[walk.length()]]["is_exit"] DO
     		walk.append(parent[walk[walk.length()]])
-    	END WHILE
 
     	RETURN walk
-    END FUNCTION
 
     FUNCTION shortest_walk(walks: List) -> List
     	min_index ← -1
@@ -1742,31 +1859,14 @@ def _(algorithm_input, mo):
     		IF walks[i].length() < min THEN
     			min ← walks[i].length()
     			min_index ← i
-    		END IF
-    	END FOR
 
     	RETURN walks[min_index]
-    END FUNCTION
     ```
     """
-    _out = """"""
-    if(algorithm_input.value == "BFS+DFS"):
-        _out = BFS_DFS_pseudocode
 
-    mo.md(_out)
-
-
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
+    Brute_Force_pseudocode = r"""
     ```
-
-    #brute force
-
-    FUNCTION brute_force(G: Directed Unweighted Graph, SU: Set, AS: Set, VP: Map, EP: Map, SUP: Map, ASP: Map, GP: Map) -> Map
+    FUNCTION Brute_Force(G: Directed Unweighted Graph, SU: Set, AS: Set, VP: Map, EP: Map, SUP: Map, ASP: Map, GP: Map) -> Map
 
             CRUDY_1 ← AS.get_random()
         	entry ← ASP[CRUDY_1]["location"]
@@ -1793,9 +1893,9 @@ def _(mo):
                     w ← u
                     path ←[]
                     WHILE parent[w] != null DO
-                        path.insert_at(0, parent[w])
+                        path.insert_at(0, w) 
                         w ← parent[w]
-                    pm[v][u] ← path
+                    pm[v][u] ← path //without first node
                     dm[v][u] ← path.length()
 
 
@@ -1807,7 +1907,7 @@ def _(mo):
                 FOREACH exit in exits DO // su_perm is a list.
                 dist ← 0
                 perm ← [entry]
-                perm ← perm.append(su_perm)
+                perm ← perm.concatenate(su_perm)
                 perm ← perm.append(exit)
                 FOR i from 1 (inclusive) to perm.length() (exclusive) DO
                     dist ← dist + dm[perm[i]][perm[i+1]]
@@ -1817,7 +1917,7 @@ def _(mo):
 
             walk ← [entry]
             FOR i from 1 (inclusive) to min_perm.length() (exclusive) DO
-                walk.append(pm[min_perm[i]][min_perm[i+1]])
+                walk.concatenate(pm[min_perm[i]][min_perm[i+1]])
 
             FOR i ← 1 (inclusive) to walk.length() (exclusive) DO
                 dif_vec ← VP[walk[i+1]]["location"]-VP[walk[i]]["location"] // a tuple
@@ -1841,21 +1941,20 @@ def _(mo):
     		u ← BFS_Queue.pop()
     		FOR v ∈ G.Neighbours(u) DO
     			IF not visited[v] THEN
-
     				visited[v] ← true
     				BFS_Queue.push(v)
-
     				parent[v] ← u
-
-    			END IF
-    		END FOR
-    	END WHILE
-
     	RETURN parent
-    END FUNCTION
-
     ```
-    """)
+    """
+    _out = """"""
+    if(algorithm_input.value == "BFS+DFS"):
+        _out = BFS_DFS_pseudocode
+    elif(algorithm_input.value == "Brute Force"):
+        _out = Brute_Force_pseudocode
+    mo.md(_out)
+
+
     return
 
 
@@ -2047,20 +2146,9 @@ def _(algorithm_input, mo):
     ```
     """
 
-    _out = """"""
-
-    if(algorithm_input.value == "BFS+DFS"):
-        _out = BFS_DFS_python
-
-    mo.md(_out)
-    return
-
-
-@app.cell
-def _(AS, ASP, EP, G, GP, SU, SUP, VP, deque, move):
-    #brute force
-
-    def Brute_force(G, SU, AS, VP, EP, SUP, ASP, GP):
+    Brute_Force_python = r"""
+    ```python
+    def Brute_Force(G, SU, AS, VP, EP, SUP, ASP, GP):
 
         CRUDY_1 = 0
         entry = ASP[CRUDY_1]["location"]
@@ -2086,12 +2174,12 @@ def _(AS, ASP, EP, G, GP, SU, SUP, VP, deque, move):
 
         #Getting distance and path between exits, the entry and SUs.
         for v in POI:
-            parent = BFS_for_brute(G,v)
+            parent = _BFS(G,v)
             for u in POI:
                 w = u
                 path = []
                 while parent[w] != None:
-                    path.insert(0, parent[w])
+                    path.insert(0, w)
                     w = parent[w]
                 pm[v][u] = path
                 dm[v][u] = len(path)
@@ -2113,11 +2201,6 @@ def _(AS, ASP, EP, G, GP, SU, SUP, VP, deque, move):
                 for i in range(len(su_perm)):
                     perm.append(su_loc[su_perm[i]])
                 perm.append(exit)
-                print(dm)
-                print(perm)
-                print(exits)
-                print(entry)
-                print(su_loc)
                 for i in range(len(perm)-1):
                     dist = dist + dm[perm[i]][perm[i+1]]
                 if min_dist == None:
@@ -2126,7 +2209,7 @@ def _(AS, ASP, EP, G, GP, SU, SUP, VP, deque, move):
                 elif dist < min_dist:
                     min_perm = perm
                     min_dist = dist
-            su_perm = next_perm(su_perm)
+            su_perm = _next_perm(su_perm)
             back_to_original = True
             for i in range(len(su_perm)):
                 if su_perm[i] != original_perm[i]:
@@ -2137,17 +2220,25 @@ def _(AS, ASP, EP, G, GP, SU, SUP, VP, deque, move):
 
         walk = [entry]
         for i in range(len(min_perm)-1):
-            walk.append(pm[min_perm[i]][min_perm[i+1]])
+            walk += pm[min_perm[i]][min_perm[i+1]]
 
         for i in range(len(walk)-1):
-            dif_vec = VP[walk[i+1]]["location"]-VP[walk[i]]["location"] # a tuple
-            move(dif_vec[0], dif_vec[1])
-        exit()
+            dif_vec = (VP[walk[i+1]]["location"][0]-VP[walk[i]]["location"][0],VP[walk[i+1]]["location"][1]-VP[walk[i]]["location"][1]) 
+            # a tuple
+            _move(dif_vec[0], dif_vec[1])
+        _exit()
 
         return {"walk": walk, "energy_expended": len(walk)-1, "supply_units_recovered": SU}
 
+    def _move(x,y):
+        #move
+        return
 
-    def next_perm(perm):
+    def _exit():
+        #exit
+        return
+
+    def _next_perm(perm):
         #first = 12345
         #last = 54321
         layer = -1
@@ -2174,7 +2265,7 @@ def _(AS, ASP, EP, G, GP, SU, SUP, VP, deque, move):
         return new_perm
 
 
-    def BFS_for_brute(G, s):
+    def _BFS(G, s):
         #s is first vertex
         V = G.nodes()
         BFS_Queue = deque()
@@ -2194,8 +2285,17 @@ def _(AS, ASP, EP, G, GP, SU, SUP, VP, deque, move):
                     parent[v] = u
 
         return parent
+    ```
+    """
 
-    _out = Brute_force(G, SU, AS, VP, EP, SUP, ASP, GP)
+    _out = """"""
+
+    if(algorithm_input.value == "BFS+DFS"):
+        _out = BFS_DFS_python
+    elif(algorithm_input.value == "Brute Force"):
+        _out = Brute_Force_python
+
+    mo.md(_out)
     return
 
 
