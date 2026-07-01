@@ -24,6 +24,7 @@ def _():
     import imageio
     import time
     import tracemalloc
+    import math
 
     return deque, imageio, mo, mpatches, nx, os, plt, random, time, tracemalloc
 
@@ -1755,7 +1756,7 @@ def _(algorithm_input, mo):
     mo.md(_out)
 
 
-    
+
     return
 
 
@@ -1810,14 +1811,14 @@ def _(mo):
                 perm ← perm.append(su_perm)
                 perm ← perm.append(exit)
                 FOR i from 1 (inclusive) to perm.length() (exclusive) DO
-                    dist ← dist + dm[perm[i],perm[i+1]]
+                    dist ← dist + dm[perm[i]][perm[i+1]]
                 IF dist < min_dist THEN
                     min_perm ← perm
                     min_dist ← dist
 
             walk ← [entry]
             FOR i from 1 (inclusive) to min_perm.length() (exclusive) DO
-                walk.append(pm[min_perm[i],min_perm[i+1]])
+                walk.append(pm[min_perm[i]][min_perm[i+1]])
 
             FOR i ← 1 (inclusive) to walk.length() (exclusive) DO
                 dif_vec ← VP[walk[i+1]]["location"]-VP[walk[i]]["location"] // a tuple
@@ -2053,42 +2054,45 @@ def _(algorithm_input, mo):
         _out = BFS_DFS_python
 
     mo.md(_out)
-
     return
 
 
-app._unparsable_cell(
-    r"""
+@app.cell
+def _(AS, ASP, EP, G, GP, SU, SUP, VP, deque, move):
     #brute force
 
-    def brute_force(G, SU, AS, VP, EP, SUP, ASP, GP)
+    def Brute_force(G, SU, AS, VP, EP, SUP, ASP, GP):
 
         CRUDY_1 = 0
         entry = ASP[CRUDY_1]["location"]
         V = G.nodes()
 
-        exits: Set = {}
+        exits: set = set()
         for v in V:
             if VP[v]["is_exit"] == True: 
                 exits.add(v)
 
-        SU_locations: set= {SUP[su]["location"] for su in SU} # a set of SU locations
+
+    
+        SU_locations= {SUP[su]["location"] for su in SU} # a set of SU locations
 
         POI = exits.copy()
         POI = POI.union(SU_locations)
         POI.add(entry)
 
-        dm ← {v:{u:None for u in POI} for v in POI} # Distance Matrix
-        pm ← {v:{u:None for u in POI} for v in POI} #Path Matrix
+        dm = {v:{u:None for u in POI} for v in POI} # Distance Matrix
+        pm = {v:{u:None for u in POI} for v in POI} #Path Matrix
 
+    
+    
         #Getting distance and path between exits, the entry and SUs.
         for v in POI:
-            parent = BFS(G,v)
+            parent = BFS_for_brute(G,v)
             for u in POI:
                 w = u
                 path = []
                 while parent[w] != None:
-                    path.insert_at(0, parent[w])
+                    path.insert(0, parent[w])
                     w = parent[w]
                 pm[v][u] = path
                 dm[v][u] = len(path)
@@ -2097,75 +2101,103 @@ app._unparsable_cell(
         #Finding shortest walk.
 
         min_perm = []
-        min_dist = math.infty
-        for permutation of SU_locations: su_perm DO 
-            FOREACH exit in exits DO // su_perm is a list.
-            dist ← 0
-            perm ← [entry]
-            perm ← perm.append(su_perm)
-            perm ← perm.append(exit)
-            FOR i from 1 (inclusive) to perm.length() (exclusive) DO
-                dist ← dist + dm[perm[i],perm[i+1]]
-            IF dist < min_dist THEN
-                min_perm ← perm
-                min_dist ← dist
+        min_dist = None
+    
+        su_perm = [i for i in range(len(SU_locations))]
+        original_perm = su_perm.copy()
+        su_loc = [v for v in SU_locations]
+    
+        while True: 
+            for exit in exits: # su_perm is a list.
+                dist = 0
+                perm = [entry]
+                for i in range(len(su_perm)):
+                    perm.append(su_loc[su_perm[i]])
+                perm.append(exit)
+                print(dm)
+                print(perm)
+                print(exits)
+                print(entry)
+                print(su_loc)
+                for i in range(len(perm)-1):
+                    dist = dist + dm[perm[i]][perm[i+1]]
+                if min_dist == None:
+                    min_perm = perm
+                    min_dist = dist
+                elif dist < min_dist:
+                    min_perm = perm
+                    min_dist = dist
+            su_perm = next_perm(su_perm)
+            back_to_original = True
+            for i in range(len(su_perm)):
+                if su_perm[i] != original_perm[i]:
+                    back_to_original = False
+                    break
+            if back_to_original:
+                break
+    
+        walk = [entry]
+        for i in range(len(min_perm)-1):
+            walk.append(pm[min_perm[i]][min_perm[i+1]])
 
-        walk ← [entry]
-        FOR i from 1 (inclusive) to min_perm.length() (exclusive) DO
-            walk.append(pm[min_perm[i],min_perm[i+1]])
-
-        FOR i ← 1 (inclusive) to walk.length() (exclusive) DO
-            dif_vec ← VP[walk[i+1]]["location"]-VP[walk[i]]["location"] // a tuple
-            move(dif_vec[1], dif_vec[2])
+        for i in range(len(walk)-1):
+            dif_vec = VP[walk[i+1]]["location"]-VP[walk[i]]["location"] # a tuple
+            move(dif_vec[0], dif_vec[1])
         exit()
 
-        RETURN {"walk": walk, "energy_expended": walk.length()-1, "supply_units_recovered": SU}
+        return {"walk": walk, "energy_expended": len(walk)-1, "supply_units_recovered": SU}
 
-    def next_perm(original,current):
-        #1,2,3,4,5
-        #1,5,3,4,2
-        #gives
-        #1,5,4,2,3
-    
-        _dict : dict = {}
-        for i in range(len(original)):
-            _dict[original[i]]=i
 
-        new = []
-        for i in range(len(current)-1):
-            if(_dict[current[i]]<_dict[current[i+1]]):
-                max
-    
+    def next_perm(perm):
+        #first = 12345
+        #last = 54321
+        layer = -1
+        max_index = -1
+        for i in range(len(perm)-1):
+            if perm[i] < perm[i+1]:
+                layer = i+1
+                for j in range(1,i+1):
+                    if perm[j] < perm[i+1]:
+                        if max_index == -1:
+                            max_index = j
+                        elif perm[j] > perm[max_index]:
+                            max_index = j
+                break
+        if(layer != -1):  
+            z = perm[layer]
+            perm[layer] = perm[max_index]
+            perm[max_index] = z
+        else:
+            layer = len(perm)
+        new_perm = perm.copy()
+        for i in range(layer):
+            new_perm[i] = perm[layer-i-1]
+        return new_perm
 
-    FUNCTION BFS(G: Graph, s: Vertex) -> Map
-        //s is first vertex
-        V ← G.vertices()
-        BFS_Queue ← queue
-        BFS_Queue.push(s)
-        visited ← {v: false | v ∈ V} //map
-        visited[s] ← true
 
-        parent ← {v: null | v ∈ V} //map
+    def BFS_for_brute(G, s):
+        #s is first vertex
+        V = G.nodes()
+        BFS_Queue = deque()
+        BFS_Queue.append(s)
+        visited = {v: False for v in V} #map
+        visited[s] = True
 
-        WHILE not BFS_Queue.is_empty() DO
-                u ← BFS_Queue.pop()
-                FOR v ∈ G.Neighbours(u) DO
-                        IF not visited[v] THEN
+        parent = {v: None for v in V} #map
 
-                                visited[v] ← true
-                                BFS_Queue.push(v)
+        while BFS_Queue:
+            u = BFS_Queue.popleft()
+            for v in G[u]:
+                if not visited[v]:
 
-                                parent[v] ← u
+                    visited[v] = True
+                    BFS_Queue.append(v)
+                    parent[v] = u
 
-                        END IF
-                END FOR
-        END WHILE
+        return parent
 
-        RETURN parent
-
-    """,
-    name="_"
-)
+    _out = Brute_force(G, SU, AS, VP, EP, SUP, ASP, GP)
+    return
 
 
 @app.cell(hide_code=True)
