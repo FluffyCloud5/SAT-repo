@@ -594,8 +594,8 @@ def _(VP, deque):
     return (BFS_DFS,)
 
 
-@app.cell
-def _(AS, ASP, EP, G, GP, SU, SUP, VP, deque):
+@app.cell(hide_code=True)
+def _(deque):
     #Brute Force
 
     def Brute_Force(G, SU, AS, VP, EP, SUP, ASP, GP):
@@ -610,8 +610,8 @@ def _(AS, ASP, EP, G, GP, SU, SUP, VP, deque):
                 exits.add(v)
 
 
-
-        SU_locations= {SUP[su]["location"] for su in SU} # a set of SU locations
+        print(SU)
+        SU_locations = {SUP[su]["location"] for su in SU} # a set of SU locations
 
         POI = exits.copy()
         POI = POI.union(SU_locations)
@@ -643,7 +643,8 @@ def _(AS, ASP, EP, G, GP, SU, SUP, VP, deque):
         su_perm = [i for i in range(len(SU_locations))]
         original_perm = su_perm.copy()
         su_loc = [v for v in SU_locations]
-
+        print(SU_locations)
+        print(su_perm)
         while True: 
             for exit in exits: # su_perm is a list.
                 dist = 0
@@ -696,7 +697,7 @@ def _(AS, ASP, EP, G, GP, SU, SUP, VP, deque):
         for i in range(len(perm)-1):
             if perm[i] < perm[i+1]:
                 layer = i+1
-                for j in range(1,i+1):
+                for j in range(i+1):
                     if perm[j] < perm[i+1]:
                         if max_index == -1:
                             max_index = j
@@ -736,8 +737,7 @@ def _(AS, ASP, EP, G, GP, SU, SUP, VP, deque):
 
         return parent
 
-    print(Brute_Force(G, SU, AS, VP, EP, SUP, ASP, GP))
-    return
+    return (Brute_Force,)
 
 
 @app.cell(hide_code=True)
@@ -762,24 +762,23 @@ def _(AS, ASP, BFS_DFS, EP, G, GP, SU, SUP, VP, time, tracemalloc):
 
     out_v2, memory_used_v2, BFS_DFS_time_taken = test_algorithm()
     walk_v2 = out_v2["walk"]
-    return BFS_DFS_time_taken, memory_used_v2, out_v2, walk_v2
+    return BFS_DFS_time_taken, memory_used_v2, out_v2
 
 
 @app.cell(hide_code=True)
 def _(
     Av2,
     BFS_DFS,
+    Brute_Force,
     Bv2,
     COL_PATH,
     draw_fac_v2,
     fac_Bv2,
-    fac_v2,
     imageio,
     m_fac_v2,
     os,
     plt,
     seed,
-    walk_v2,
 ):
     #define m_gif_v2
     def front_focus_v2(_walk):
@@ -832,22 +831,22 @@ def _(
         if not os.path.exists("figs\\"):
            os.mkdir("figs\\")
 
-        if (os.path.exists("figs\\"+ str(_seed)+ "_v2" + ".gif")):
+        if (os.path.exists("figs\\"+ str(_seed)+ f"_{algorithm}_v2" + ".gif")):
             return "exists already"
 
-        _fac = None
+    
+        _fac = m_fac_v2(_seed)
+        _G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP = fac_Bv2(_fac)
         _walk = None
-
-        if(custom_seed != None):
-            _fac = m_fac_v2(_seed)
-            _G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP = fac_Bv2(_fac)
-            _walk = BFS_DFS(_G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP)
+        if(algorithm == "BFS+DFS"):
+            _walk = BFS_DFS(_G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP)["walk"]
+        elif(algorithm == "Brute Force"):
+            _walk = Brute_Force(_G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP)["walk"]
         else:
-            _fac = fac_v2
-            _walk = walk_v2
-
+            raise Exception(f"algorithm input is invalid, was {algorithm}")
+    
         if(title == None):
-            title = default_title(mini = "", seed = _seed, has_walk = True, algorithm = "BFS+DFS",animated = True)
+            title = default_title(mini = "", seed = _seed, has_walk = True, algorithm = algorithm,animated = True)
 
         _fig, _ax= draw_fac_v2(_fac, legend = False, title = title)
 
@@ -872,6 +871,7 @@ def _(
 
             name = "figs\\"
             name += str(_seed) + "_"
+            name += f"{algorithm}_"
             name += "v2_"
             name += str(_i)
             name += ".png"
@@ -884,17 +884,18 @@ def _(
                 for rect in rectangles:
                     rect.remove()
         plt.close()
-
+    
         list_of_im_paths = []
         for _i in range(len(_walk)): 
             _name = "figs\\"
             _name += str(_seed) + "_"
+            _name += f"{algorithm}_"
             _name += "v2_"
             _name += str(_i)
             _name += ".png"
             list_of_im_paths.append(_name)
 
-        path_to_save_gif = "figs\\"+ str(_seed)+ "_v2" + ".gif" 
+        path_to_save_gif = "figs\\"+ str(_seed)+ f"_{algorithm}_v2" + ".gif" 
         ims = [imageio.imread(f) for f in list_of_im_paths]
         dur = [0.05 for f in list_of_im_paths]
         dur[len(dur)-1] = 2
@@ -911,8 +912,23 @@ def _(
 
 
 @app.cell
-def _(Av2, default_title, draw_fac_v2, fac_v2, front_focus_v2, walk_v2):
-    draw_fac_v2(fac_v2, node_colors = front_focus_v2(walk_v2), highlight_path = [Av2(v) for v in walk_v2], legend = False, title = default_title(has_walk = True, algorithm="BFS+DFS"))
+def _(
+    AS,
+    ASP,
+    Av2,
+    Brute_Force,
+    EP,
+    G,
+    GP,
+    SU,
+    SUP,
+    VP,
+    default_title,
+    draw_fac_v2,
+    fac_v2,
+    front_focus_v2,
+):
+    draw_fac_v2(fac_v2, node_colors = front_focus_v2(Brute_Force(G, AS, SU, VP, EP, SUP, ASP, GP)["walk"]), highlight_path = [Av2(v) for v in Brute_Force(G, AS, SU, VP, EP, SUP, ASP, GP)["walk"]], legend = False, title = default_title(has_walk = True, algorithm="BFS+DFS"))
     return
 
 
@@ -2410,13 +2426,13 @@ def _(mo):
 
 
 @app.cell
-def _(m_gif_v2, mo, seed, time):
+def _(algorithm_input, m_gif_v2, mo, seed, time):
     #DISPLAY GIF
-    _out = m_gif_v2()
+    _out = m_gif_v2(algorithm = algorithm_input.value)
     if(_out == "ran successfully"):
         time.sleep(10)
     mo.stop(_out == "error")
-    mo.image("figs\\"+ str(seed) +"_v2"+ ".gif")
+    mo.image("figs\\"+ str(seed) +f"_{algorithm_input.value}_v2"+ ".gif")
     return
 
 
