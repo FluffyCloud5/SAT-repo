@@ -2530,10 +2530,11 @@ def _(mo, out_v2):
 
     table = mo.ui.table(
         data=[
-            _BF,
-            _BD,
+            {"": "Brute Force", "traversal cost": out_v2["Brute Force"]["traversal_cost"]},
+            {"": "BFS+DFS", "traversal cost": out_v2["BFS+DFS"]["traversal_cost"]},
         ],
         label="Outputs",
+        selection = None
     )
     table
     return
