@@ -598,8 +598,7 @@ def _(VP, deque):
 def _(deque):
     #Brute Force
 
-    def Brute_Force(G, SU, AS, VP, EP, SUP, ASP, GP):
-
+    def Brute_Force(G, AS, SU, VP, EP, SUP, ASP, GP):
         CRUDY_1 = 0
         entry = ASP[CRUDY_1]["location"]
         V = G.nodes()
@@ -609,8 +608,6 @@ def _(deque):
             if VP[v]["is_exit"] == True: 
                 exits.add(v)
 
-
-        print(SU)
         SU_locations = {SUP[su]["location"] for su in SU} # a set of SU locations
 
         POI = exits.copy()
@@ -643,8 +640,6 @@ def _(deque):
         su_perm = [i for i in range(len(SU_locations))]
         original_perm = su_perm.copy()
         su_loc = [v for v in SU_locations]
-        print(SU_locations)
-        print(su_perm)
         while True: 
             for exit in exits: # su_perm is a list.
                 dist = 0
@@ -783,7 +778,7 @@ def _(
     #define m_gif_v2
     def front_focus_v2(_walk):
         leading = "#FF0000"
-        base_col = '#58D4D3'
+        base_col = '#58D4D3' 
 
         _col_dict = {Av2(v):base_col for v in _walk}
 
@@ -834,7 +829,7 @@ def _(
         if (os.path.exists("figs\\"+ str(_seed)+ f"_{algorithm}_v2" + ".gif")):
             return "exists already"
 
-    
+
         _fac = m_fac_v2(_seed)
         _G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP = fac_Bv2(_fac)
         _walk = None
@@ -844,7 +839,7 @@ def _(
             _walk = Brute_Force(_G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP)["walk"]
         else:
             raise Exception(f"algorithm input is invalid, was {algorithm}")
-    
+
         if(title == None):
             title = default_title(mini = "", seed = _seed, has_walk = True, algorithm = algorithm,animated = True)
 
@@ -884,7 +879,7 @@ def _(
                 for rect in rectangles:
                     rect.remove()
         plt.close()
-    
+
         list_of_im_paths = []
         for _i in range(len(_walk)): 
             _name = "figs\\"
@@ -1969,8 +1964,6 @@ def _(algorithm_input, mo):
     elif(algorithm_input.value == "Brute Force"):
         _out = Brute_Force_pseudocode
     mo.md(_out)
-
-
     return
 
 
@@ -2164,7 +2157,7 @@ def _(algorithm_input, mo):
 
     Brute_Force_python = r"""
     ```python
-    def Brute_Force(G, SU, AS, VP, EP, SUP, ASP, GP):
+    def Brute_Force(G, AS, SU, VP, EP, SUP, ASP, GP):
 
         CRUDY_1 = 0
         entry = ASP[CRUDY_1]["location"]
@@ -2418,9 +2411,15 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    <div class = "g">
+    <h4>Environmental Outputs:</h4>
+
+    Below you can see the environmental outputs of moving and exiting in the short animimation.
+    </div>
+
     Here is an animation showing the walk taken by the AS. The red node is the one currently occupied by the AS.
 
-    Note: Creating the animation (stored at figs\\\\) often takes <span class = "r">1-2</span><span class = "g">2-3</span>  minutes.
+    Note: Creating the animation (stored at figs\\\\) often takes <span class = "r">1-2</span><span class = "g">2-7</span>  minutes.
     """)
     return
 
@@ -2458,6 +2457,10 @@ def _(BFS_DFS_time_taken, memory_used_v2, mo, out_v2):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    <div class = "g">
+
+
+
     <span class = "y">Removed "Walk list printed out in tuple form: [code block]"</span>
     """)
     return
