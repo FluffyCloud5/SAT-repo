@@ -81,10 +81,11 @@ def _(mo):
         start=0,
         stop=99999999,
         step=1,
-        label="Your facility seed (from your cover sheet)"
+        label="Seed "
+    
     )
     mo.vstack([
-        mo.md("### Enter your seed, then press Tab to rebuild the facility."),
+        mo.md("### Enter your seed, then press Enter to rebuild the facility."),
         seed_input
     ])
     return (seed_input,)
@@ -472,7 +473,7 @@ def _(VP, deque):
             _move(dif_vec[0], dif_vec[1])
         _exit()
 
-        return {"walk": walk, "length": length, "supply_units_recovered": SU}
+        return {"walk": walk, "traversal_cost": length, "supply_units_recovered": SU}
 
     def _move(x,y):
         #move at x distance in x direction and y distance in y direction.
@@ -674,7 +675,7 @@ def _(deque):
             _move(dif_vec[0], dif_vec[1])
         _exit()
 
-        return {"walk": walk, "energy_expended": len(walk)-1, "supply_units_recovered": SU}
+        return {"walk": walk, "traversal_cost": len(walk)-1, "supply_units_recovered": SU}
 
     def _move(x,y):
         #move
@@ -735,17 +736,25 @@ def _(deque):
     return (Brute_Force,)
 
 
-@app.cell(hide_code=True)
-def _(AS, ASP, BFS_DFS, EP, G, GP, SU, SUP, VP, time, tracemalloc):
-    # RUN BFS+DFS
+@app.cell
+def _(BFS_DFS, Brute_Force):
+    algorithms = {}
+    algorithms["BFS+DFS"] = BFS_DFS
+    algorithms["Brute Force"] = Brute_Force
+    return (algorithms,)
 
-    def test_algorithm():
+
+@app.cell(hide_code=True)
+def _(AS, ASP, EP, G, GP, SU, SUP, VP, algorithms, time, tracemalloc):
+    # RUN algorithms
+
+    def test_algorithm(algorithm):
         tracemalloc.start()
         tracemalloc.reset_peak()
         _size1, _peak1 = tracemalloc.get_traced_memory()
 
         _start_time = time.perf_counter()
-        out = BFS_DFS(G, AS, SU, VP, EP, SUP, ASP, GP)
+        out = algorithms[algorithm](G, AS, SU, VP, EP, SUP, ASP, GP)
         time_taken = time.perf_counter() - _start_time
         _size2, _peak2 = tracemalloc.get_traced_memory()
 
@@ -755,18 +764,20 @@ def _(AS, ASP, BFS_DFS, EP, G, GP, SU, SUP, VP, time, tracemalloc):
         return out, _peak2 - _size1, time_taken
 
 
-    out_v2, memory_used_v2, BFS_DFS_time_taken = test_algorithm()
-    walk_v2 = out_v2["walk"]
-    return BFS_DFS_time_taken, memory_used_v2, out_v2
+    out_v2, memory_v2, time_v2, walk_v2 = {},{},{}, {}
+    for algorithm in algorithms.keys():
+        out_v2[algorithm], memory_v2[algorithm],time_v2[algorithm] = test_algorithm(algorithm) 
+        walk_v2[algorithm] = out_v2[algorithm]["walk"]
+
+    return memory_v2, out_v2, time_v2, walk_v2
 
 
 @app.cell(hide_code=True)
 def _(
     Av2,
-    BFS_DFS,
-    Brute_Force,
     Bv2,
     COL_PATH,
+    algorithms,
     draw_fac_v2,
     fac_Bv2,
     imageio,
@@ -832,13 +843,8 @@ def _(
 
         _fac = m_fac_v2(_seed)
         _G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP = fac_Bv2(_fac)
-        _walk = None
-        if(algorithm == "BFS+DFS"):
-            _walk = BFS_DFS(_G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP)["walk"]
-        elif(algorithm == "Brute Force"):
-            _walk = Brute_Force(_G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP)["walk"]
-        else:
-            raise Exception(f"algorithm input is invalid, was {algorithm}")
+        _walk = algorithms[algorithm](_G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP)["walk"]
+    
 
         if(title == None):
             title = default_title(mini = "", seed = _seed, has_walk = True, algorithm = algorithm,animated = True)
@@ -904,27 +910,6 @@ def _(
 
 
     return default_title, front_focus_v2, m_gif_v2
-
-
-@app.cell
-def _(
-    AS,
-    ASP,
-    Av2,
-    Brute_Force,
-    EP,
-    G,
-    GP,
-    SU,
-    SUP,
-    VP,
-    default_title,
-    draw_fac_v2,
-    fac_v2,
-    front_focus_v2,
-):
-    draw_fac_v2(fac_v2, node_colors = front_focus_v2(Brute_Force(G, AS, SU, VP, EP, SUP, ASP, GP)["walk"]), highlight_path = [Av2(v) for v in Brute_Force(G, AS, SU, VP, EP, SUP, ASP, GP)["walk"]], legend = False, title = default_title(has_walk = True, algorithm="BFS+DFS"))
-    return
 
 
 @app.cell(hide_code=True)
@@ -1250,12 +1235,12 @@ def _(mo):
     so the output might look like:
 
     <div class = "r">output = {"walk":  [$v_1$,$v_2$,$v_3$,...,$v_n$],<br>
-    "energy_expended": real number,<br>
+    "traversal_cost": real number,<br>
     "supply_units_recovered": {$s_1$,$s_2$,$s_3$,...$s_m$}}</div>
 
     <span class = "g">output = {"walk":</span><br>
     <span class = "g">[ $(x_1,y_1)$ , $(x_2,y_2)$ , $(x_3,y_3)$ ,..., $(x_n,y_n)$ ],</span><br>
-    <span class = "g">"energy_expended": real number,</span><br>
+    <span class = "g">"traversal_cost": real number,</span><br>
     <span class = "g">"supply_units_recovered": {$s_1$,$s_2$,$s_3$,...$s_m$}}</span>
 
 
@@ -1676,14 +1661,22 @@ def _(mo):
 
 @app.cell
 def _(mo):
-    algorithm_input = mo.ui.dropdown(
-        value= "Divide and Conquer",
-        options= ["Divide and Conquer", "BFS+DFS", "Brute Force", "Greedy"],
-        allow_select_none= False,
-        label="Choose an algorithm: "
-    )
-    mo.callout(mo.vstack([ algorithm_input, mo.md("""**Only Divide and Conquer will be discussed in part D**""")]),kind = "success")
+    algorithm_input = mo.ui.tabs({"Divide and Conquer":"", "BFS+DFS":"", "Brute Force":"", "Greedy":""})
+
+    mo.callout(mo.vstack([ algorithm_input, mo.md("""**Only Divide and Conquer will be discussed in part D**""")],align = "center"),kind = "success")
     return (algorithm_input,)
+
+
+@app.cell(hide_code=True)
+def _():
+    #algorithm_input = mo.ui.dropdown(
+    #    value= "Divide and Conquer",
+    #    options= ["Divide and Conquer", "BFS+DFS", "Brute Force", "Greedy"],
+    #    allow_select_none= False,
+    #    label="Choose an algorithm: "
+    #)
+    #mo.callout(mo.vstack([ algorithm_input, mo.md("""**Only Divide and Conquer will be discussed in part D**""")]),kind = "success")
+    return
 
 
 @app.cell(hide_code=True)
@@ -1699,7 +1692,7 @@ def _(algorithm_input, mo):
     mo.md(rf"""
     ## C1 - Algorithm in pseudocode - {algorithm_input.value}
 
-    **Please note that marimo md renders indentation wrong for my pseudocode, please refer to the raw md**
+    <span class = "r">**Please note that marimo md renders indentation wrong for my pseudocode, please refer to the raw md**</span>
     """)
     return
 
@@ -1765,7 +1758,7 @@ def _(algorithm_input, mo):
             move(dif_vec[1], dif_vec[2])
         exit()
 
-        RETURN {"walk": walk, "energy_expended": length, "supply_units_recovered": SU}
+        RETURN {"walk": walk, "traversal_cost": length, "supply_units_recovered": SU}
 
     FUNCTION BFS(G: Graph, s: Vertex) -> Map, Map, Set
     	//s is first vertex
@@ -1935,7 +1928,7 @@ def _(algorithm_input, mo):
                 move(dif_vec[1], dif_vec[2])
             exit()
 
-            RETURN {"walk": walk, "energy_expended": walk.length()-1, "supply_units_recovered": SU}
+            RETURN {"walk": walk, "traversal_cost": walk.length()-1, "supply_units_recovered": SU}
 
 
     FUNCTION BFS(G: Graph, s: Vertex) -> Map
@@ -2034,7 +2027,7 @@ def _(algorithm_input, mo):
             move(dif_vec[0], dif_vec[1])
         exit()
 
-        return {"walk": walk, "length": length, "supply_units_recovered": SU}
+        return {"walk": walk, "traversal_cost": length, "supply_units_recovered": SU}
 
     def move(x,y):
         #move at x distance in x direction and y distance in y direction.
@@ -2237,7 +2230,7 @@ def _(algorithm_input, mo):
             _move(dif_vec[0], dif_vec[1])
         _exit()
 
-        return {"walk": walk, "energy_expended": len(walk)-1, "supply_units_recovered": SU}
+        return {"walk": walk, "traversal_cost": len(walk)-1, "supply_units_recovered": SU}
 
     def _move(x,y):
         #move
@@ -2408,6 +2401,12 @@ def _(mo):
     return
 
 
+@app.cell
+def _(algorithm_input, mo, seed_input):
+    mo.callout(mo.hstack([algorithm_input, seed_input],align = "center"),kind = "success")
+    return
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -2416,17 +2415,23 @@ def _(mo):
 
     Below you can see the environmental outputs of moving and exiting in the short animimation.
     </div>
-
-    Here is an animation showing the walk taken by the AS. The red node is the one currently occupied by the AS.
-
-    Note: Creating the animation (stored at figs\\\\) often takes <span class = "r">1-2</span><span class = "g">2-7</span>  minutes.
+    <!-- TODO add a legend to the animations/gif-->
+    <span class = "r">Note: Creating the animation (stored at figs\\\\) often takes 1-2 minutes.</span>
     """)
     return
 
 
 @app.cell
-def _(algorithm_input, m_gif_v2, mo, seed, time):
+def _(mo):
+    im_gif = mo.ui.tabs({"Image":"","Animation":""})
+    im_gif
+    return (im_gif,)
+
+
+@app.cell
+def _(algorithm_input, im_gif, m_gif_v2, mo, seed, time):
     #DISPLAY GIF
+    mo.stop(im_gif.value != "Animation")
     _out = m_gif_v2(algorithm = algorithm_input.value)
     if(_out == "ran successfully"):
         time.sleep(10)
@@ -2435,22 +2440,41 @@ def _(algorithm_input, m_gif_v2, mo, seed, time):
     return
 
 
+@app.cell
+def _(
+    Av2,
+    algorithm_input,
+    default_title,
+    draw_fac_v2,
+    fac_v2,
+    front_focus_v2,
+    im_gif,
+    mo,
+    walk_v2,
+):
+    mo.stop(im_gif.value != "Image")
+    draw_fac_v2(fac_v2, node_colors = front_focus_v2(walk_v2[algorithm_input.value]), highlight_path = [Av2(v) for v in walk_v2[algorithm_input.value]], legend = False, title = default_title(has_walk = True, algorithm=algorithm_input.value))
+    return
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    **Features of the walk:**
+    <span class = "r">**Features of the walk:**</span>
     """)
     return
 
 
 @app.cell
-def _(BFS_DFS_time_taken, memory_used_v2, mo, out_v2):
+def _(SU, algorithm_input, memory_v2, mo, out_v2, time_v2):
     mo.callout(mo.hstack([
-            mo.stat(label="Length",    value=str(out_v2["length"])),
-            mo.stat(label="Time to Compute",    value=str((int)(BFS_DFS_time_taken*1000))+" ms"),
-            mo.stat(label="Memory to Compute",    value=str(round(memory_used_v2/1000,1))+" KB"),
-            mo.stat(label="Supply Units Recovered",  value="All"),
+            mo.stat(label="Traversal Cost",    value=str(out_v2[algorithm_input.value]["traversal_cost"])),
+            mo.stat(label="Time to Compute",    value=str((int)(time_v2[algorithm_input.value]*1000))+" ms"),
+            mo.stat(label="Memory to Compute",    value=str(round(memory_v2[algorithm_input.value]/1000,1))+" KB"),
+            mo.stat(label="Supply Units Recovered",  value=str(len(out_v2[algorithm_input.value]["supply_units_recovered"]))+"/" + str(len(SU))),
         ], gap=0, wrap=True),kind = "info")
+
+    #TODO Supply units recovered is a bit ugly, make it / smth frac.
     return
 
 
@@ -2458,7 +2482,10 @@ def _(BFS_DFS_time_taken, memory_used_v2, mo, out_v2):
 def _(mo):
     mo.md(r"""
     <div class = "g">
+    <h4>Computational Outputs:</h4>
 
+
+    </div>
 
 
     <span class = "y">Removed "Walk list printed out in tuple form: [code block]"</span>
@@ -2474,6 +2501,41 @@ def _(mo, out_v2):
     {out_v2}
     ```
     """), kind = "info")
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    <p style = "font-size: 40px" class = "y">C4 section is new.</p>
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## C4 - Comparisons
+    """)
+    return
+
+
+@app.cell
+def _(mo, out_v2):
+    _BF = out_v2["Brute Force"]
+    _BF["name"] = "Brute Force"
+
+    _BD = out_v2["BFS+DFS"]
+    _BD["name"] = "BFS+DFS"
+
+    table = mo.ui.table(
+        data=[
+            _BF,
+            _BD,
+        ],
+        label="Outputs",
+    )
+    table
     return
 
 
