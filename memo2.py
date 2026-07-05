@@ -82,7 +82,7 @@ def _(mo):
         stop=99999999,
         step=1,
         label="Seed "
-    
+
     )
     mo.vstack([
         mo.md("### Enter your seed, then press Enter to rebuild the facility."),
@@ -686,10 +686,10 @@ def _(deque):
         return
 
     def _next_perm(perm):
-        #first = 12345
-        #last = 54321
         layer = -1
         max_index = -1
+
+        #Finds the layer and max_index
         for i in range(len(perm)-1):
             if perm[i] < perm[i+1]:
                 layer = i+1
@@ -697,19 +697,23 @@ def _(deque):
                     if perm[j] < perm[i+1]:
                         if max_index == -1:
                             max_index = j
-                        elif perm[j] > perm[max_index]:
-                            max_index = j
                 break
+
+        #swaps layer and max_index
         if(layer != -1):  
             z = perm[layer]
             perm[layer] = perm[max_index]
             perm[max_index] = z
         else:
             layer = len(perm)
-        new_perm = perm.copy()
-        for i in range(layer):
-            new_perm[i] = perm[layer-i-1]
-        return new_perm
+
+        #swaps the subpermuation up to layer around
+        for i in range((layer+(layer%2))//2):
+            z = perm[i]
+            perm[i] = perm[layer-i-1]
+            perm[layer-i-1] = z
+    
+        return perm
 
 
     def _BFS(G, s):
@@ -733,7 +737,61 @@ def _(deque):
 
         return parent
 
+
     return (Brute_Force,)
+
+
+@app.cell
+def _():
+    def next_perm(perm):
+        #first = 12345
+        #last = 54321
+        layer = -1
+        max_index = -1
+
+        #Finds the layer and max_index
+        for i in range(len(perm)-1):
+            if perm[i] < perm[i+1]:
+                layer = i+1
+                for j in range(i+1):
+                    if perm[j] < perm[i+1]:
+                        if max_index == -1:
+                            max_index = j
+                break
+
+        #swaps layer and max_index
+        if(layer != -1):  
+            z = perm[layer]
+            perm[layer] = perm[max_index]
+            perm[max_index] = z
+        else:
+            layer = len(perm)
+        new_perm = perm.copy()
+
+        #swaps the subpermuation up to layer around
+        for i in range(layer):
+            new_perm[i] = perm[layer-i-1]
+        return new_perm
+
+
+
+    perm = [0,0,1,2,3,3,3,4,4,5,6]
+    original = perm.copy()
+
+    _i = 0
+    while True:
+        perm = next_perm(perm)
+        _i += 1
+
+        same = True
+        for j in range(len(perm)):
+            if (original[j] != perm[j]):
+                same = False
+                break
+        if same:
+            break
+    print(_i)
+    return
 
 
 @app.cell
@@ -768,7 +826,6 @@ def _(AS, ASP, EP, G, GP, SU, SUP, VP, algorithms, time, tracemalloc):
     for algorithm in algorithms.keys():
         out_v2[algorithm], memory_v2[algorithm],time_v2[algorithm] = test_algorithm(algorithm) 
         walk_v2[algorithm] = out_v2[algorithm]["walk"]
-
     return memory_v2, out_v2, time_v2, walk_v2
 
 
@@ -844,7 +901,7 @@ def _(
         _fac = m_fac_v2(_seed)
         _G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP = fac_Bv2(_fac)
         _walk = algorithms[algorithm](_G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP)["walk"]
-    
+
 
         if(title == None):
             title = default_title(mini = "", seed = _seed, has_walk = True, algorithm = algorithm,animated = True)
