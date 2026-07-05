@@ -423,11 +423,10 @@ def _(GAP, WING_COLS, fac_v2, nx, string):
     return AS, ASP, Av2, Bv2, EP, G, GP, SU, SUP, VP, fac_Bv2
 
 
-@app.cell(hide_code=True)
+@app.cell
 def _(VP, deque):
     #BFS+DFS
 
-    # G = (V,E)
     def BFS_DFS(G, AS, SU, VP, EP, SUP, ASP, GP):
         #--------------------------------------------------
         #------------Initialise data structures------------
@@ -443,23 +442,23 @@ def _(VP, deque):
 
         #1. BFS
 
-        parent, child_count, leaf_nodes = BFS(G, entry)
+        parent, child_count, leaf_nodes = _BFS(G, entry)
 
         #2. Backtrace Tree 
 
-        exit_count, sub_exit = make_sub_exits(G, VP)
+        exit_count, sub_exit = _make_sub_exits(G, VP)
         sub_SU = {v: not (VP[v]["supply_unit"] == None) for v in V}
-        sub_exit, sub_SU = backtrace_tree(parent, child_count, leaf_nodes, sub_exit, sub_SU)
+        sub_exit, sub_SU = _backtrace_tree(parent, child_count, leaf_nodes, sub_exit, sub_SU)
 
         #3. DFS for all exits
 
         walks = []
         for i in range(exit_count):
-            walks.append(DFS_v1(G, entry, parent, sub_exit, sub_SU, i))
+            walks.append(_DFS(G, entry, parent, sub_exit, sub_SU, i))
 
         #4. Calculating traversal_cost
 
-        walk = shortest_walk(walks)
+        walk = _shortest_walk(walks)
         length = len(walk) - 1
 
         #--------------------------------------------------
@@ -482,7 +481,7 @@ def _(VP, deque):
         #exit
         return
 
-    def BFS(G, s):
+    def _BFS(G, s):
         #s is first vertex
         V = G.nodes()
         BFS_Queue = deque()
@@ -509,7 +508,7 @@ def _(VP, deque):
         return parent, child_count, leaf_nodes
 
 
-    def make_sub_exits(G, VP):
+    def _make_sub_exits(G, VP):
         V = G.nodes()
         exit_map: dict[set] = {v: set() for v in V} #Map of empty sets
         exit_count = 0
@@ -520,7 +519,7 @@ def _(VP, deque):
         return exit_count, exit_map
 
 
-    def backtrace_tree(parent, child_count, leaf_nodes, sub_exit, sub_SU):
+    def _backtrace_tree(parent, child_count, leaf_nodes, sub_exit, sub_SU):
         while leaf_nodes: 
             u = leaf_nodes.pop()
             if parent[u] == None:
@@ -534,7 +533,7 @@ def _(VP, deque):
 
         return sub_exit, sub_SU
 
-    def DFS_v1(G, s, parent, sub_exit, sub_SU, i):
+    def _DFS(G, s, parent, sub_exit, sub_SU, i):
         V = G.nodes()
         DFS_Stack = []
         DFS_Stack.append(s)
@@ -559,10 +558,11 @@ def _(VP, deque):
 
             #makes sure that vertices with exits below them are appended first.
             for v in G[u]:
-                if (not visited[v]) and (i in sub_exit[v]): 
+                #CHANGED THIS by adding parent[v] == u to ensure that it stays on the tree found by BFS.
+                if (not visited[v]) and (i in sub_exit[v]) and parent[v] == u: 
                     visited[v] = True
                     DFS_Stack.append(v)
-                elif (not visited[v]) and sub_SU[v]:
+                elif (not visited[v]) and sub_SU[v] and parent[v] == u:
                     Q.append(v) # ignores all vertices not in sub_exit or sub_SU
 
             #the nodes with just supply units below them are then appended ontop.
@@ -580,7 +580,7 @@ def _(VP, deque):
 
         return walk
 
-    def shortest_walk(walks):
+    def _shortest_walk(walks):
         min_index = 0
         min = len(walks[0])
         for i in range(len(walks)):
@@ -741,8 +741,9 @@ def _(deque):
     return (Brute_Force,)
 
 
-@app.cell
+@app.cell(disabled=True, hide_code=True)
 def _():
+    #BRUTE TESTING
     def next_perm(perm):
         #first = 12345
         #last = 54321
@@ -1762,6 +1763,7 @@ def _(algorithm_input, mo):
     &#x2022; Name changed from ember_rescue to BFS_DFS<br>
     &#x2022; move() function have been changed to take x,y as the vector v in the direction it needs to go.<br>
     &#x2022; END FUNCTION WHILE FOR IF etc have been removed for simplified pseudocode.
+    &#x2022; added logic to DFS to ensure that the walk taken traverses the spanning tree only.
     </div>
 
     ```
@@ -1893,10 +1895,11 @@ def _(algorithm_input, mo):
 
     		//makes sure that vertices with exits below them are pushed first.
     		FOR v ∈ G.Neighbours(u) DO
-    			IF not visited[v] and sub_exit[v].contains[i] THEN
+                //Changed this to ensure that v is a child of u.
+    			IF (not visited[v]) and sub_exit[v].contains(i) and parent[v] = u THEN
     				visited[v] ← true
     				DFS_Stack.push(v)
-    			ELSE IF not visited[v] and sub_SU[v] THEN
+    			ELSE IF not visited[v] and sub_SU[v] and parent[v] = u THEN
     				Q.push(v)
                 // ignores all vertices not in sub_exit or sub_SU
 
@@ -1938,7 +1941,7 @@ def _(algorithm_input, mo):
                 IF VP[v]["is_exit"] = true THEN
                     exits.add(v)
 
-            SU_locations  {SUP[su]["location"] | su ∈ SU} // a set of SU locations
+            SU_locations ← {SUP[su]["location"] | su ∈ SU} // a set of SU locations
 
             POI ← clone of exits
             POI ← POI.Union(SU_locations)
@@ -2031,13 +2034,12 @@ def _(algorithm_input, mo):
     <div class = "y">
     <h4>Changes to python code:</h4>
     &#x2022; move() function have been changed to take x,y as the vector v in the direction it needs to go.
+    &#x2022; added logic to DFS to ensure that the walk taken traverses the spanning tree only.
     </div>
 
     ```python
-    # G = (V,E)
     import networkx as nx
-
-
+    from collections import deque
 
     def BFS_DFS(G, AS, SU, VP, EP, SUP, ASP, GP):
         #--------------------------------------------------
@@ -2054,23 +2056,23 @@ def _(algorithm_input, mo):
 
         #1. BFS
 
-        parent, child_count, leaf_nodes = BFS(G, entry)
+        parent, child_count, leaf_nodes = _BFS(G, entry)
 
-        #2. Backtrace Tree
+        #2. Backtrace Tree 
 
-        exit_count, sub_exit = make_sub_exits(G, VP)
+        exit_count, sub_exit = _make_sub_exits(G, VP)
         sub_SU = {v: not (VP[v]["supply_unit"] == None) for v in V}
-        sub_exit, sub_SU = backtrace_tree(parent, child_count, leaf_nodes, sub_exit, sub_SU)
+        sub_exit, sub_SU = _backtrace_tree(parent, child_count, leaf_nodes, sub_exit, sub_SU)
 
         #3. DFS for all exits
 
         walks = []
         for i in range(exit_count):
-            walks.append(DFS(G, entry, parent, sub_exit, sub_SU, i))
+            walks.append(_DFS(G, entry, parent, sub_exit, sub_SU, i))
 
         #4. Calculating traversal_cost
 
-        walk = shortest_walk(walks)
+        walk = _shortest_walk(walks)
         length = len(walk) - 1
 
         #--------------------------------------------------
@@ -2081,19 +2083,19 @@ def _(algorithm_input, mo):
 
         for i in range(length):
             dif_vec = (walk[i+1][0]-walk[i][0],walk[i+1][1]-walk[i][1])
-            move(dif_vec[0], dif_vec[1])
-        exit()
+            _move(dif_vec[0], dif_vec[1])
+        _exit()
 
         return {"walk": walk, "traversal_cost": length, "supply_units_recovered": SU}
 
-    def move(x,y):
+    def _move(x,y):
         #move at x distance in x direction and y distance in y direction.
         return
-    def exit():
+    def _exit():
         #exit
         return
 
-    def BFS(G, s):
+    def _BFS(G, s):
         #s is first vertex
         V = G.nodes()
         BFS_Queue = deque()
@@ -2120,7 +2122,7 @@ def _(algorithm_input, mo):
         return parent, child_count, leaf_nodes
 
 
-    def make_sub_exits(G, VP):
+    def _make_sub_exits(G, VP):
         V = G.nodes()
         exit_map: dict[set] = {v: set() for v in V} #Map of empty sets
         exit_count = 0
@@ -2131,8 +2133,8 @@ def _(algorithm_input, mo):
         return exit_count, exit_map
 
 
-    def backtrace_tree(parent, child_count, leaf_nodes, sub_exit, sub_SU):
-        while leaf_nodes:
+    def _backtrace_tree(parent, child_count, leaf_nodes, sub_exit, sub_SU):
+        while leaf_nodes: 
             u = leaf_nodes.pop()
             if parent[u] == None:
                 continue
@@ -2145,7 +2147,7 @@ def _(algorithm_input, mo):
 
         return sub_exit, sub_SU
 
-    def DFS(G, s, parent, sub_exit, sub_SU, i):
+    def _DFS(G, s, parent, sub_exit, sub_SU, i):
         V = G.nodes()
         DFS_Stack = []
         DFS_Stack.append(s)
@@ -2170,14 +2172,15 @@ def _(algorithm_input, mo):
 
             #makes sure that vertices with exits below them are appended first.
             for v in G[u]:
-                if (not visited[v]) and (i in sub_exit[v]):
+                #CHANGED THIS by adding parent[v] == u to ensure that it stays on the tree found by BFS.
+                if (not visited[v]) and (i in sub_exit[v]) and parent[v] == u: 
                     visited[v] = True
                     DFS_Stack.append(v)
-                elif (not visited[v]) and sub_SU[v]:
+                elif (not visited[v]) and sub_SU[v] and parent[v] == u:
                     Q.append(v) # ignores all vertices not in sub_exit or sub_SU
 
             #the nodes with just supply units below them are then appended ontop.
-            while Q:
+            while Q: 
                 v = Q.popleft()
                 visited[v] = True
                 DFS_Stack.append(v)
@@ -2191,7 +2194,7 @@ def _(algorithm_input, mo):
 
         return walk
 
-    def shortest_walk(walks):
+    def _shortest_walk(walks):
         min_index = 0
         min = len(walks[0])
         for i in range(len(walks)):
@@ -2200,15 +2203,15 @@ def _(algorithm_input, mo):
                 min_index = i
 
         return walks[min_index]
-
-
     ```
     """
 
     Brute_Force_python = r"""
     ```python
-    def Brute_Force(G, AS, SU, VP, EP, SUP, ASP, GP):
+    import networkx as nx
+    from collections import deque
 
+    def Brute_Force(G, AS, SU, VP, EP, SUP, ASP, GP):
         CRUDY_1 = 0
         entry = ASP[CRUDY_1]["location"]
         V = G.nodes()
@@ -2218,9 +2221,7 @@ def _(algorithm_input, mo):
             if VP[v]["is_exit"] == True: 
                 exits.add(v)
 
-
-
-        SU_locations= {SUP[su]["location"] for su in SU} # a set of SU locations
+        SU_locations = {SUP[su]["location"] for su in SU} # a set of SU locations
 
         POI = exits.copy()
         POI = POI.union(SU_locations)
@@ -2238,7 +2239,7 @@ def _(algorithm_input, mo):
                 w = u
                 path = []
                 while parent[w] != None:
-                    path.insert(0, w)
+                    path.insert(0, w) #leaves out the first node
                     w = parent[w]
                 pm[v][u] = path
                 dm[v][u] = len(path)
@@ -2252,7 +2253,6 @@ def _(algorithm_input, mo):
         su_perm = [i for i in range(len(SU_locations))]
         original_perm = su_perm.copy()
         su_loc = [v for v in SU_locations]
-
         while True: 
             for exit in exits: # su_perm is a list.
                 dist = 0
@@ -2298,30 +2298,34 @@ def _(algorithm_input, mo):
         return
 
     def _next_perm(perm):
-        #first = 12345
-        #last = 54321
         layer = -1
         max_index = -1
+
+        #Finds the layer and max_index
         for i in range(len(perm)-1):
             if perm[i] < perm[i+1]:
                 layer = i+1
-                for j in range(1,i+1):
+                for j in range(i+1):
                     if perm[j] < perm[i+1]:
                         if max_index == -1:
                             max_index = j
-                        elif perm[j] > perm[max_index]:
-                            max_index = j
                 break
+
+        #swaps layer and max_index
         if(layer != -1):  
             z = perm[layer]
             perm[layer] = perm[max_index]
             perm[max_index] = z
         else:
             layer = len(perm)
-        new_perm = perm.copy()
-        for i in range(layer):
-            new_perm[i] = perm[layer-i-1]
-        return new_perm
+
+        #swaps the subpermuation up to layer around
+        for i in range((layer+(layer%2))//2):
+            z = perm[i]
+            perm[i] = perm[layer-i-1]
+            perm[layer-i-1] = z
+    
+        return perm
 
 
     def _BFS(G, s):
