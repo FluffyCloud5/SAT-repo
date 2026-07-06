@@ -712,7 +712,7 @@ def _(deque):
             z = perm[i]
             perm[i] = perm[layer-i-1]
             perm[layer-i-1] = z
-    
+
         return perm
 
 
@@ -823,11 +823,11 @@ def _(AS, ASP, EP, G, GP, SU, SUP, VP, algorithms, time, tracemalloc):
         return out, _peak2 - _size1, time_taken
 
 
-    out_v2, memory_v2, time_v2, walk_v2 = {},{},{}, {}
+    out_v2, memory_v2, speed_v2, walk_v2 = {},{},{}, {}
     for algorithm in algorithms.keys():
-        out_v2[algorithm], memory_v2[algorithm],time_v2[algorithm] = test_algorithm(algorithm) 
+        out_v2[algorithm], memory_v2[algorithm],speed_v2[algorithm] = test_algorithm(algorithm) 
         walk_v2[algorithm] = out_v2[algorithm]["walk"]
-    return memory_v2, out_v2, time_v2, walk_v2
+    return memory_v2, out_v2, speed_v2, walk_v2
 
 
 @app.cell(hide_code=True)
@@ -2324,7 +2324,7 @@ def _(algorithm_input, mo):
             z = perm[i]
             perm[i] = perm[layer-i-1]
             perm[layer-i-1] = z
-    
+
         return perm
 
 
@@ -2527,11 +2527,11 @@ def _(mo):
 
 
 @app.cell
-def _(SU, algorithm_input, memory_v2, mo, out_v2, time_v2):
+def _(SU, algorithm_input, memory_v2, mo, out_v2, speed_v2):
     mo.callout(mo.hstack([
             mo.stat(label="Traversal Cost",    value=str(out_v2[algorithm_input.value]["traversal_cost"])),
-            mo.stat(label="Time to Compute",    value=str((int)(time_v2[algorithm_input.value]*1000))+" ms"),
-            mo.stat(label="Memory to Compute",    value=str(round(memory_v2[algorithm_input.value]/1000,1))+" KB"),
+            mo.stat(label="Time to Compute",    value=str((int)(speed_v2[algorithm_input.value]*1000))+" ms"),
+            mo.stat(label="Memory to Compute",    value=str(round(memory_v2[algorithm_input.value]/1000))+" KB"),
             mo.stat(label="Supply Units Recovered",  value=str(len(out_v2[algorithm_input.value]["supply_units_recovered"]))+"/" + str(len(SU))),
         ], gap=0, wrap=True),kind = "info")
 
@@ -2581,8 +2581,8 @@ def _(mo):
     return
 
 
-@app.cell
-def _(mo, out_v2):
+app._unparsable_cell(
+    r"""
     _BF = out_v2["Brute Force"]
     _BF["name"] = "Brute Force"
 
@@ -2597,8 +2597,23 @@ def _(mo, out_v2):
         label="Outputs",
         selection = None
     )
+
+    "Time to Compute"
+
+    table = mo.ui.table(
+        data=[
+            ({"":"Traversal Cost"} | {algorithm:out_v2[algorithm]["traversal_cost"] for algorithm in algorithms}),
+            ({"":"Speed (ms)"} | {algorithm:(int)(speed_v2[algorithm]*1000)) for algorithm in algorithms}),
+            ({"":"RAM Used (KB)"} | {algorithm:round(memory_v2[algorithm]/1000)) for algorithm in algorithms}),
+            ({"":f"SU recovered (/{str(len(SU))})"} | {algorithm:len(out_v2[algorithm]["supply_units_recovered"]) for algorithm in algorithms})
+        ],
+        label="Outputs",
+        selection = None
+    )
     table
-    return
+    """,
+    name="_"
+)
 
 
 @app.cell(hide_code=True)
