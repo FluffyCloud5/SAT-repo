@@ -99,7 +99,7 @@ def _(seed_input):
 
 @app.cell(hide_code=True)
 def _(nx, random, seed_input):
-    #make the A1 facility (m_fac_v2)
+    #make the A1 facility (m_fac_Av2)
     WING_COLS, WING_ROWS = 10, 10
 
     def _neighbours(cols, rows, c, r):
@@ -128,7 +128,7 @@ def _(nx, random, seed_input):
         carve(0, 0)
         return g
 
-    def m_fac_v2(seed): #make facility version 2
+    def m_fac_Av2(seed): #make facility version 2
         int_seed = int(seed)
         n_wings   = 2 + (int_seed % 3)          # 2, 3, or 4 wings from seed
         wing_names = ['Alpha', 'Beta', 'Gamma', 'Delta'][:n_wings]
@@ -198,8 +198,8 @@ def _(nx, random, seed_input):
             'junctions':  junctions,
         }
 
-    fac_v2 = m_fac_v2(seed_input.value)
-    return WING_COLS, fac_v2, m_fac_v2
+    fac_v2 = m_fac_Av2(seed_input.value)
+    return WING_COLS, fac_v2, m_fac_Av2
 
 
 @app.cell(hide_code=True)
@@ -362,7 +362,7 @@ def _(mpatches, plt):
 
 
 @app.cell(hide_code=True)
-def _(GAP, WING_COLS, fac_v2, nx, string):
+def _(GAP, WING_COLS, m_fac_Av2, nx, seed_input):
     # turn Mr Nielsen's implementation into mine :)
 
     def Av2(a):
@@ -377,16 +377,18 @@ def _(GAP, WING_COLS, fac_v2, nx, string):
         vertices = []
         G = nx.DiGraph()
 
-        n_nodes = fac["n_wings"]*fac["wing_cols"]*fac["wing_rows"]
+        n_nodes = fac["n_wings"]*fac["wing_cols"]*fac["wing_rows"] #number of nodes
 
-        wing = [Bv2((i,c,r)) for c in range(fac["wing_cols"]) for r in range(fac["wing_rows"]) for i in range(fac["n_wings"])]
-        G.add_nodes_from(wing)
+        #adds all sectors of fac to G
+        #Nodes are of the form (c,r)
+        graph = [Bv2((i,c,r)) for c in range(fac["wing_cols"]) for r in range(fac["wing_rows"]) for i in range(fac["n_wings"])]
+        G.add_nodes_from(graph)
 
+ 
 
-
-
+        #Edges are of the form ((c1,r1),(c2,r2))
         for i in range(fac["n_wings"]):
-            for edge in fac["wings"][i].edges():
+            for edge in fac["wings"][i].edges(): #for each edge of the ith wing, edge a tuple of two nodes.
                 G.add_edge(Bv2((i,edge[0][0],edge[0][1])), Bv2((i,edge[1][0],edge[1][1])))
                 G.add_edge(Bv2((i,edge[1][0],edge[1][1])), Bv2((i,edge[0][0],edge[0][1])))
 
@@ -399,7 +401,7 @@ def _(GAP, WING_COLS, fac_v2, nx, string):
         AS = {0}
 
 
-        VP: dict[dict[bool,bool,int,string,(int,int)]] = {i:{"is_entry":False, "is_exit": False, "supply_unit": None, "wing": fac["wing_names"][Av2(i)[0]],"location": i} for i in G.nodes()}
+        VP = {i:{"is_entry":False, "is_exit": False, "supply_unit": None, "wing": fac["wing_names"][Av2(i)[0]],"location": i} for i in G.nodes()}
         VP[Bv2(fac["entry"])]["is_entry"] = True
         VP[Bv2(fac["exit_a"])]["is_exit"] = True
         VP[Bv2(fac["exit_b"])]["is_exit"] = True
@@ -408,22 +410,21 @@ def _(GAP, WING_COLS, fac_v2, nx, string):
 
 
 
-        EP: dict[dict] = {edge: {}  for edge in G.edges}
+        EP = {edge: {}  for edge in G.edges}
 
 
-        SUP: dict[dict[(int,int)]] = {i:{"location": Bv2(fac["supplies"][i])} for i in range(len(fac["supplies"]))}
+        SUP = {i:{"location": Bv2(fac["supplies"][i])} for i in range(len(fac["supplies"]))}
 
-        ASP: dict[(int,int)] = {0:{"location":  Bv2(fac["entry"])}}
+        ASP = {0:{"location":  Bv2(fac["entry"])}}
 
         GP = {}
         return G, AS, SU, VP, EP, SUP, ASP, GP
 
-
-    G, AS, SU, VP, EP, SUP, ASP, GP = fac_Bv2(fac_v2)
+    G, AS, SU, VP, EP, SUP, ASP, GP = fac_Bv2(m_fac_Av2(seed_input.value))
     return AS, ASP, Av2, Bv2, EP, G, GP, SU, SUP, VP, fac_Bv2
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(VP, deque):
     #BFS+DFS
 
@@ -795,8 +796,9 @@ def _():
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(BFS_DFS, Brute_Force):
+    #Define algorithms
     algorithms = {}
     algorithms["BFS+DFS"] = BFS_DFS
     algorithms["Brute Force"] = Brute_Force
@@ -804,10 +806,15 @@ def _(BFS_DFS, Brute_Force):
 
 
 @app.cell(hide_code=True)
-def _(AS, ASP, EP, G, GP, SU, SUP, VP, algorithms, time, tracemalloc):
+def _(algorithms, fac_Bv2, m_fac_Av2, seed_input, time, tracemalloc):
     # RUN algorithms
 
-    def test_algorithm(algorithm):
+    def test_algorithm(algorithm, seed = None):
+        if seed == None:
+            seed = seed_input.value
+
+        G, AS, SU, VP, EP, SUP, ASP, GP = fac_Bv2(m_fac_Av2(seed))
+
         tracemalloc.start()
         tracemalloc.reset_peak()
         _size1, _peak1 = tracemalloc.get_traced_memory()
@@ -820,14 +827,14 @@ def _(AS, ASP, EP, G, GP, SU, SUP, VP, algorithms, time, tracemalloc):
         #print("size: "+str(_size2)+", peak:" + str(_peak2))
         #print("size: "+str(_size2-_size1)+", peak:" + str(_peak2-_peak1))
         tracemalloc.stop()
-        return out, _peak2 - _size1, time_taken
+        return out, _peak2 - _size1, time_taken, {"G": G, "AS": AS, "SU": SU, "VP":VP,"EP": EP,"SUP": SUP,"ASP": ASP,"GP": GP}
 
 
-    out_v2, memory_v2, speed_v2, walk_v2 = {},{},{}, {}
-    for algorithm in algorithms.keys():
-        out_v2[algorithm], memory_v2[algorithm],speed_v2[algorithm] = test_algorithm(algorithm) 
-        walk_v2[algorithm] = out_v2[algorithm]["walk"]
-    return memory_v2, out_v2, speed_v2, walk_v2
+    out_v2, memory_v2, speed_v2, walk_v2 = {},{},{},{}
+    for _algorithm in algorithms.keys():
+        out_v2[_algorithm], memory_v2[_algorithm],speed_v2[_algorithm], _ = test_algorithm(_algorithm) 
+        walk_v2[_algorithm] = out_v2[_algorithm]["walk"]
+    return memory_v2, out_v2, speed_v2, test_algorithm, walk_v2
 
 
 @app.cell(hide_code=True)
@@ -839,7 +846,7 @@ def _(
     draw_fac_v2,
     fac_Bv2,
     imageio,
-    m_fac_v2,
+    m_fac_Av2,
     os,
     plt,
     seed,
@@ -899,7 +906,7 @@ def _(
             return "exists already"
 
 
-        _fac = m_fac_v2(_seed)
+        _fac = m_fac_Av2(_seed)
         _G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP = fac_Bv2(_fac)
         _walk = algorithms[algorithm](_G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP)["walk"]
 
@@ -1021,6 +1028,14 @@ def _(mo):
 
     (Nielsen, 2026)
     """)
+    return
+
+
+@app.cell
+def _():
+    _f = (2,4,7)
+
+    print(_f[0])
     return
 
 
@@ -1718,8 +1733,8 @@ def _(mo):
 
 
 @app.cell
-def _(mo):
-    algorithm_input = mo.ui.tabs({"Divide and Conquer":"", "BFS+DFS":"", "Brute Force":"", "Greedy":""})
+def _(algorithms, mo):
+    algorithm_input = mo.ui.tabs({_algo:"" for _algo in algorithms.keys()})
 
     mo.callout(mo.vstack([ algorithm_input, mo.md("""**Only Divide and Conquer will be discussed in part D**""")],align = "center"),kind = "success")
     return (algorithm_input,)
@@ -2581,39 +2596,135 @@ def _(mo):
     return
 
 
-app._unparsable_cell(
-    r"""
-    _BF = out_v2["Brute Force"]
-    _BF["name"] = "Brute Force"
+@app.cell
+def _(mo):
+    sample_set_size = mo.ui.slider(start = 10, stop = 300, step = 2, value = 100, full_width= True)
+    table_options = mo.ui.tabs({"Current Seed": "", "Sample Set":sample_set_size})
+    table_options
+    return sample_set_size, table_options
 
-    _BD = out_v2["BFS+DFS"]
-    _BD["name"] = "BFS+DFS"
+
+@app.cell
+def _():
+    return
+
+
+@app.cell(hide_code=True)
+def _(
+    SU,
+    algorithms,
+    memory_v2,
+    mo,
+    out_v2,
+    random,
+    sample_set_size,
+    seed_input,
+    speed_v2,
+    table_options,
+    test_algorithm,
+):
+    _out_v2, _memory_v2, _speed_v2 = {},{},{}
+    for alg in algorithms.keys():
+        _tc = {alg:0}
+        _s = {alg:0}
+        _m = {alg:0}
+        _su = {alg: 0}
+    _SU = 0
+    if table_options.value == "Sample Set":
+        for i in range(sample_set_size.value):
+            _seed = random.randint(0,99999999)
+        
+            for alg in algorithms.keys():
+                _out_v2[alg], _memory_v2[alg], _speed_v2[alg], _input = test_algorithm(alg, seed = _seed)
+                _SU += len(_input["SU"])/len(algorithms)
+                _tc[alg] += _out_v2[alg]["traversal_cost"]
+                _s[alg] += _speed_v2[alg]
+                _m[alg] += _memory_v2[alg]
+                _su[alg] += len((_out_v2[alg]["supply_units_recovered"]))
+
+        for alg in algorithms.keys():
+            _tc[alg] /= sample_set_size.value
+            _s[alg] /= sample_set_size.value
+            _m[alg] /= sample_set_size.value
+            _su[alg] /= sample_set_size.value
+        _SU /= sample_set_size.value
+
+    else:
+        for alg in algorithms.keys():
+            _tc[alg] = out_v2[alg]["traversal_cost"]
+            _s[alg] = speed_v2[alg]
+            _m[alg] = memory_v2[alg]
+            _su[alg] = len((out_v2[alg]["supply_units_recovered"]))
+        _SU = len(SU)
+
+
+
+
+    corner = seed_input.value
+    if table_options.value == "Sample Set":
+        corner = f"{sample_set_size.value} seeds"
+
+    d1 = {corner:"Traversal Cost"} | {algorithm:round(_tc[algorithm],1) for algorithm in algorithms} 
+    d2 = {corner:"Speed (ms)"} | {algorithm:(int)(round(_s[algorithm]*1000)) for algorithm in algorithms}
+    d3 = {corner:"RAM Used (KB)"} | {algorithm:round(_m[algorithm]/1000) for algorithm in algorithms}
+    d4 = {corner:f"SU recovered (/{str(round(_SU,1))})"} | {algorithm:round(_su[algorithm],1) for algorithm in algorithms}
+
+    best1 = [list(algorithms.keys())[0]]
+    best2 = best1.copy()
+    best3 = best1.copy()
+    best4 = best1.copy()
+
+    for alg in list(algorithms.keys())[1:]:
+        v1 = _tc[alg]
+        v2 = _tc[best1[0]]
+        if v1 < v2:
+            best1 = [alg]
+        elif v1 == v2:
+            best1.append(alg)
+
+        v1 = _s[alg]
+        v2 = _s[best2[0]]
+        if v1 < v2:
+            best2 = [alg]
+        elif v1 == v2:
+            best2.append(alg)
+
+        v1 = _m[alg]
+        v2 = _m[best3[0]]
+        if v1 < v2:
+            best3 = [alg]
+        elif v1 == v2:
+            best3.append(alg)
+
+        v1 = _su[alg]
+        v2 = _su[best4[0]]
+        if v1 < v2:
+            best4 = [alg]
+        elif v1 == v2:
+            best4.append(alg)
+
+    def _to_str(a):
+        b = str(a[0])
+        for i in range(1,len(a)):
+            b += ", "+ a[i]
+        return b
+
+    d1 |= {"Best": _to_str(best1)}
+    d2 |= {"Best": _to_str(best2)}
+    d3 |= {"Best": _to_str(best3)}
+    d4 |= {"Best": _to_str(best4)}
+
+
+
+
 
     table = mo.ui.table(
-        data=[
-            {"": "Brute Force", "traversal cost": out_v2["Brute Force"]["traversal_cost"]},
-            {"": "BFS+DFS", "traversal cost": out_v2["BFS+DFS"]["traversal_cost"]},
-        ],
-        label="Outputs",
-        selection = None
-    )
-
-    "Time to Compute"
-
-    table = mo.ui.table(
-        data=[
-            ({"":"Traversal Cost"} | {algorithm:out_v2[algorithm]["traversal_cost"] for algorithm in algorithms}),
-            ({"":"Speed (ms)"} | {algorithm:(int)(speed_v2[algorithm]*1000)) for algorithm in algorithms}),
-            ({"":"RAM Used (KB)"} | {algorithm:round(memory_v2[algorithm]/1000)) for algorithm in algorithms}),
-            ({"":f"SU recovered (/{str(len(SU))})"} | {algorithm:len(out_v2[algorithm]["supply_units_recovered"]) for algorithm in algorithms})
-        ],
+        data=[d1,d2,d3,d4],
         label="Outputs",
         selection = None
     )
     table
-    """,
-    name="_"
-)
+    return
 
 
 @app.cell(hide_code=True)
