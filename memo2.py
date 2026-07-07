@@ -739,7 +739,7 @@ def _(deque):
     return (Brute_Force,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(deque):
     # Greedy
 
@@ -777,41 +777,40 @@ def _(deque):
                 dm[v][u] = len(path)
 
 
-        #Finding shortest walk.
+    
+        got_su = {v:False for v in SU_locations}
+        perm = [entry]
 
-        min_perm = []
-        min_dist = None
-
-        su_perm = [i for i in range(len(SU_locations))]
-        original_perm = su_perm.copy()
-        su_loc = [v for v in SU_locations]
-        while True: 
-            for exit in exits: # su_perm is a list.
-                dist = 0
-                perm = [entry]
-                for i in range(len(su_perm)):
-                    perm.append(su_loc[su_perm[i]])
-                perm.append(exit)
-                for i in range(len(perm)-1):
-                    dist = dist + dm[perm[i]][perm[i+1]]
-                if min_dist == None:
-                    min_perm = perm
-                    min_dist = dist
-                elif dist < min_dist:
-                    min_perm = perm
-                    min_dist = dist
-            su_perm = _next_perm(su_perm)
-            back_to_original = True
-            for i in range(len(su_perm)):
-                if su_perm[i] != original_perm[i]:
-                    back_to_original = False
-                    break
-            if back_to_original:
+        #Go to closest SU
+        for i in range(len(SU_locations)):
+            closest_su = None
+            u = perm[len(perm)-1]
+            for v in POI:
+                if v in SU_locations:
+                    if not got_su[v] and closest_su == None:
+                        closest_su = v
+                    elif not got_su[v] and dm[u][v] < dm[u][closest_su]:
+                        closest_su = v
+            if closest_su == None:
                 break
+            perm.append(closest_su)
+            got_su[closest_su] = True
+
+
+        #Go to closest exit
+        closest_exit = None
+        u = perm[len(perm)-1]
+        for v in POI:
+            if v in exits:
+                if  closest_exit == None:
+                    closest_exit = v
+                elif dm[u][v] < dm[u][closest_exit]:
+                    closest_exit = v
+        perm.append(closest_exit)  
 
         walk = [entry]
-        for i in range(len(min_perm)-1):
-            walk += pm[min_perm[i]][min_perm[i+1]]
+        for i in range(len(perm)-1):
+            walk += pm[perm[i]][perm[i+1]]
 
         for i in range(len(walk)-1):
             dif_vec = (VP[walk[i+1]]["location"][0]-VP[walk[i]]["location"][0],VP[walk[i+1]]["location"][1]-VP[walk[i]]["location"][1]) 
@@ -828,6 +827,8 @@ def _(deque):
     def _exit():
         #exit
         return
+
+
 
     def _BFS(G, s):
         #s is first vertex
@@ -852,7 +853,7 @@ def _(deque):
 
 
 
-    return
+    return (Greedy,)
 
 
 @app.cell(disabled=True, hide_code=True)
@@ -910,11 +911,12 @@ def _():
 
 
 @app.cell(hide_code=True)
-def _(BFS_DFS, Brute_Force):
+def _(BFS_DFS, Brute_Force, Greedy):
     #Define algorithms
     algorithms = {}
     algorithms["BFS+DFS"] = BFS_DFS
     algorithms["Brute Force"] = Brute_Force
+    algorithms["Greedy"] = Greedy
     return (algorithms,)
 
 
@@ -962,7 +964,6 @@ def _(
     m_fac_Av2,
     os,
     plt,
-    seed,
     seed_input,
 ):
     #define m_gif_v2
@@ -1011,25 +1012,25 @@ def _(
 
 
     def m_gif_v2(custom_seed = None, algorithm = "BFS+DFS", title = None):
-        _seed = seed
+        seed = seed_input.value
 
         if(custom_seed != None):
-            _seed = custom_seed
+            seed = custom_seed
 
         if not os.path.exists("figs\\"):
            os.mkdir("figs\\")
 
-        if (os.path.exists("figs\\"+ str(_seed)+ f"_{algorithm}_v2" + ".gif")):
+        if (os.path.exists("figs\\"+ str(seed)+ f"_{algorithm}_v2" + ".gif")):
             return "exists already"
 
 
-        _fac = m_fac_Av2(_seed)
+        _fac = m_fac_Av2(seed)
         _G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP = fac_Bv2(_fac)
         _walk = algorithms[algorithm](_G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP)["walk"]
 
 
         if(title == None):
-            title = default_title(mini = "", seed = _seed, has_walk = True, algorithm = algorithm,animated = True)
+            title = default_title(mini = "", seed = seed, has_walk = True, algorithm = algorithm,animated = True)
 
         _fig, _ax= draw_fac_v2(_fac, legend = False, title = title)
 
@@ -1053,7 +1054,7 @@ def _(
 
 
             name = "figs\\"
-            name += str(_seed) + "_"
+            name += str(seed) + "_"
             name += f"{algorithm}_"
             name += "v2_"
             name += str(_i)
@@ -1071,14 +1072,14 @@ def _(
         list_of_im_paths = []
         for _i in range(len(_walk)): 
             _name = "figs\\"
-            _name += str(_seed) + "_"
+            _name += str(seed) + "_"
             _name += f"{algorithm}_"
             _name += "v2_"
             _name += str(_i)
             _name += ".png"
             list_of_im_paths.append(_name)
 
-        path_to_save_gif = "figs\\"+ str(_seed)+ f"_{algorithm}_v2" + ".gif" 
+        path_to_save_gif = "figs\\"+ str(seed)+ f"_{algorithm}_v2" + ".gif" 
         ims = [imageio.imread(f) for f in list_of_im_paths]
         dur = [0.05 for f in list_of_im_paths]
         dur[len(dur)-1] = 2
@@ -2483,13 +2484,134 @@ def _(algorithm_input, mo):
     ```
     """
 
+    Greedy_python = r"""
+    <span class = "y">This is a newly implimented algorithm</span>
+
+    ```python
+    import networkx as nx
+    from collections import deque
+
+    def Greedy(G, AS, SU, VP, EP, SUP, ASP, GP):
+        CRUDY_1 = list(AS)[0]
+        entry = ASP[CRUDY_1]["location"]
+        V = G.nodes()
+
+        exits: set = set()
+        for v in V:
+            if VP[v]["is_exit"] == True: 
+                exits.add(v)
+
+        SU_locations = {SUP[su]["location"] for su in SU} # a set of SU locations
+
+        POI = exits.copy()
+        POI = POI.union(SU_locations)
+        POI.add(entry)
+
+        dm = {v:{u:None for u in POI} for v in POI} # Distance Matrix
+        pm = {v:{u:None for u in POI} for v in POI} #Path Matrix
+
+
+
+        #Getting distance and path between exits, the entry and SUs.
+        for v in POI:
+            parent = _BFS(G,v)
+            for u in POI:
+                w = u
+                path = []
+                while parent[w] != None:
+                    path.insert(0, w) #leaves out the first node
+                    w = parent[w]
+                pm[v][u] = path
+                dm[v][u] = len(path)
+
+
+    
+        got_su = {v:False for v in SU_locations}
+        perm = [entry]
+
+        #Go to closest SU
+        for i in range(len(SU_locations)):
+            closest_su = None
+            u = perm[len(perm)-1]
+            for v in POI:
+                if v in SU_locations:
+                    if not got_su[v] and closest_su == None:
+                        closest_su = v
+                    elif not got_su[v] and dm[u][v] < dm[u][closest_su]:
+                        closest_su = v
+            if closest_su == None:
+                break
+            perm.append(closest_su)
+            got_su[closest_su] = True
+
+
+        #Go to closest exit
+        closest_exit = None
+        u = perm[len(perm)-1]
+        for v in POI:
+            if v in exits:
+                if  closest_exit == None:
+                    closest_exit = v
+                elif dm[u][v] < dm[u][closest_exit]:
+                    closest_exit = v
+        perm.append(closest_exit)  
+
+        walk = [entry]
+        for i in range(len(perm)-1):
+            walk += pm[perm[i]][perm[i+1]]
+
+        for i in range(len(walk)-1):
+            dif_vec = (VP[walk[i+1]]["location"][0]-VP[walk[i]]["location"][0],VP[walk[i+1]]["location"][1]-VP[walk[i]]["location"][1]) 
+            # a tuple
+            _move(dif_vec[0], dif_vec[1])
+        _exit()
+
+        return {"walk": walk, "traversal_cost": len(walk)-1, "supply_units_recovered": SU}
+
+    def _move(x,y):
+        #move
+        return
+
+    def _exit():
+        #exit
+        return
+
+
+
+    def _BFS(G, s):
+        #s is first vertex
+        V = G.nodes()
+        BFS_Queue = deque()
+        BFS_Queue.append(s)
+        visited = {v: False for v in V} #map
+        visited[s] = True
+
+        parent = {v: None for v in V} #map
+
+        while BFS_Queue:
+            u = BFS_Queue.popleft()
+            for v in G[u]:
+                if not visited[v]:
+
+                    visited[v] = True
+                    BFS_Queue.append(v)
+                    parent[v] = u
+
+        return parent
+    ```
+
+    """
+
     _out = """"""
 
     if(algorithm_input.value == "BFS+DFS"):
         _out = BFS_DFS_python
     elif(algorithm_input.value == "Brute Force"):
         _out = Brute_Force_python
+    elif(algorithm_input.value == "Greedy"):
+        _out = Greedy_python
 
+    mo.stop(_out == "")
     mo.md(_out)
     return
 
@@ -2622,14 +2744,14 @@ def _(mo):
 
 
 @app.cell
-def _(algorithm_input, im_gif, m_gif_v2, mo, seed, time):
+def _(algorithm_input, im_gif, m_gif_v2, mo, seed_input, time):
     #DISPLAY GIF
     mo.stop(im_gif.value != "Animation")
     _out = m_gif_v2(algorithm = algorithm_input.value)
     if(_out == "ran successfully"):
         time.sleep(10)
     mo.stop(_out == "error")
-    mo.image("figs\\"+ str(seed) +f"_{algorithm_input.value}_v2"+ ".gif")
+    mo.image("figs\\"+ str(seed_input.value) +f"_{algorithm_input.value}_v2"+ ".gif")
     return
 
 
@@ -2661,7 +2783,7 @@ def _(mo):
 @app.cell
 def _(SU, algorithm_input, memory_v2, mo, out_v2, speed_v2):
     mo.callout(mo.hstack([
-            mo.stat(label="Traversal Cost",    value=str(out_v2[algorithm_input.value]["traversal_cost"])),
+            mo.stat(label=f"Traversal Cost (minimum is {out_v2['Brute Force']['traversal_cost']})",    value=str(out_v2[algorithm_input.value]["traversal_cost"])),
             mo.stat(label="Time to Compute",    value=str((int)(speed_v2[algorithm_input.value]*1000))+" ms"),
             mo.stat(label="Memory to Compute",    value=str(round(memory_v2[algorithm_input.value]/1000))+" KB"),
             mo.stat(label="Supply Units Recovered",  value=str(len(out_v2[algorithm_input.value]["supply_units_recovered"]))+"/" + str(len(SU))),
@@ -2715,7 +2837,7 @@ def _(mo):
 
 @app.cell
 def _(mo):
-    sample_set_size = mo.ui.slider(start = 10, stop = 200, step = 2, value = 100, full_width= True)
+    sample_set_size = mo.ui.slider(start = 1, stop = 100, step = 1, value = 50, full_width= True)
     table_options = mo.ui.tabs({"Current Seed": "", "Sample Set":sample_set_size})
     table_options
     return sample_set_size, table_options
@@ -2736,106 +2858,105 @@ def _(
     test_algorithm,
 ):
 
-
-    _tc = {alg:0 for alg in algorithms.keys()}
-    _s = {alg:0 for alg in algorithms.keys()}
-    _m = {alg:0 for alg in algorithms.keys()}
-    _su = {alg:0 for alg in algorithms.keys()}
-
-    _SU = 0
-    if table_options.value == "Sample Set":
-        for i in range(sample_set_size.value):
-            _seed = random.randint(0,99999999)
-
+    def m_comparison_table():
+        _tc = {alg:0 for alg in algorithms.keys()}
+        _s = {alg:0 for alg in algorithms.keys()}
+        _m = {alg:0 for alg in algorithms.keys()}
+        _su = {alg:0 for alg in algorithms.keys()}
+    
+        _SU = 0
+        if table_options.value == "Sample Set":
+            for i in range(sample_set_size.value):
+                _seed = random.randint(0,99999999)
+    
+                for alg in algorithms.keys():
+                    _out_v2, _memory_v2, _speed_v2, _input = test_algorithm(alg, seed = _seed)
+                    _tc[alg] += _out_v2["traversal_cost"]
+                    _s[alg] += _speed_v2
+                    _m[alg] += _memory_v2
+                    _su[alg] += 100*len((_out_v2["supply_units_recovered"]))/len(_input["SU"])
+    
             for alg in algorithms.keys():
-                _out_v2, _memory_v2, _speed_v2, _input = test_algorithm(alg, seed = _seed)
-                _SU += len(_input["SU"])/len(algorithms)
-                _tc[alg] += _out_v2["traversal_cost"]
-                _s[alg] += _speed_v2
-                _m[alg] += _memory_v2
-                _su[alg] += len((_out_v2["supply_units_recovered"]))
-
-        for alg in algorithms.keys():
-            _tc[alg] /= sample_set_size.value
-            _s[alg] /= sample_set_size.value
-            _m[alg] /= sample_set_size.value
-            _su[alg] /= sample_set_size.value
-        _SU /= sample_set_size.value
-
-    else:
-        for alg in algorithms.keys():
-            _tc[alg] = out_v2[alg]["traversal_cost"]
-            _s[alg] = speed_v2[alg]
-            _m[alg] = memory_v2[alg]
-            _su[alg] = len((out_v2[alg]["supply_units_recovered"]))
-        _SU = len(SU)
-
-
-
-
-    corner = seed_input.value
-    if table_options.value == "Sample Set":
-        corner = f"{sample_set_size.value} seeds"
-
-    d1 = {corner:"Traversal Cost"} | {algorithm:round(_tc[algorithm],1) for algorithm in algorithms} 
-    d2 = {corner:"Speed (ms)"} | {algorithm:(int)(round(_s[algorithm]*1000)) for algorithm in algorithms}
-    d3 = {corner:"RAM Used (KB)"} | {algorithm:round(_m[algorithm]/1000) for algorithm in algorithms}
-    d4 = {corner:f"SU recovered (/{str(round(_SU,1))})"} | {algorithm:round(_su[algorithm],1) for algorithm in algorithms}
-
-    best1 = [list(algorithms.keys())[0]]
-    best2 = best1.copy()
-    best3 = best1.copy()
-    best4 = best1.copy()
-
-    for alg in list(algorithms.keys())[1:]:
-        v1 = _tc[alg]
-        v2 = _tc[best1[0]]
-        if v1 < v2:
-            best1 = [alg]
-        elif v1 == v2:
-            best1.append(alg)
-
-        v1 = _s[alg]
-        v2 = _s[best2[0]]
-        if v1 < v2:
-            best2 = [alg]
-        elif v1 == v2:
-            best2.append(alg)
-
-        v1 = _m[alg]
-        v2 = _m[best3[0]]
-        if v1 < v2:
-            best3 = [alg]
-        elif v1 == v2:
-            best3.append(alg)
-
-        v1 = _su[alg]
-        v2 = _su[best4[0]]
-        if v1 > v2:
-            best4 = [alg]
-        elif v1 == v2:
-            best4.append(alg)
-
-    def _to_str(a):
-        b = str(a[0])
-        for i in range(1,len(a)):
-            b += ", "+ a[i]
-        return b
-
-    d1 |= {"Best": _to_str(best1)}
-    d2 |= {"Best": _to_str(best2)}
-    d3 |= {"Best": _to_str(best3)}
-    d4 |= {"Best": _to_str(best4)}
-
-
-
-
-
-    table = mo.ui.table(
-        data=[d1,d2,d3,d4],
-        label="Outputs",
-        selection = None
-    )
+                _tc[alg] /= sample_set_size.value
+                _s[alg] /= sample_set_size.value
+                _m[alg] /= sample_set_size.value
+                _su[alg] /= sample_set_size.value
+            _SU /= sample_set_size.value
+    
+        else:
+            for alg in algorithms.keys():
+                _tc[alg] = out_v2[alg]["traversal_cost"]
+                _s[alg] = speed_v2[alg]
+                _m[alg] = memory_v2[alg]
+                _su[alg] = 100*len((out_v2[alg]["supply_units_recovered"]))/len(SU)
+    
+    
+    
+    
+        corner = seed_input.value
+        if table_options.value == "Sample Set":
+            corner = f"{sample_set_size.value} seeds"
+    
+        d1 = {"":"Traversal Cost"} | {algorithm:round(_tc[algorithm]) for algorithm in algorithms} 
+        d2 = {"":"Speed (ms)"} | {algorithm:(int)(round(_s[algorithm]*1000)) for algorithm in algorithms}
+        d3 = {"":"RAM Used (KB)"} | {algorithm:round(_m[algorithm]/1000) for algorithm in algorithms}
+        d4 = {"":f"SUs recovered (%)"} | {algorithm:round(_su[algorithm]) for algorithm in algorithms}
+    
+        best1 = [list(algorithms.keys())[0]]
+        best2 = best1.copy()
+        best3 = best1.copy()
+        best4 = best1.copy()
+    
+        for alg in list(algorithms.keys())[1:]:
+            v1 = _tc[alg]
+            v2 = _tc[best1[0]]
+            if v1 < v2:
+                best1 = [alg]
+            elif v1 == v2:
+                best1.append(alg)
+    
+            v1 = _s[alg]
+            v2 = _s[best2[0]]
+            if v1 < v2:
+                best2 = [alg]
+            elif v1 == v2:
+                best2.append(alg)
+    
+            v1 = _m[alg]
+            v2 = _m[best3[0]]
+            if v1 < v2:
+                best3 = [alg]
+            elif v1 == v2:
+                best3.append(alg)
+    
+            v1 = _su[alg]
+            v2 = _su[best4[0]]
+            if v1 > v2:
+                best4 = [alg]
+            elif v1 == v2:
+                best4.append(alg)
+    
+        def _to_str(a):
+            b = str(a[0])
+            for i in range(1,len(a)):
+                b += ", "+ a[i]
+            return b
+    
+        d1 |= {"Best": _to_str(best1)}
+        d2 |= {"Best": _to_str(best2)}
+        d3 |= {"Best": _to_str(best3)}
+        d4 |= {"Best": _to_str(best4)}
+    
+    
+    
+    
+    
+        return mo.ui.table(
+            data=[d4,d1,d2,d3],
+            label=f"Algorithm Comparisons - {corner}",
+            selection = None
+        )
+    table = m_comparison_table()
     table
     return
 
