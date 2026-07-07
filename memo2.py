@@ -422,7 +422,7 @@ def _(GAP, WING_COLS, m_fac_Av2, nx, seed_input):
 
 
 @app.cell(hide_code=True)
-def _(deque, dict):
+def _(deque):
     #BFS+DFS
 
     def BFS_DFS(G, AS, SU, VP, EP, SUP, ASP, GP):
@@ -857,24 +857,8 @@ def _(deque):
 
 
 @app.cell
-def _(AS, ASP, Av2, EP, G, GP, SU, SUP, VP, draw_fac_v2, fac_v2, nx, plt):
+def _(Av2, draw_fac_v2, fac_v2, nx, plt, random):
     # Divide and Conquer
-    def g_POI(G, AS, SU, VP, EP, SUP, ASP, GP):
-        CRUDY_1 = list(AS)[0]
-        V = G.nodes()
-
-        exits = set()
-        for v in V:
-            if VP[v]["is_exit"] == True: 
-                exits.add(v)
-
-        SU_nodes = {SUP[su]["location"] for su in SU} # a set of SU locations
-        entry = ASP[CRUDY_1]["location"]
-        POI = exits.copy()
-        POI = POI.union(SU_nodes)
-        POI.add(entry)
-        return POI, entry, exits, SU_nodes
-
     def Divide_and_Conquer(G, AS, SU, VP, EP, SUP, ASP, GP):
 
         CRUDY_1 = list(AS)[0]
@@ -891,14 +875,12 @@ def _(AS, ASP, Av2, EP, G, GP, SU, SUP, VP, draw_fac_v2, fac_v2, nx, plt):
         POI = POI.union(SU_nodes)
         POI.add(entry)
 
-        G = Trim(G, AS, SU, VP, EP, SUP, ASP, GP, POI) # replaces G with a trimmed version
+        G = _trim(G, AS, SU, VP, EP, SUP, ASP, GP, POI) # replaces G with a trimmed version
 
-        return Abstract_2deg(G, AS, SU, VP, EP, SUP, ASP, GP, POI)
-    
-    
+        return _abstract_2deg(G, AS, SU, VP, EP, SUP, ASP, GP, POI)
 
     # 1. Trim unusable dead ends
-    def Trim(G, AS, SU, VP, EP, SUP, ASP, GP, POI):
+    def _trim(G, AS, SU, VP, EP, SUP, ASP, GP, POI):
 
         TG = G.copy() #Trimmed Graph
         leaf_nodes = set()
@@ -922,9 +904,8 @@ def _(AS, ASP, Av2, EP, G, GP, SU, SUP, VP, draw_fac_v2, fac_v2, nx, plt):
                 break
         return TG
 
-
     # 2. Abstract nodes that aren't POI and have deg 2 or less away.
-    def Abstract_2deg(G, AS, SU, VP, EP, SUP, ASP, GP, POI):
+    def _abstract_2deg(G, AS, SU, VP, EP, SUP, ASP, GP, POI):
         AG = G.copy() # Abstracted graph
     
         V = AG.nodes()
@@ -967,70 +948,94 @@ def _(AS, ASP, Av2, EP, G, GP, SU, SUP, VP, draw_fac_v2, fac_v2, nx, plt):
             AE.pop((u,w))
             AG.remove_node(u)
         return AG, AE
-        
 
+    def g_POI(G, AS, SU, VP, EP, SUP, ASP, GP):
+        CRUDY_1 = list(AS)[0]
+        V = G.nodes()
 
+        exits = set()
+        for v in V:
+            if VP[v]["is_exit"] == True: 
+                exits.add(v)
+
+        SU_nodes = {SUP[su]["location"] for su in SU} # a set of SU locations
+        entry = ASP[CRUDY_1]["location"]
+        POI = exits.copy()
+        POI = POI.union(SU_nodes)
+        POI.add(entry)
+        return POI, entry, exits, SU_nodes
+
+    def m_step2_fac(G, AS, SU, VP, EP, SUP, ASP, GP):
+        CRUDY_1 = list(AS)[0]
+        V = G.nodes()
+
+        exits = set()
+        for v in V:
+            if VP[v]["is_exit"] == True: 
+                exits.add(v)
+
+        SU_nodes = {SUP[su]["location"] for su in SU} # a set of SU locations
+        entry = ASP[CRUDY_1]["location"]
+        POI = exits.copy()
+        POI = POI.union(SU_nodes)
+        POI.add(entry)
+
+        G = _trim(G, AS, SU, VP, EP, SUP, ASP, GP, POI) # replaces G with a trimmed version
     
-    simple_fac = Divide_and_Conquer(G, AS, SU, VP, EP, SUP, ASP, GP)[0]
-
-    dict = {Av2(v): "#FF6666" for v in simple_fac.nodes()}
-
-    _fig, _ax = draw_fac_v2(fac_v2, legend = False)
-
-    pos_dict = {v: (v[0]+0.5,v[1]+0.5) for v in simple_fac.nodes()}
-
-    nx.draw_networkx(simple_fac, pos = pos_dict, ax = _ax, arrowstyle = '-',with_labels = False, node_size = 50, edge_color = "#9999FF", width = 5,node_color = "#000000")
+        simple_fac = _abstract_2deg(G, AS, SU, VP, EP, SUP, ASP, GP, POI)[0]
     
-    plt.show()          
-        
+        dict = {Av2(v): "#FF6666" for v in simple_fac.nodes()}
+    
+        _fig, _ax = draw_fac_v2(fac_v2, legend = False)
+    
+        pos_dict = {v: (v[0]+0.5,v[1]+0.5) for v in simple_fac.nodes()}
+    
+        nx.draw_networkx(simple_fac, pos = pos_dict, ax = _ax, arrowstyle = '-',with_labels = False, node_size = 50, edge_color = "#9999FF", width = 5,node_color = "#000000")
 
+        return _fig, _ax
+       
+    def m_step2_2(G, AS, SU, VP, EP, SUP, ASP, GP):
+        CRUDY_1 = list(AS)[0]
+        V = G.nodes()
+
+        exits = set()
+        for v in V:
+            if VP[v]["is_exit"] == True: 
+                exits.add(v)
+
+        SU_nodes = {SUP[su]["location"] for su in SU} # a set of SU locations
+        entry = ASP[CRUDY_1]["location"]
+        POI = exits.copy()
+        POI = POI.union(SU_nodes)
+        POI.add(entry)
+
+        G = _trim(G, AS, SU, VP, EP, SUP, ASP, GP, POI) # replaces G with a trimmed version
+    
+        simple_fac = _abstract_2deg(G, AS, SU, VP, EP, SUP, ASP, GP, POI)[0]
+
+        pos_dict = {v: (v[0]+0.5,v[1]+0.5) for v in simple_fac.nodes()}
+
+        label_dict = {v: "" for v in simple_fac.nodes()}
+        _POI, _entry, _exits, _SU = g_POI(G, AS, SU, VP, EP, SUP, ASP, GP)
+        label_dict[_entry] = "In"
+        for _exit in _exits:
+            label_dict[_exit] = "Out"
+        for _su in _SU:
+            label_dict[_su] = "SU"
+        rnd_pos = pos_dict.copy()
+    
+        for _v in rnd_pos.keys():
+            rnd_pos[_v] = (rnd_pos[_v][0], random.uniform(-0.5,0.5))
+    
+        #_pos_dict = nx.drawing.bfs_layout(G = simple_fac,start = _entry) 
+        _pos_dict = nx.drawing.spring_layout(G= simple_fac, threshold = 1e-7, iterations = 1000, k = 2.3, pos = rnd_pos, fixed = {_entry,list(_exits)[0]})
+        nx.draw_networkx(simple_fac, arrowstyle = '-',labels = label_dict, node_size = 500,node_color = "#9999FF", pos = _pos_dict )
+        plt.show()
 
     # 3. Abstract Exits, Entries and supply units on to rounded graph.
     # 4. Break graph up into sub problems by utilising what I will refer to as a pass.
     # 5. Utilise Brute force on sub problem
     # 6. Reconstruct Path from abstraction.
-    return dict, g_POI, pos_dict, simple_fac
-
-
-@app.cell
-def _(nx):
-    nx.drawing.layout()
-    return
-
-
-@app.cell
-def _(
-    AS,
-    ASP,
-    EP,
-    G,
-    GP,
-    SU,
-    SUP,
-    VP,
-    g_POI,
-    nx,
-    plt,
-    pos_dict,
-    random,
-    simple_fac,
-):
-    label_dict = {v: "" for v in simple_fac.nodes()}
-    _POI, _entry, _exits, _SU = g_POI(G, AS, SU, VP, EP, SUP, ASP, GP)
-    label_dict[_entry] = "In"
-    for _exit in _exits:
-        label_dict[_exit] = "Out"
-    for _su in _SU:
-        label_dict[_su] = "SU"
-    rnd_pos = pos_dict.copy()
-
-    for _v in rnd_pos.keys():
-        rnd_pos[_v] = (rnd_pos[_v][0], random.uniform(-0.5,0.5))
-
-    #_pos_dict = nx.drawing.bfs_layout(G = simple_fac,start = _entry) 
-    _pos_dict = nx.drawing.spring_layout(G= simple_fac, threshold = 1e-7, iterations = 1000, k = 2, pos = rnd_pos, fixed = {_entry,list(_exits)[0]})
-    nx.draw_networkx(simple_fac, arrowstyle = '-',labels = label_dict, node_size = 500,node_color = "#9999FF", pos = _pos_dict )
-    plt.show()
     return
 
 
@@ -2917,7 +2922,7 @@ def _(mo):
 
 
 @app.cell
-def _(AS, ASP, EP, G, GP, SU, SUP, VP, dict, mo):
+def _(AS, ASP, EP, G, GP, SU, SUP, VP, mo):
     #Display Inputs
     _G = f"""
     ```python
