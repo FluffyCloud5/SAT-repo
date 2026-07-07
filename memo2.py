@@ -857,8 +857,24 @@ def _(deque):
 
 
 @app.cell
-def _(AS, ASP, Av2, EP, G, GP, SU, SUP, VP, draw_fac_v2, fac_v2):
+def _(AS, ASP, Av2, EP, G, GP, SU, SUP, VP, draw_fac_v2, fac_v2, nx, plt):
     # Divide and Conquer
+    def g_POI(G, AS, SU, VP, EP, SUP, ASP, GP):
+        CRUDY_1 = list(AS)[0]
+        V = G.nodes()
+
+        exits = set()
+        for v in V:
+            if VP[v]["is_exit"] == True: 
+                exits.add(v)
+
+        SU_nodes = {SUP[su]["location"] for su in SU} # a set of SU locations
+        entry = ASP[CRUDY_1]["location"]
+        POI = exits.copy()
+        POI = POI.union(SU_nodes)
+        POI.add(entry)
+        return POI, entry, exits, SU_nodes
+
     def Divide_and_Conquer(G, AS, SU, VP, EP, SUP, ASP, GP):
 
         CRUDY_1 = list(AS)[0]
@@ -875,46 +891,147 @@ def _(AS, ASP, Av2, EP, G, GP, SU, SUP, VP, draw_fac_v2, fac_v2):
         POI = POI.union(SU_nodes)
         POI.add(entry)
 
-        return Trim(G, AS, SU, VP, EP, SUP, ASP, GP, POI), Trim(G, AS, SU, VP, EP, SUP, ASP, GP, set())
+        G = Trim(G, AS, SU, VP, EP, SUP, ASP, GP, POI) # replaces G with a trimmed version
+
+        return Abstract_2deg(G, AS, SU, VP, EP, SUP, ASP, GP, POI)
+    
     
 
     # 1. Trim unusable dead ends
     def Trim(G, AS, SU, VP, EP, SUP, ASP, GP, POI):
 
         TG = G.copy() #Trimmed Graph
-        leaf_nodes = []
+        leaf_nodes = set()
 
         while True:
-            next_leaf_nodes = []
-        
+            next_leaf_nodes = set()
+
             for u in leaf_nodes:
                 v = list(TG[u])[0]
                 if TG.degree[v] == 4 and (not v in POI): # as directed graph
-                    next_leaf_nodes.append(v)
-        
+                    next_leaf_nodes.add(v)
+
             TG.remove_nodes_from(leaf_nodes)
             leaf_nodes = next_leaf_nodes
 
             if not leaf_nodes:
                 for v in TG.nodes():
                     if TG.degree[v] == 2 and (not v in POI): # as directed graph
-                        leaf_nodes.append(v)
+                        leaf_nodes.add(v)
             if not leaf_nodes:
                 break
         return TG
 
 
-    _fac = Divide_and_Conquer(G, AS, SU, VP, EP, SUP, ASP, GP)
-    dict = {Av2(v): "#000000" for v in G.nodes()} | {Av2(v): "#FF5555" for v in _fac[0].nodes()} | {Av2(v): "#FFAAAA" for v in _fac[1].nodes()}
-    draw_fac_v2(fac_v2, node_colors = dict)
-    
-
     # 2. Abstract nodes that aren't POI and have deg 2 or less away.
+    def Abstract_2deg(G, AS, SU, VP, EP, SUP, ASP, GP, POI):
+        AG = G.copy() # Abstracted graph
+    
+        V = AG.nodes()
+    
+        deg3plus = set()
+        for v in V:
+            if AG.degree(v) >= 6: #in and out
+                deg3plus.add(v)
+
+        AE = {(u,v): [v] for u,v in AG.edges()} #Abstracted Edge
+
+        boring = V - (deg3plus | POI)
+    
+        while boring:
+            u = boring.pop()
+            neighbours = AG[u]
+            if len(neighbours) != 2:
+                raise Exception("Not okay man")
+            neighbours = list(neighbours.keys())
+
+            v = neighbours[0]
+            w = neighbours[1]
+            if (v,w) in AG.edges(): #edge relaxation :)
+                if len(AE[(v,w)]) > len(AE[(v,u)])+len(AE[(u,w)]):
+                    AE[(v,w)] = AE[(v,u)] + AE[(u,w)]
+                    AE[(w,v)] = AE[(w,u)] + AE[(u,v)] 
+                if AG.degree(v) == 6:
+                    boring.add(v)
+                if AG.degree(w) == 6:
+                    boring.add(w)
+            else: 
+                AG.add_edge(v,w)
+                AG.add_edge(w,v)
+                AE[(v,w)] = AE[(v,u)] + AE[(u,w)]
+                AE[(w,v)] = AE[(w,u)] + AE[(u,v)]
+
+            AE.pop((v,u))
+            AE.pop((u,v))
+            AE.pop((w,u))
+            AE.pop((u,w))
+            AG.remove_node(u)
+        return AG, AE
+        
+
+
+    
+    simple_fac = Divide_and_Conquer(G, AS, SU, VP, EP, SUP, ASP, GP)[0]
+
+    dict = {Av2(v): "#FF6666" for v in simple_fac.nodes()}
+
+    _fig, _ax = draw_fac_v2(fac_v2, legend = False)
+
+    pos_dict = {v: (v[0]+0.5,v[1]+0.5) for v in simple_fac.nodes()}
+
+    nx.draw_networkx(simple_fac, pos = pos_dict, ax = _ax, arrowstyle = '-',with_labels = False, node_size = 50, edge_color = "#9999FF", width = 5,node_color = "#000000")
+    
+    plt.show()          
+        
+
+
     # 3. Abstract Exits, Entries and supply units on to rounded graph.
     # 4. Break graph up into sub problems by utilising what I will refer to as a pass.
     # 5. Utilise Brute force on sub problem
     # 6. Reconstruct Path from abstraction.
-    return (dict,)
+    return dict, g_POI, pos_dict, simple_fac
+
+
+@app.cell
+def _(nx):
+    nx.drawing.layout()
+    return
+
+
+@app.cell
+def _(
+    AS,
+    ASP,
+    EP,
+    G,
+    GP,
+    SU,
+    SUP,
+    VP,
+    g_POI,
+    nx,
+    plt,
+    pos_dict,
+    random,
+    simple_fac,
+):
+    label_dict = {v: "" for v in simple_fac.nodes()}
+    _POI, _entry, _exits, _SU = g_POI(G, AS, SU, VP, EP, SUP, ASP, GP)
+    label_dict[_entry] = "In"
+    for _exit in _exits:
+        label_dict[_exit] = "Out"
+    for _su in _SU:
+        label_dict[_su] = "SU"
+    rnd_pos = pos_dict.copy()
+
+    for _v in rnd_pos.keys():
+        rnd_pos[_v] = (rnd_pos[_v][0], random.uniform(-0.5,0.5))
+
+    #_pos_dict = nx.drawing.bfs_layout(G = simple_fac,start = _entry) 
+    _pos_dict = nx.drawing.spring_layout(G= simple_fac, threshold = 1e-7, iterations = 1000, k = 2, pos = rnd_pos, fixed = {_entry,list(_exits)[0]})
+    nx.draw_networkx(simple_fac, arrowstyle = '-',labels = label_dict, node_size = 500,node_color = "#9999FF", pos = _pos_dict )
+    plt.show()
+    return
 
 
 @app.cell(disabled=True, hide_code=True)
@@ -3085,7 +3202,6 @@ def _(
             selection = None
         )
     table = m_comparison_table()
-
     return (table,)
 
 
