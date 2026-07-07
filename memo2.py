@@ -777,7 +777,7 @@ def _(deque):
                 dm[v][u] = len(path)
 
 
-    
+
         got_su = {v:False for v in SU_locations}
         perm = [entry]
 
@@ -980,7 +980,7 @@ def _(
     def default_title(mini = "Multi-Wing Facility",seed = None, has_walk = False, walk_length = -1, algorithm = None, memo = None,n_wing = -1,animated = False):
         if seed == None:
             seed = seed_input.value
-    
+
         title = ""
         if mini != "" and mini != None:
             title += mini
@@ -2099,7 +2099,7 @@ def _(algorithm_input, mo):
             //Finding shortest walk.
             got_su ← {v:False | v ∈ SU_locations}
             perm ← [entry]
-    
+
             //Go to closest SU
             FOR i from 1(inclusive) to SU_locations.length() (inclusive) DO
                 closest_su ← None
@@ -2114,8 +2114,8 @@ def _(algorithm_input, mo):
                     break
                 perm.append(closest_su)
                 got_su[closest_su] ← True
-    
-    
+
+
             //Go to closest exit
             closest_exit ← None
             u ← perm[perm.length()]
@@ -2160,11 +2160,97 @@ def _(algorithm_input, mo):
     	RETURN parent
     ```
     """
+
+    Brute_Force_pseudocode = r"""
+    ```
+    FUNCTION Brute_Force(G: Directed Unweighted Graph, SU: Set, AS: Set, VP: Map, EP: Map, SUP: Map, ASP: Map, GP: Map) -> Map
+
+            CRUDY_1 ← AS.get_random()
+        	entry ← ASP[CRUDY_1]["location"]
+        	V ← G.vertices()
+
+            exits ← {}
+            FOREACH v ∈ V DO
+                IF VP[v]["is_exit"] = true THEN
+                    exits.add(v)
+
+            SU_locations ← {SUP[su]["location"] | su ∈ SU} // a set of SU locations
+
+            POI ← clone of exits
+            POI ← POI.Union(SU_locations)
+            POI.add(entry)
+
+            dm ← {v:{u:∞ | u∈POI} | v∈POI} // Distance Matrix
+            pm ← {v:{u:null | u∈POI} | v∈POI} //Path Matrix
+
+            //Getting distance and path between exits, the entry and SUs.
+            FOREACH v ∈ POI DO
+                parent ← BFS(G,v)
+                FOREACH u ∈ POI DO
+                    w ← u
+                    path ←[]
+                    WHILE parent[w] != null DO
+                        path.insert_at(0, w) 
+                        w ← parent[w]
+                    pm[v][u] ← path //without first node
+                    dm[v][u] ← path.length()
+
+
+            //Finding shortest walk.
+
+            min_perm ← []
+            min_dist ← ∞
+            FOREACH permutation of SU_locations: su_perm DO
+                FOREACH exit in exits DO // su_perm is a list.
+                dist ← 0
+                perm ← [entry]
+                perm ← perm.concatenate(su_perm)
+                perm ← perm.append(exit)
+                FOR i from 1 (inclusive) to perm.length() (exclusive) DO
+                    dist ← dist + dm[perm[i]][perm[i+1]]
+                IF dist < min_dist THEN
+                    min_perm ← perm
+                    min_dist ← dist
+
+            walk ← [entry]
+            FOR i from 1 (inclusive) to min_perm.length() (exclusive) DO
+                walk.concatenate(pm[min_perm[i]][min_perm[i+1]])
+
+            FOR i ← 1 (inclusive) to walk.length() (exclusive) DO
+                dif_vec ← VP[walk[i+1]]["location"]-VP[walk[i]]["location"] // a tuple
+                move(dif_vec[1], dif_vec[2])
+            exit()
+
+            RETURN {"walk": walk, "traversal_cost": walk.length()-1, "supply_units_recovered": SU}
+
+
+    FUNCTION BFS(G: Graph, s: Vertex) -> Map
+    	//s is first vertex
+    	V ← G.vertices()
+    	BFS_Queue ← queue
+    	BFS_Queue.push(s)
+    	visited ← {v: false | v ∈ V} //map
+    	visited[s] ← true
+
+    	parent ← {v: null | v ∈ V} //map
+
+    	WHILE not BFS_Queue.is_empty() DO
+    		u ← BFS_Queue.pop()
+    		FOR v ∈ G.Neighbours(u) DO
+    			IF not visited[v] THEN
+    				visited[v] ← true
+    				BFS_Queue.push(v)
+    				parent[v] ← u
+    	RETURN parent
+    ```
+    """
     _out = """"""
     if(algorithm_input.value == "BFS+DFS"):
         _out = BFS_DFS_pseudocode
     elif(algorithm_input.value == "Greedy"):
         _out = Greedy_pseudocode
+    elif(algorithm_input.value == "Brute Force"):
+        _out = Brute_Force_pseudocode
     mo.md(_out)
     return
 
@@ -2541,7 +2627,7 @@ def _(algorithm_input, mo):
                 dm[v][u] = len(path)
 
 
-    
+
         got_su = {v:False for v in SU_locations}
         perm = [entry]
 
@@ -2879,50 +2965,50 @@ def _(
         _s = {alg:0 for alg in algorithms.keys()}
         _m = {alg:0 for alg in algorithms.keys()}
         _su = {alg:0 for alg in algorithms.keys()}
-    
+
         _SU = 0
         if table_options.value == "Sample Set":
             for i in range(sample_set_size.value):
                 _seed = random.randint(0,99999999)
-    
+
                 for alg in algorithms.keys():
                     _out_v2, _memory_v2, _speed_v2, _input = test_algorithm(alg, seed = _seed)
                     _tc[alg] += _out_v2["traversal_cost"]
                     _s[alg] += _speed_v2
                     _m[alg] += _memory_v2
                     _su[alg] += 100*len((_out_v2["supply_units_recovered"]))/len(_input["SU"])
-    
+
             for alg in algorithms.keys():
                 _tc[alg] /= sample_set_size.value
                 _s[alg] /= sample_set_size.value
                 _m[alg] /= sample_set_size.value
                 _su[alg] /= sample_set_size.value
             _SU /= sample_set_size.value
-    
+
         else:
             for alg in algorithms.keys():
                 _tc[alg] = out_v2[alg]["traversal_cost"]
                 _s[alg] = speed_v2[alg]
                 _m[alg] = memory_v2[alg]
                 _su[alg] = 100*len((out_v2[alg]["supply_units_recovered"]))/len(SU)
-    
-    
-    
-    
+
+
+
+
         corner = seed_input.value
         if table_options.value == "Sample Set":
             corner = f"{sample_set_size.value} seeds"
-    
+
         d1 = {"":"Traversal Cost"} | {algorithm:round(_tc[algorithm]) for algorithm in algorithms} 
         d2 = {"":"Speed (ms)"} | {algorithm:(int)(round(_s[algorithm]*1000)) for algorithm in algorithms}
         d3 = {"":"RAM Used (KB)"} | {algorithm:round(_m[algorithm]/1000) for algorithm in algorithms}
         d4 = {"":f"SUs recovered (%)"} | {algorithm:round(_su[algorithm]) for algorithm in algorithms}
-    
+
         best1 = [list(algorithms.keys())[0]]
         best2 = best1.copy()
         best3 = best1.copy()
         best4 = best1.copy()
-    
+
         for alg in list(algorithms.keys())[1:]:
             v1 = _tc[alg]
             v2 = _tc[best1[0]]
@@ -2930,43 +3016,43 @@ def _(
                 best1 = [alg]
             elif v1 == v2:
                 best1.append(alg)
-    
+
             v1 = _s[alg]
             v2 = _s[best2[0]]
             if v1 < v2:
                 best2 = [alg]
             elif v1 == v2:
                 best2.append(alg)
-    
+
             v1 = _m[alg]
             v2 = _m[best3[0]]
             if v1 < v2:
                 best3 = [alg]
             elif v1 == v2:
                 best3.append(alg)
-    
+
             v1 = _su[alg]
             v2 = _su[best4[0]]
             if v1 > v2:
                 best4 = [alg]
             elif v1 == v2:
                 best4.append(alg)
-    
+
         def _to_str(a):
             b = str(a[0])
             for i in range(1,len(a)):
                 b += ", "+ a[i]
             return b
-    
+
         d1 |= {"Best": _to_str(best1)}
         d2 |= {"Best": _to_str(best2)}
         d3 |= {"Best": _to_str(best3)}
         d4 |= {"Best": _to_str(best4)}
-    
-    
-    
-    
-    
+
+
+
+
+
         return mo.ui.table(
             data=[d4,d1,d2,d3],
             label=f"Algorithm Comparisons - {corner}",
