@@ -1750,7 +1750,11 @@ def _(mo):
 
     #### Algorithm:
 
-    Use BFS (single source all shortest paths) to find the path to the closest supply unit. Repeat from that node to the next closest unvisited supply unit and so on until there are no more supply units. Then use BFS to find the nearest exit and navigate there for extraction.
+    <div class = "r">Use BFS (single source all shortest paths) to find the path to the closest supply unit. Repeat from that node to the next closest unvisited supply unit and so on until there are no more supply units. Then use BFS to find the nearest exit and navigate there for extraction.</div>
+
+    <div class = "g">
+    Uses BFS to compute the distance and path between all POI (the entry, exit and supply units). Then starting from the entry, always going to the closest unvisited supply unit, traverse all supply units. Then traverse to the nearest exit.
+    </div>
 
     ### Option 2: Brute Force (BFS)
 
@@ -1760,6 +1764,7 @@ def _(mo):
 
     - Simple to understand
     - always returns optimal solution
+    - <span class = "g">efficient for facilities with few supply units, which is the case in memo A1 where there are 4 to 5 supply units.</span>
 
     Cons:
 
@@ -1779,11 +1784,11 @@ def _(mo):
     Pros:
 
     - Returns the optimal <span class = "r">route</span> <span class = "g">walk</span>
-    - Not bad time efficiency  O(#Exits(V+E))
+    - Not bad time efficiency with O(#Exits(V+E)).
 
     Cons:
 
-    - only works if:
+    - only works <span class = "g">optimally</span> if:
     	- the graph is a tree.
     	- the AS has to collect all supply units.
     - Complicated, and prone to human error
@@ -1792,13 +1797,11 @@ def _(mo):
 
     Overview:
 
-    1. Do BFS retaining paths, number of children and leaf nodes O(V+E)
-    2. Backwards trace the graph from the leaf nodes giving a property to each node whether it has a supply unit (SU) beneath it, and whether it has an exit beneath it. O(V)
-    3. For each exit: O(#Exits(V+E))
-    	1. Do DFS on the graph (retaining walk), where branches with SUs without exits are explored first. (ignore all branches without a SU or an exit)
-    4. Find which of the walks is shortest and return that. O(#Exits V)
-
-    Total time complexity O(V+E) + O(V) + O(#Exits(V+E)) + O(#Exits V) = O(#Exits(V+E))
+    1. Run BFS, retaining parent vertices, number of children vertices and a set of leaf nodes.
+    2. Backwards trace the graph from the leaf nodes giving a property to each node whether it has a supply unit (SU) beneath it, and whether it has an exit beneath it.
+    3. For each exit:
+    	1. Run DFS on the graph retaining the walk taken, where branches with SUs without exits are explored first. (ignore all branches without a SU or an exit)
+    4. Find which of the walks is shortest and return that.
     """)
     return
 
@@ -1808,7 +1811,7 @@ def _(mo):
     mo.md(r"""
     <div class = "g">
 
-    <h3>Option 4: Brute Divide and Conquer</h3>
+    <h3>Option 4: Divide and Conquer</h3>
 
     <h4>Pros and Cons</h4>
 
@@ -2062,6 +2065,8 @@ def _(algorithm_input, mo):
     """
 
     Greedy_pseudocode = r"""
+    <span class = "y">This is a newly implimented algorithm</span>
+
     ```
     FUNCTION Greedy(G: Directed Unweighted Graph, SU: Set, AS: Set, VP: Map, EP: Map, SUP: Map, ASP: Map, GP: Map) -> Map
 
@@ -2162,6 +2167,8 @@ def _(algorithm_input, mo):
     """
 
     Brute_Force_pseudocode = r"""
+    <span class = "y">This is a newly implimented algorithm</span>
+
     ```
     FUNCTION Brute_Force(G: Directed Unweighted Graph, SU: Set, AS: Set, VP: Map, EP: Map, SUP: Map, ASP: Map, GP: Map) -> Map
 
@@ -2442,6 +2449,8 @@ def _(algorithm_input, mo):
     """
 
     Brute_Force_python = r"""
+    <span class = "y">This is a newly implimented algorithm</span>
+
     ```python
     import networkx as nx
     from collections import deque
@@ -2736,8 +2745,8 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(rf"""
-    the inputs are: G, SU, AS, EP, VP, SUP, ASP, GP.
+    mo.accordion({"What are the inputs again?":mo.md("""
+    the inputs are: G, SU, AS, EP, VP, SUP, ASP and GP.
     - G: (Graph of a Sector Grid) = (V,E)
     - SU: (Supply Unit)
     - AS: (Autonomous System)
@@ -2745,15 +2754,11 @@ def _(mo):
     - VP: (Vertex Properties)
     - SUP: (Supply Unit Properties)
     - ASP: (Autonomous Systems Properties)
-    - GP: (Graph Properties)
-
-
-    **Input values:**
-    """)
+    - GP: (Graph Properties)""")})
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(AS, ASP, EP, G, GP, SU, SUP, VP, mo):
     _G = f"""
     ```python
@@ -2827,13 +2832,9 @@ def _(algorithm_input, mo, seed_input):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    <div class = "g">
-    <h4>Environmental Outputs:</h4>
+    ####<span class = "g">Environmental Outputs:</span><br>
 
-    Below you can see the environmental outputs of moving and exiting in the short animimation.
-    </div>
     <!-- TODO add a legend to the animations/gif-->
-    <span class = "r">Note: Creating the animation (stored at figs\\\\) often takes 1-2 minutes.</span>
     """)
     return
 
@@ -2874,14 +2875,6 @@ def _(
     return
 
 
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    <span class = "r">**Features of the walk:**</span>
-    """)
-    return
-
-
 @app.cell
 def _(SU, algorithm_input, memory_v2, mo, out_v2, speed_v2):
     mo.callout(mo.hstack([
@@ -2890,8 +2883,6 @@ def _(SU, algorithm_input, memory_v2, mo, out_v2, speed_v2):
             mo.stat(label="Memory to Compute",    value=str(round(memory_v2[algorithm_input.value]/1000))+" KB"),
             mo.stat(label="Supply Units Recovered",  value=str(len(out_v2[algorithm_input.value]["supply_units_recovered"]))+"/" + str(len(SU))),
         ], gap=0, wrap=True),kind = "info")
-
-    #TODO Supply units recovered is a bit ugly, make it / smth frac.
     return
 
 
@@ -2911,11 +2902,11 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo, out_v2):
+def _(algorithm_input, mo, out_v2):
     mo.callout(mo.md(rf"""
     **raw output:**
     ```python
-    {out_v2}
+    {out_v2[algorithm_input.value]}
     ```
     """), kind = "info")
     return
@@ -2924,24 +2915,15 @@ def _(mo, out_v2):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    <p style = "font-size: 40px" class = "y">C4 section is new.</p>
-    """)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    ## C4 - Comparisons
+    ## <span class = "g">C4 - Comparisons</span>
     """)
     return
 
 
 @app.cell
 def _(mo):
-    sample_set_size = mo.ui.slider(start = 1, stop = 100, step = 1, value = 50, full_width= True)
+    sample_set_size = mo.ui.slider(start = 1, stop = 200, step = 1, value = 100, full_width= True)
     table_options = mo.ui.tabs({"Current Seed": "", "Sample Set":sample_set_size})
-    table_options
     return sample_set_size, table_options
 
 
@@ -2959,7 +2941,7 @@ def _(
     table_options,
     test_algorithm,
 ):
-
+    # make table
     def m_comparison_table():
         _tc = {alg:0 for alg in algorithms.keys()}
         _s = {alg:0 for alg in algorithms.keys()}
@@ -2999,10 +2981,10 @@ def _(
         if table_options.value == "Sample Set":
             corner = f"{sample_set_size.value} seeds"
 
-        d1 = {"":"Traversal Cost"} | {algorithm:round(_tc[algorithm]) for algorithm in algorithms} 
-        d2 = {"":"Speed (ms)"} | {algorithm:(int)(round(_s[algorithm]*1000)) for algorithm in algorithms}
-        d3 = {"":"RAM Used (KB)"} | {algorithm:round(_m[algorithm]/1000) for algorithm in algorithms}
-        d4 = {"":f"SUs recovered (%)"} | {algorithm:round(_su[algorithm]) for algorithm in algorithms}
+        d1 = {corner:"Traversal Cost"} | {algorithm:round(_tc[algorithm]) for algorithm in algorithms} 
+        d2 = {corner:"Speed (ms)"} | {algorithm:(int)(round(_s[algorithm]*1000)) for algorithm in algorithms}
+        d3 = {corner:"RAM Used (KB)"} | {algorithm:round(_m[algorithm]/1000) for algorithm in algorithms}
+        d4 = {corner:f"SUs recovered (%)"} | {algorithm:round(_su[algorithm]) for algorithm in algorithms}
 
         best1 = [list(algorithms.keys())[0]]
         best2 = best1.copy()
@@ -3055,11 +3037,16 @@ def _(
 
         return mo.ui.table(
             data=[d4,d1,d2,d3],
-            label=f"Algorithm Comparisons - {corner}",
             selection = None
         )
     table = m_comparison_table()
-    table
+
+    return (table,)
+
+
+@app.cell
+def _(mo, table, table_options):
+    mo.callout(mo.vstack([table_options,table]), kind = "success")
     return
 
 
