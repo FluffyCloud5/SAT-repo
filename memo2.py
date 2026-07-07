@@ -879,7 +879,7 @@ def _(Av2, deque, draw_fac_v2, fac_v2, nx, plt, random):
 
         G2, EP2 = _abstract_2deg(G1, AS, SU, VP, EP, SUP, ASP, GP, POI)
 
-        G3, EP3, VP3, POI3 = _abstract_branches(G2, AS, SU, VP, EP2, SUP, ASP, GP, POI, exits)
+        G3, EP3, VP3, POI3, entry3 = _abstract_branches(G2, AS, SU, VP, EP2, SUP, ASP, GP, POI, exits, entry)
         return G3, EP3, VP3
 
     # 1. Trim unusable dead ends
@@ -962,11 +962,12 @@ def _(Av2, deque, draw_fac_v2, fac_v2, nx, plt, random):
 
 
     # 3. Abstract Exits, Entries and supply units on to rounded graph.
-    def _abstract_branches(G2, AS, SU, VP, EP2, SUP, ASP, GP, POI, exits):
+    def _abstract_branches(G2, AS, SU, VP, EP2, SUP, ASP, GP, POI, exits, entry):
         POI3 = POI.copy()
         G3 = G2.copy()
         EP3 = EP2.copy()
         VP3 = {v:{'c':[], 'w':0}|VP[v].copy() for v in G2.nodes()}
+        entry3 = entry
         #'c' is cycle and 'w' is weight
 
         leaf_nodes = set()
@@ -980,8 +981,14 @@ def _(Av2, deque, draw_fac_v2, fac_v2, nx, plt, random):
             v = list(G3[u])[0]
             if G3.degree[v] == 4 and not v in exits:
                 leaf_nodes.add(v)
-            VP3[v]['c'] = VP3[v]['c'] + EP3[(v,u)]['p'] + VP3[u]['c'] + EP3[(u,v)]['p']
-            VP3[v]['w'] = VP3[v]['w'] + EP3[(v,u)]['w'] + VP3[u]['w'] + EP3[(u,v)]['w']
+
+            if u == entry3:
+                VP3[v]['c'] = VP3[u]['c'] + EP3[(u,v)]['p'] + VP3[v]['c']
+                VP3[v]['w'] = VP3[u]['w'] + EP3[(u,v)]['w'] + VP3[v]['w']
+                entry3 = v
+            else:
+                VP3[v]['c'] = EP3[(v,u)]['p'] + VP3[u]['c'] + EP3[(u,v)]['p'] + VP3[v]['c']
+                VP3[v]['w'] = EP3[(v,u)]['w'] + VP3[u]['w'] + EP3[(u,v)]['w'] + VP3[v]['w']
 
             POI3.add(v)
             POI3.remove(u)
@@ -991,7 +998,7 @@ def _(Av2, deque, draw_fac_v2, fac_v2, nx, plt, random):
             G3.remove_node(u)
 
 
-        return G3, EP3, VP3, POI3
+        return G3, EP3, VP3, POI3, entry3
 
 
 
