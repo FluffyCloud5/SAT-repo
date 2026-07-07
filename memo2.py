@@ -2061,9 +2061,9 @@ def _(algorithm_input, mo):
     ```
     """
 
-    Brute_Force_pseudocode = r"""
+    Greedy_pseudocode = r"""
     ```
-    FUNCTION Brute_Force(G: Directed Unweighted Graph, SU: Set, AS: Set, VP: Map, EP: Map, SUP: Map, ASP: Map, GP: Map) -> Map
+    FUNCTION Greedy(G: Directed Unweighted Graph, SU: Set, AS: Set, VP: Map, EP: Map, SUP: Map, ASP: Map, GP: Map) -> Map
 
             CRUDY_1 ← AS.get_random()
         	entry ← ASP[CRUDY_1]["location"]
@@ -2097,24 +2097,40 @@ def _(algorithm_input, mo):
 
 
             //Finding shortest walk.
+            got_su ← {v:False | v ∈ SU_locations}
+            perm ← [entry]
+    
+            //Go to closest SU
+            FOR i from 1(inclusive) to SU_locations.length() (inclusive) DO
+                closest_su ← None
+                u ← perm[perm.length()]
+                FOR v ∈ POI DO
+                    IF v ∈ SU_locations THEN
+                        IF not got_su[v] and closest_su = None THEN
+                            closest_su ← v
+                        ELSE IF not got_su[v] and dm[u][v] < dm[u][closest_su] THEN
+                            closest_su ← v
+                IF closest_su = None THEN
+                    break
+                perm.append(closest_su)
+                got_su[closest_su] ← True
+    
+    
+            //Go to closest exit
+            closest_exit ← None
+            u ← perm[perm.length()]
+            FOR v ∈ POI DO
+                IF v ∈ exits THEN
+                    IF  closest_exit = None THEN
+                        closest_exit ← v
+                    ELSE IF dm[u][v] < dm[u][closest_exit] THEN
+                        closest_exit ← v
+            perm.append(closest_exit)  
 
-            min_perm ← []
-            min_dist ← ∞
-            FOREACH permutation of SU_locations: su_perm DO
-                FOREACH exit in exits DO // su_perm is a list.
-                dist ← 0
-                perm ← [entry]
-                perm ← perm.concatenate(su_perm)
-                perm ← perm.append(exit)
-                FOR i from 1 (inclusive) to perm.length() (exclusive) DO
-                    dist ← dist + dm[perm[i]][perm[i+1]]
-                IF dist < min_dist THEN
-                    min_perm ← perm
-                    min_dist ← dist
 
             walk ← [entry]
-            FOR i from 1 (inclusive) to min_perm.length() (exclusive) DO
-                walk.concatenate(pm[min_perm[i]][min_perm[i+1]])
+            FOR i from 1 (inclusive) to perm.length() (exclusive) DO
+                walk.concatenate(pm[perm[i]][perm[i+1]])
 
             FOR i ← 1 (inclusive) to walk.length() (exclusive) DO
                 dif_vec ← VP[walk[i+1]]["location"]-VP[walk[i]]["location"] // a tuple
@@ -2147,8 +2163,8 @@ def _(algorithm_input, mo):
     _out = """"""
     if(algorithm_input.value == "BFS+DFS"):
         _out = BFS_DFS_pseudocode
-    elif(algorithm_input.value == "Brute Force"):
-        _out = Brute_Force_pseudocode
+    elif(algorithm_input.value == "Greedy"):
+        _out = Greedy_pseudocode
     mo.md(_out)
     return
 
