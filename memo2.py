@@ -422,7 +422,7 @@ def _(GAP, WING_COLS, m_fac_Av2, nx, seed_input):
 
 
 @app.cell(hide_code=True)
-def _(deque):
+def _(deque, dict):
     #BFS+DFS
 
     def BFS_DFS(G, AS, SU, VP, EP, SUP, ASP, GP):
@@ -854,6 +854,67 @@ def _(deque):
 
 
     return (Greedy,)
+
+
+@app.cell
+def _(AS, ASP, Av2, EP, G, GP, SU, SUP, VP, draw_fac_v2, fac_v2):
+    # Divide and Conquer
+    def Divide_and_Conquer(G, AS, SU, VP, EP, SUP, ASP, GP):
+
+        CRUDY_1 = list(AS)[0]
+        V = G.nodes()
+
+        exits = set()
+        for v in V:
+            if VP[v]["is_exit"] == True: 
+                exits.add(v)
+
+        SU_nodes = {SUP[su]["location"] for su in SU} # a set of SU locations
+        entry = ASP[CRUDY_1]["location"]
+        POI = exits.copy()
+        POI = POI.union(SU_nodes)
+        POI.add(entry)
+
+        return Trim(G, AS, SU, VP, EP, SUP, ASP, GP, POI), Trim(G, AS, SU, VP, EP, SUP, ASP, GP, set())
+    
+
+    # 1. Trim unusable dead ends
+    def Trim(G, AS, SU, VP, EP, SUP, ASP, GP, POI):
+
+        TG = G.copy() #Trimmed Graph
+        leaf_nodes = []
+
+        while True:
+            next_leaf_nodes = []
+        
+            for u in leaf_nodes:
+                v = list(TG[u])[0]
+                if TG.degree[v] == 4 and (not v in POI): # as directed graph
+                    next_leaf_nodes.append(v)
+        
+            TG.remove_nodes_from(leaf_nodes)
+            leaf_nodes = next_leaf_nodes
+
+            if not leaf_nodes:
+                for v in TG.nodes():
+                    if TG.degree[v] == 2 and (not v in POI): # as directed graph
+                        leaf_nodes.append(v)
+            if not leaf_nodes:
+                break
+        return TG
+
+
+    _fac = Divide_and_Conquer(G, AS, SU, VP, EP, SUP, ASP, GP)
+    dict = {Av2(v): "#000000" for v in G.nodes()} | {Av2(v): "#FF5555" for v in _fac[0].nodes()} | {Av2(v): "#FFAAAA" for v in _fac[1].nodes()}
+    draw_fac_v2(fac_v2, node_colors = dict)
+    
+
+    # 2. Abstract nodes that aren't POI and have deg 2 or less away.
+    # 3. Abstract Exits, Entries and supply units on to rounded graph.
+    # 4. Break graph up into sub problems by utilising what I will refer to as a pass.
+    # 5. Utilise Brute force on sub problem
+    # 6. Reconstruct Path from abstraction.
+    return (dict,)
 
 
 @app.cell(disabled=True, hide_code=True)
@@ -2739,7 +2800,7 @@ def _(mo):
 
 
 @app.cell
-def _(AS, ASP, EP, G, GP, SU, SUP, VP, mo):
+def _(AS, ASP, EP, G, GP, SU, SUP, VP, dict, mo):
     #Display Inputs
     _G = f"""
     ```python
