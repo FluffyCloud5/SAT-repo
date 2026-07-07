@@ -857,7 +857,7 @@ def _(deque):
 
 
 @app.cell
-def _(Av2, draw_fac_v2, fac_v2, nx, plt, random):
+def _(AV, Av2, draw_fac_v2, fac_v2, nx, plt, random):
     # Divide and Conquer
     def Divide_and_Conquer(G, AS, SU, VP, EP, SUP, ASP, GP):
 
@@ -949,6 +949,8 @@ def _(Av2, draw_fac_v2, fac_v2, nx, plt, random):
             AG.remove_node(u)
         return AG, AE
 
+
+    # 2. visualisation
     def g_POI(G, AS, SU, VP, EP, SUP, ASP, GP):
         CRUDY_1 = list(AS)[0]
         V = G.nodes()
@@ -1033,6 +1035,18 @@ def _(Av2, draw_fac_v2, fac_v2, nx, plt, random):
         plt.show()
 
     # 3. Abstract Exits, Entries and supply units on to rounded graph.
+    def _abstract_POI(AG, AE, POI):
+        #AV Abstracted Vertex
+        #AE Abstracted Edge
+        #AG Abstracted Graph
+
+    
+    
+
+        return AG, AE, AV
+
+    
+
     # 4. Break graph up into sub problems by utilising what I will refer to as a pass.
     # 5. Utilise Brute force on sub problem
     # 6. Reconstruct Path from abstraction.
