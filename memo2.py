@@ -1150,20 +1150,8 @@ def _(mo):
 
 
 @app.cell
-def _():
-    _f = (2,4,7)
-
-    print(_f[0])
-    return
-
-
-@app.cell
 def _(default_title, draw_fac_v2, fac_v2):
     #draw_facility
-    #draw_fac_v2(fac_v2,
-    #                title=(f"Multi-Wing Facility -- Seed {int(seed)} · "
-    #           f"{fac_v2['n_wings']} wings · "
-    #           f"{fac_v2['wing_cols']}×{fac_v2['wing_rows']} sectors each"), legend = False)
     draw_fac_v2(fac_v2, title = default_title(n_wing=2))
     return
 
@@ -1853,24 +1841,13 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(algorithms, mo):
+    #Choose Algorithm
     algorithm_input = mo.ui.tabs({_algo:"" for _algo in algorithms.keys()})
 
     mo.callout(mo.vstack([ algorithm_input, mo.md("""**Only Divide and Conquer will be discussed in part D**""")],align = "center"),kind = "success")
     return (algorithm_input,)
-
-
-@app.cell(hide_code=True)
-def _():
-    #algorithm_input = mo.ui.dropdown(
-    #    value= "Divide and Conquer",
-    #    options= ["Divide and Conquer", "BFS+DFS", "Brute Force", "Greedy"],
-    #    allow_select_none= False,
-    #    label="Choose an algorithm: "
-    #)
-    #mo.callout(mo.vstack([ algorithm_input, mo.md("""**Only Divide and Conquer will be discussed in part D**""")]),kind = "success")
-    return
 
 
 @app.cell(hide_code=True)
@@ -1893,6 +1870,7 @@ def _(algorithm_input, mo):
 
 @app.cell(hide_code=True)
 def _(algorithm_input, mo):
+    #Pseudocode
     BFS_DFS_pseudocode = r"""
     <div class = "y">
     <h4>Changes to BFS+DFS pseudocode:</h4>
@@ -2272,6 +2250,7 @@ def _(algorithm_input, mo):
 
 @app.cell(hide_code=True)
 def _(algorithm_input, mo):
+    #Python Code
     BFS_DFS_python = r"""
     <div class = "y">
     <h4>Changes to python code:</h4>
@@ -2745,6 +2724,7 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(mo):
+    #What are the inputs again?
     mo.accordion({"What are the inputs again?":mo.md("""
     the inputs are: G, SU, AS, EP, VP, SUP, ASP and GP.
     - G: (Graph of a Sector Grid) = (V,E)
@@ -2758,8 +2738,9 @@ def _(mo):
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def _(AS, ASP, EP, G, GP, SU, SUP, VP, mo):
+    #Display Inputs
     _G = f"""
     ```python
     G = {G} = (in adjacency-list form) { {v:list(dict(G[v]).keys()) for v in G.nodes()} }
@@ -2823,8 +2804,9 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(algorithm_input, mo, seed_input):
+    # Choose Algorithm and Seed 
     mo.callout(mo.hstack([algorithm_input, seed_input],align = "center"),kind = "success")
     return
 
@@ -2839,16 +2821,17 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
+    #Choose between Image and Animation displays
     im_gif = mo.ui.tabs({"Image":"","Animation":""})
     im_gif
     return (im_gif,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(algorithm_input, im_gif, m_gif_v2, mo, seed_input, time):
-    #DISPLAY GIF
+    #Display Gif
     mo.stop(im_gif.value != "Animation")
     _out = m_gif_v2(algorithm = algorithm_input.value)
     if(_out == "ran successfully"):
@@ -2858,7 +2841,7 @@ def _(algorithm_input, im_gif, m_gif_v2, mo, seed_input, time):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(
     Av2,
     algorithm_input,
@@ -2870,12 +2853,13 @@ def _(
     mo,
     walk_v2,
 ):
+    #Display Image
     mo.stop(im_gif.value != "Image")
     draw_fac_v2(fac_v2, node_colors = front_focus_v2(walk_v2[algorithm_input.value]), highlight_path = [Av2(v) for v in walk_v2[algorithm_input.value]], legend = False, title = default_title(has_walk = True, algorithm=algorithm_input.value))
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(SU, algorithm_input, memory_v2, mo, out_v2, speed_v2):
     mo.callout(mo.hstack([
             mo.stat(label=f"Traversal Cost (minimum is {out_v2['Brute Force']['traversal_cost']})",    value=str(out_v2[algorithm_input.value]["traversal_cost"])),
