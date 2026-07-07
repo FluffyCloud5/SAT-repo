@@ -857,7 +857,7 @@ def _(deque):
 
 
 @app.cell
-def _(AV, Av2, draw_fac_v2, fac_v2, nx, plt, random):
+def _(Av2, deque, draw_fac_v2, fac_v2, nx, plt, random):
     # Divide and Conquer
     def Divide_and_Conquer(G, AS, SU, VP, EP, SUP, ASP, GP):
 
@@ -875,80 +875,153 @@ def _(AV, Av2, draw_fac_v2, fac_v2, nx, plt, random):
         POI = POI.union(SU_nodes)
         POI.add(entry)
 
-        G = _trim(G, AS, SU, VP, EP, SUP, ASP, GP, POI) # replaces G with a trimmed version
+        G1 = _trim(G, AS, SU, VP, EP, SUP, ASP, GP, POI) # replaces G with a trimmed version
 
-        return _abstract_2deg(G, AS, SU, VP, EP, SUP, ASP, GP, POI)
+        G2, EP2 = _abstract_2deg(G1, AS, SU, VP, EP, SUP, ASP, GP, POI)
+
+        G3, EP3, VP3, POI3 = _abstract_branches(G2, AS, SU, VP, EP2, SUP, ASP, GP, POI, exits)
+        return G3, EP3, VP3
 
     # 1. Trim unusable dead ends
     def _trim(G, AS, SU, VP, EP, SUP, ASP, GP, POI):
 
-        TG = G.copy() #Trimmed Graph
+        G1 = G.copy() #Trimmed Graph
         leaf_nodes = set()
 
         while True:
             next_leaf_nodes = set()
 
             for u in leaf_nodes:
-                v = list(TG[u])[0]
-                if TG.degree[v] == 4 and (not v in POI): # as directed graph
+                v = list(G1[u])[0]
+                if G1.degree[v] == 4 and (not v in POI): # as directed graph
                     next_leaf_nodes.add(v)
 
-            TG.remove_nodes_from(leaf_nodes)
+            G1.remove_nodes_from(leaf_nodes)
             leaf_nodes = next_leaf_nodes
 
             if not leaf_nodes:
-                for v in TG.nodes():
-                    if TG.degree[v] == 2 and (not v in POI): # as directed graph
+                for v in G1.nodes():
+                    if G1.degree[v] == 2 and (not v in POI): # as directed graph
                         leaf_nodes.add(v)
             if not leaf_nodes:
                 break
-        return TG
+        return G1
 
     # 2. Abstract nodes that aren't POI and have deg 2 or less away.
-    def _abstract_2deg(G, AS, SU, VP, EP, SUP, ASP, GP, POI):
-        AG = G.copy() # Abstracted graph
-    
-        V = AG.nodes()
-    
+    def _abstract_2deg(G1, AS, SU, VP, EP, SUP, ASP, GP, POI):
+        G2 = G1.copy() # Abstracted graph
+
+        V = G2.nodes()
+
         deg3plus = set()
         for v in V:
-            if AG.degree(v) >= 6: #in and out
+            if G2.degree(v) >= 6: #in and out
                 deg3plus.add(v)
 
-        AE = {(u,v): [v] for u,v in AG.edges()} #Abstracted Edge
+        EP2 = {(u,v): {'p':[v], 'w':1} for u,v in G2.edges()} #Abstracted Edge Properties 2
+        # 'p' = path and 'w' = weight
 
         boring = V - (deg3plus | POI)
-    
+
         while boring:
             u = boring.pop()
-            neighbours = AG[u]
+            neighbours = G2[u]
             if len(neighbours) != 2:
                 raise Exception("Not okay man")
             neighbours = list(neighbours.keys())
 
             v = neighbours[0]
             w = neighbours[1]
-            if (v,w) in AG.edges(): #edge relaxation :)
-                if len(AE[(v,w)]) > len(AE[(v,u)])+len(AE[(u,w)]):
-                    AE[(v,w)] = AE[(v,u)] + AE[(u,w)]
-                    AE[(w,v)] = AE[(w,u)] + AE[(u,v)] 
-                if AG.degree(v) == 6:
+            if (v,w) in G2.edges(): #edge relaxation :)
+                if EP2[(v,w)]['w'] > EP2[(v,u)]['w']+EP2[(u,w)]['w']:
+                    EP2[(v,w)]['w'] = EP2[(v,u)]['w']+EP2[(u,w)]['w']
+                    EP2[(w,v)]['w'] = EP2[(w,u)]['w']+EP2[(u,v)]['w']
+                    EP2[(v,w)]['p'] = EP2[(v,u)]['p']+EP2[(u,w)]['p']
+                    EP2[(w,v)]['p'] = EP2[(w,u)]['p']+EP2[(u,v)]['p']
+
+                if G2.degree(v) == 6:
                     boring.add(v)
-                if AG.degree(w) == 6:
+                if G2.degree(w) == 6:
                     boring.add(w)
             else: 
-                AG.add_edge(v,w)
-                AG.add_edge(w,v)
-                AE[(v,w)] = AE[(v,u)] + AE[(u,w)]
-                AE[(w,v)] = AE[(w,u)] + AE[(u,v)]
+                G2.add_edge(v,w)
+                G2.add_edge(w,v)
+                EP2[(v,w)] = {'p':[],'w':1}
+                EP2[(w,v)] = {'p':[],'w':1}
+                EP2[(v,w)]['w'] = EP2[(v,u)]['w']+EP2[(u,w)]['w']
+                EP2[(w,v)]['w'] = EP2[(w,u)]['w']+EP2[(u,v)]['w']
+                EP2[(v,w)]['p'] = EP2[(v,u)]['p']+EP2[(u,w)]['p']
+                EP2[(w,v)]['p'] = EP2[(w,u)]['p']+EP2[(u,v)]['p']
 
-            AE.pop((v,u))
-            AE.pop((u,v))
-            AE.pop((w,u))
-            AE.pop((u,w))
-            AG.remove_node(u)
-        return AG, AE
+            EP2.pop((v,u))
+            EP2.pop((u,v))
+            EP2.pop((w,u))
+            EP2.pop((u,w))
+            G2.remove_node(u)
+        return G2, EP2
 
+
+    # 3. Abstract Exits, Entries and supply units on to rounded graph.
+    def _abstract_branches(G2, AS, SU, VP, EP2, SUP, ASP, GP, POI, exits):
+        POI3 = POI.copy()
+        G3 = G2.copy()
+        EP3 = EP2.copy()
+        VP3 = {v:{'c':[], 'w':0}|VP[v].copy() for v in G2.nodes()}
+        #'c' is cycle and 'w' is weight
+
+        leaf_nodes = set()
+
+        for v in G3.nodes():
+            if G3.degree[v] == 2 and not v in exits: # as directed graph
+                leaf_nodes.add(v)
+
+        while leaf_nodes:
+            u = leaf_nodes.pop()
+            v = list(G3[u])[0]
+            if G3.degree[v] == 4 and not v in exits:
+                leaf_nodes.add(v)
+            VP3[v]['c'] = VP3[v]['c'] + EP3[(v,u)]['p'] + VP3[u]['c'] + EP3[(u,v)]['p']
+            VP3[v]['w'] = VP3[v]['w'] + EP3[(v,u)]['w'] + VP3[u]['w'] + EP3[(u,v)]['w']
+
+            POI3.add(v)
+            POI3.remove(u)
+            EP3.pop((v,u))
+            EP3.pop((u,v))
+            VP3.pop(u)
+            G3.remove_node(u)
+
+
+        return G3, EP3, VP3, POI3
+
+
+
+    # 4. Break graph up into sub problems by utilising what I will refer to as a pass.
+    def _BFS(G, s):
+        #s is first vertex
+        V = G.nodes()
+        BFS_Queue = deque()
+        BFS_Queue.append(s)
+        visited = {v: False for v in V} #map
+        visited[s] = True
+
+        layer = {v: None for v in V} #map
+        layer[s] = 0
+
+        while BFS_Queue:
+            u = BFS_Queue.popleft()
+            for v in G[u]:
+                if not visited[v]:
+
+                    visited[v] = True
+                    BFS_Queue.append(v)
+
+                    layer[v] = layer[u] + 1
+
+
+        return layer
+
+    # 5. Utilise Brute force on sub problem
+    # 6. Reconstruct Path from abstraction.
 
     # 2. visualisation
     def g_POI(G, AS, SU, VP, EP, SUP, ASP, GP):
@@ -983,19 +1056,19 @@ def _(AV, Av2, draw_fac_v2, fac_v2, nx, plt, random):
         POI.add(entry)
 
         G = _trim(G, AS, SU, VP, EP, SUP, ASP, GP, POI) # replaces G with a trimmed version
-    
+
         simple_fac = _abstract_2deg(G, AS, SU, VP, EP, SUP, ASP, GP, POI)[0]
-    
+
         dict = {Av2(v): "#FF6666" for v in simple_fac.nodes()}
-    
+
         _fig, _ax = draw_fac_v2(fac_v2, legend = False)
-    
+
         pos_dict = {v: (v[0]+0.5,v[1]+0.5) for v in simple_fac.nodes()}
-    
+
         nx.draw_networkx(simple_fac, pos = pos_dict, ax = _ax, arrowstyle = '-',with_labels = False, node_size = 50, edge_color = "#9999FF", width = 5,node_color = "#000000")
 
         return _fig, _ax
-       
+
     def m_step2_2(G, AS, SU, VP, EP, SUP, ASP, GP):
         CRUDY_1 = list(AS)[0]
         V = G.nodes()
@@ -1012,7 +1085,7 @@ def _(AV, Av2, draw_fac_v2, fac_v2, nx, plt, random):
         POI.add(entry)
 
         G = _trim(G, AS, SU, VP, EP, SUP, ASP, GP, POI) # replaces G with a trimmed version
-    
+
         simple_fac = _abstract_2deg(G, AS, SU, VP, EP, SUP, ASP, GP, POI)[0]
 
         pos_dict = {v: (v[0]+0.5,v[1]+0.5) for v in simple_fac.nodes()}
@@ -1025,31 +1098,39 @@ def _(AV, Av2, draw_fac_v2, fac_v2, nx, plt, random):
         for _su in _SU:
             label_dict[_su] = "SU"
         rnd_pos = pos_dict.copy()
-    
+
         for _v in rnd_pos.keys():
             rnd_pos[_v] = (rnd_pos[_v][0], random.uniform(-0.5,0.5))
-    
+
         #_pos_dict = nx.drawing.bfs_layout(G = simple_fac,start = _entry) 
         _pos_dict = nx.drawing.spring_layout(G= simple_fac, threshold = 1e-7, iterations = 1000, k = 2.3, pos = rnd_pos, fixed = {_entry,list(_exits)[0]})
         nx.draw_networkx(simple_fac, arrowstyle = '-',labels = label_dict, node_size = 500,node_color = "#9999FF", pos = _pos_dict )
         plt.show()
 
-    # 3. Abstract Exits, Entries and supply units on to rounded graph.
-    def _abstract_POI(AG, AE, POI):
-        #AV Abstracted Vertex
-        #AE Abstracted Edge
-        #AG Abstracted Graph
+    return (Divide_and_Conquer,)
 
-    
-    
 
-        return AG, AE, AV
+@app.cell
+def _(
+    AS,
+    ASP,
+    Divide_and_Conquer,
+    EP,
+    G,
+    GP,
+    SU,
+    SUP,
+    VP,
+    draw_fac_v2,
+    fac_v2,
+    nx,
+    plt,
+):
+    G3, EP3, VP3 = Divide_and_Conquer(G, AS, SU, VP, EP, SUP, ASP, GP)
 
-    
-
-    # 4. Break graph up into sub problems by utilising what I will refer to as a pass.
-    # 5. Utilise Brute force on sub problem
-    # 6. Reconstruct Path from abstraction.
+    _fig, _ax = draw_fac_v2(fac_v2, legend = False)
+    nx.draw(G3, pos = {v:(v[0]+0.5,v[1]+0.5) for v in G3.nodes()}, ax = _ax)
+    plt.show()
     return
 
 
