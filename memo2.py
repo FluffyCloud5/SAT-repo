@@ -857,7 +857,7 @@ def _(deque):
 
 
 @app.cell
-def _(Av2, deque, draw_fac_v2, fac_v2, nx, plt, random):
+def _(deque):
     # Divide and Conquer
     def Divide_and_Conquer(G, AS, SU, VP, EP, SUP, ASP, GP):
 
@@ -879,7 +879,7 @@ def _(Av2, deque, draw_fac_v2, fac_v2, nx, plt, random):
 
         G2, EP2 = _abstract_2deg(G1, AS, SU, VP, EP, SUP, ASP, GP, POI)
 
-        G3, EP3, VP3, POI3, entry3 = _abstract_branches(G2, AS, SU, VP, EP2, SUP, ASP, GP, POI, exits, entry)
+        G3, EP3, VP3, POI3, entry3, exit3 = _abstract_branches(G2, AS, SU, VP, EP2, SUP, ASP, GP, POI, list(exits)[0], entry)
         return G3, EP3, VP3
 
     # 1. Trim unusable dead ends
@@ -961,48 +961,10 @@ def _(Av2, deque, draw_fac_v2, fac_v2, nx, plt, random):
         return G2, EP2
 
 
-    # 3. Abstract Exits, Entries and supply units on to rounded graph.
-    def _abstract_branches(G2, AS, SU, VP, EP2, SUP, ASP, GP, POI, exits, entry):
-        POI3 = POI.copy()
-        G3 = G2.copy()
-        EP3 = EP2.copy()
-        VP3 = {v:{'c':[], 'w':0}|VP[v].copy() for v in G2.nodes()}
-        entry3 = entry
-        #'c' is cycle and 'w' is weight
-
-        leaf_nodes = set()
-
-        for v in G3.nodes():
-            if G3.degree[v] == 2 and not v in exits: # as directed graph
-                leaf_nodes.add(v)
-
-        while leaf_nodes:
-            u = leaf_nodes.pop()
-            v = list(G3[u])[0]
-            if G3.degree[v] == 4 and not v in exits:
-                leaf_nodes.add(v)
-
-            if u == entry3:
-                VP3[v]['c'] = VP3[u]['c'] + EP3[(u,v)]['p'] + VP3[v]['c']
-                VP3[v]['w'] = VP3[u]['w'] + EP3[(u,v)]['w'] + VP3[v]['w']
-                entry3 = v
-            else:
-                VP3[v]['c'] = EP3[(v,u)]['p'] + VP3[u]['c'] + EP3[(u,v)]['p'] + VP3[v]['c']
-                VP3[v]['w'] = EP3[(v,u)]['w'] + VP3[u]['w'] + EP3[(u,v)]['w'] + VP3[v]['w']
-
-            POI3.add(v)
-            POI3.remove(u)
-            EP3.pop((v,u))
-            EP3.pop((u,v))
-            VP3.pop(u)
-            G3.remove_node(u)
-
-
-        return G3, EP3, VP3, POI3, entry3
 
 
 
-    # 4. Break graph up into sub problems by utilising what I will refer to as a pass.
+    # 3. Break graph up into sub problems by utilising what I will refer to as a pass.
     def _BFS(G, s):
         #s is first vertex
         V = G.nodes()
@@ -1027,9 +989,62 @@ def _(Av2, deque, draw_fac_v2, fac_v2, nx, plt, random):
 
         return layer
 
+    # 4. Abstract Exits, Entries and supply units on to rounded graph.
+
+    #doesn't abstract the exit branches as there are 2. Maybe it should? and just work for 1 exit? 
+    def _abstract_branches(G2, AS, SU, VP, EP2, SUP, ASP, GP, POI, exit, entry): 
+        POI3 = POI.copy()
+        G3 = G2.copy()
+        EP3 = EP2.copy()
+        VP3 = {v:{'c':[], 'w':0}|VP[v].copy() for v in G2.nodes()}
+        entry3 = entry
+        exit3 = exit
+        #'c' is cycle and 'w' is weight
+
+        leaf_nodes = set()
+
+        for v in G3.nodes():
+            if G3.degree[v] == 2: # as directed graph
+                leaf_nodes.add(v)
+
+        while leaf_nodes:
+            u = leaf_nodes.pop()
+            v = list(G3[u])[0]
+            if G3.degree[v] == 4:
+                leaf_nodes.add(v)
+
+            if u == entry3:
+                VP3[v]['c'] = VP3[u]['c'] + EP3[(u,v)]['p'] + VP3[v]['c']
+                VP3[v]['w'] = VP3[u]['w'] + EP3[(u,v)]['w'] + VP3[v]['w']
+                entry3 = v
+            elif u == exit3:
+                VP3[v]['c'] = VP3[v]['c'] + EP3[(u,v)]['p'] + VP3[u]['c']
+                VP3[v]['w'] = VP3[v]['w'] + EP3[(u,v)]['w'] + VP3[u]['w']
+                exit3 = v
+            else:
+                VP3[v]['c'] = EP3[(v,u)]['p'] + VP3[u]['c'] + EP3[(u,v)]['p'] + VP3[v]['c']
+                VP3[v]['w'] = EP3[(v,u)]['w'] + VP3[u]['w'] + EP3[(u,v)]['w'] + VP3[v]['w']
+
+            POI3.add(v)
+            POI3.remove(u)
+            EP3.pop((v,u))
+            EP3.pop((u,v))
+            VP3.pop(u)
+            G3.remove_node(u)
+
+
+        return G3, EP3, VP3, POI3, entry3, exit3
+
+
     # 5. Utilise Brute force on sub problem
     # 6. Reconstruct Path from abstraction.
 
+
+    return (Divide_and_Conquer,)
+
+
+@app.cell
+def _(Av2, draw_fac_v2, fac_v2, nx, plt, random):
     # 2. visualisation
     def g_POI(G, AS, SU, VP, EP, SUP, ASP, GP):
         CRUDY_1 = list(AS)[0]
@@ -1114,7 +1129,7 @@ def _(Av2, deque, draw_fac_v2, fac_v2, nx, plt, random):
         nx.draw_networkx(simple_fac, arrowstyle = '-',labels = label_dict, node_size = 500,node_color = "#9999FF", pos = _pos_dict )
         plt.show()
 
-    return (Divide_and_Conquer,)
+    return
 
 
 @app.cell
