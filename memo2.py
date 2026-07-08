@@ -857,9 +857,9 @@ def _(deque):
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
+def _(deque):
     # Divide and Conquer
+
     def Divide_and_Conquer(G, AS, SU, VP, EP, SUP, ASP, GP):
 
         CRUDY_1 = list(AS)[0]
@@ -962,33 +962,74 @@ def _(mo):
         return G2, EP2
 
 
-    # 3. Break graph up into sub problems by utilising what I will refer to as a pass.
-    def step_3(G, s):
-        layer, in_layer = _BFS(G,s)
+    # 3. Break graph up into sub problems by utilising what I will refer to as a pivot.
+    def find_pivots(G, s):
+        layer, layers = _BFS(G,s)
+
+        #these are little kind of groups of nodes that will tell us info about the pivots
+        stream = {v:set() for v in G.nodes()}
+        streams = {} #Map keyed by streams to give vectors
+
+        #Backtrace to find streams
+        for i in range(len(layers)-1,0,-1):
+            got_already = set()
+            for v in layers[i]:
+                if stream[v]:
+                    got_already.add(v)
+            stream, streams = _add_streams(got_already,G, layer, layers, stream, streams, i)
+            stream, streams = _backtrace_streams(G, layer, layers, stream, streams, i-1)
+
+        #Pivots are any points in the graph such that, if one is removed, the graph is seperated, not connected. 
+        pivots = set() 
+
+        #Find pivots :)
+        for i in range(len(layers)):
+        
+            while layers[i]:
+                u = layers[i].pop()
+                is_pivot = True
+                to_remove = set()
+                for v in layers[i]:
+                    if v == u:
+                        continue
+                    if stream[u]&stream[v]:
+                        is_pivot = False
+                        to_remove.add(v)
+                if is_pivot:
+                    pivots.add(u)
+                else:
+                    layers[i] = layers[i] - (layers[i]&to_remove)
+
+        return pivots
+                    
 
 
-        s_v = {} #keyed streams, valued vector
+    def _backtrace_streams(G, layer, layers, stream, streams, which_layer):
+        for u in layers[which_layer+1]: 
+            for v in G[u]:
+                if layer[v] == layer[u]-1:
+                    for s in (stream[u]|stream[v]) - stream[v]:
+                        streams[s].add(v)
+                    stream[v] |= stream[u]
+        return stream, streams
+                
 
-        v_s = {v: set() for v in G.nodes()} #valued vector, keyed streams
-
-        for v in in_layer[len(in_layer)-1]:
-                v_s[v] |= len(s_v)
-                s_v[len(s_v)] = v
-
-        for i in range(len(in_layer)-1,-1,-1):
-
-
-
-
-
-
-
-
-
-
-
-
-
+    def _add_streams(got_already, G, layer, layers, stream, streams, which_layer): #modifies streams directly so no real need to return.
+            for u in layers[which_layer]:
+                if u in got_already:
+                    continue
+                current_stream = len(streams)
+                streams[current_stream] = set()
+                stream_nodes = {u}
+                while stream_nodes:
+                    v = stream_nodes.pop()
+                    streams[current_stream].add(v)
+                    stream[v].add(current_stream)
+                    got_already.add(v)
+                    for w in G[v]:
+                        if layer[w] == layer[v] and (not w in got_already):
+                            stream_nodes.add(w)
+            return stream, streams
 
     def _BFS(G, s):
         #s is first vertex
@@ -1000,7 +1041,7 @@ def _(mo):
 
         layer = {v: None for v in V} #map
         layer[s] = 0
-        in_layer = [{s}]
+        layers = [{s}]
 
         current_layer = 0
 
@@ -1013,13 +1054,13 @@ def _(mo):
                     BFS_Queue.append(v)
 
                     layer[v] = layer[u] + 1
-                    if (layer[v] == len(in_layer)-1):
-                        in_layer[len(in_layer)-1].add(v)
+                    if (layer[v] == len(layers)-1):
+                        layers[len(layers)-1].add(v)
                     else:
-                        in_layer.append({layer[v]}
+                        layers.append({v})
 
 
-        return layer, in_layer
+        return layer, layers
 
     # 4. Abstract Exits, Entries and supply units on to rounded graph.
 
@@ -1070,8 +1111,8 @@ def _(mo):
 
     # 5. Utilise Brute force on sub problem
     # 6. Reconstruct Path from abstraction.
-    """)
-    return
+
+    return (Divide_and_Conquer,)
 
 
 @app.cell
