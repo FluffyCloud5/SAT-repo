@@ -856,8 +856,9 @@ def _(deque):
     return (Greedy,)
 
 
-@app.cell
-def _(deque):
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     # Divide and Conquer
     def Divide_and_Conquer(G, AS, SU, VP, EP, SUP, ASP, GP):
 
@@ -866,7 +867,7 @@ def _(deque):
 
         exits = set()
         for v in V:
-            if VP[v]["is_exit"] == True: 
+            if VP[v]["is_exit"] == True:
                 exits.add(v)
 
         SU_nodes = {SUP[su]["location"] for su in SU} # a set of SU locations
@@ -943,7 +944,7 @@ def _(deque):
                     boring.add(v)
                 if G2.degree(w) == 6:
                     boring.add(w)
-            else: 
+            else:
                 G2.add_edge(v,w)
                 G2.add_edge(w,v)
                 EP2[(v,w)] = {'p':[],'w':1}
@@ -961,10 +962,34 @@ def _(deque):
         return G2, EP2
 
 
-
-
-
     # 3. Break graph up into sub problems by utilising what I will refer to as a pass.
+    def step_3(G, s):
+        layer, in_layer = _BFS(G,s)
+
+
+        s_v = {} #keyed streams, valued vector
+
+        v_s = {v: set() for v in G.nodes()} #valued vector, keyed streams
+
+        for v in in_layer[len(in_layer)-1]:
+                v_s[v] |= len(s_v)
+                s_v[len(s_v)] = v
+
+        for i in range(len(in_layer)-1,-1,-1):
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     def _BFS(G, s):
         #s is first vertex
         V = G.nodes()
@@ -975,6 +1000,9 @@ def _(deque):
 
         layer = {v: None for v in V} #map
         layer[s] = 0
+        in_layer = [{s}]
+
+        current_layer = 0
 
         while BFS_Queue:
             u = BFS_Queue.popleft()
@@ -985,14 +1013,18 @@ def _(deque):
                     BFS_Queue.append(v)
 
                     layer[v] = layer[u] + 1
+                    if (layer[v] == len(in_layer)-1):
+                        in_layer[len(in_layer)-1].add(v)
+                    else:
+                        in_layer.append({layer[v]}
 
 
-        return layer
+        return layer, in_layer
 
     # 4. Abstract Exits, Entries and supply units on to rounded graph.
 
-    #doesn't abstract the exit branches as there are 2. Maybe it should? and just work for 1 exit? 
-    def _abstract_branches(G2, AS, SU, VP, EP2, SUP, ASP, GP, POI, exit, entry): 
+    #works only for 1 exit
+    def _abstract_branches(G2, AS, SU, VP, EP2, SUP, ASP, GP, POI, exit, entry):
         POI3 = POI.copy()
         G3 = G2.copy()
         EP3 = EP2.copy()
@@ -1038,9 +1070,8 @@ def _(deque):
 
     # 5. Utilise Brute force on sub problem
     # 6. Reconstruct Path from abstraction.
-
-
-    return (Divide_and_Conquer,)
+    """)
+    return
 
 
 @app.cell
