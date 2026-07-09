@@ -859,7 +859,7 @@ def _(deque):
 
 
 @app.cell(hide_code=True)
-def _(BFS_DFS, deque, nx):
+def _(BFS_DFS, Brute_Force, deque, nx):
     # Divide and Conquer
 
     def Divide_and_Conquer(G, AS, SU, VP, EP, SUP, ASP, GP):
@@ -892,10 +892,10 @@ def _(BFS_DFS, deque, nx):
         walk_lengths = []
 
         exit_list = list(exits)
-    
+
         for i in range(len(exit_list)):
             exit = exit_list[i]
-        
+
             G3, SU3, VP3, EP3, exit3, entry3 = _abstract_branches(G2, SU, VP, EP2, exit, entry, exit_list[1-i])
 
             for edge in G3.edges():
@@ -921,13 +921,13 @@ def _(BFS_DFS, deque, nx):
             G5.add_edges_from([(pivots[i],pivots[i+1]) for i in range(len(pivots)-1)])
 
             EP5 = {edge:{'p': None, 'w': None} for edge in G5.edges()}
-        
+
             for i in range(len(pivots)-1):
                 sub_graph = G3.copy()
-            
+
                 sub_graph.remove_nodes_from(set(sub_graph.nodes()) - bc[i])
                 SU4 = bc[i]&SU3
-            
+
                 walk, walk_len = _Brute_Force(sub_graph, SU4, VP3, EP3, pivots[i+1], pivots[i])
 
                 EP5[(pivots[i],pivots[i+1])]['p'] = walk
@@ -935,10 +935,10 @@ def _(BFS_DFS, deque, nx):
 
                 if len(EP5[(pivots[i],pivots[i+1])]['p']) != EP5[(pivots[i],pivots[i+1])]['w']:
                     raise Exception()
-            
 
-        
-            walk = VP3[pivots[0]]['c']
+
+
+            walk = VP3[pivots[0]]['c'].copy()
 
             walk_length = VP3[pivots[0]]['w']
             if(len(walk) != walk_length):
@@ -953,7 +953,7 @@ def _(BFS_DFS, deque, nx):
 
             if(len(walk) != walk_length): #not a valid check if weighted graph
                 raise Exception(f"walk was {walk}, walk_length was {walk_length}. Did not match.")
-    
+
         best_walk_i = -1
         for i in range(len(walks)):
             if best_walk_i == -1:
@@ -961,7 +961,7 @@ def _(BFS_DFS, deque, nx):
             elif walk_lengths[i] < walk_lengths[best_walk_i]:
                 best_walk_i = i
 
-        return {"walk": walks[best_walk_i], "traversal_cost": len(walks[best_walk_i])-1, "supply_units_recovered": SU}
+        return {"walk": walks[best_walk_i], "traversal_cost": len(walks[best_walk_i])-1, "supply_units_recovered": SU_names}
 
     # 1. Trim unusable dead ends
     def _trim(G, POI):
@@ -1062,7 +1062,7 @@ def _(BFS_DFS, deque, nx):
 
         while leaf_nodes:
             u = leaf_nodes.pop()
-        
+
             neighbours = list(G3[u])
             if len(neighbours) == 0:
                 if leaf_nodes or  len(G3.nodes()) != 1: #should always be false
@@ -1079,14 +1079,14 @@ def _(BFS_DFS, deque, nx):
 
             #if (u == entry3 or u == exit3):
              #   continue #REMOVE this once testing is done
-        
+
             if G3.degree[v] == 4:
                 leaf_nodes.add(v)
 
             #could be in multiple
             if u == exit3 and u == entry3:
                 raise Exception("should only be possible when u has no neighbours.")
-        
+
             if u == entry3:
                 VP3[v]['c'] = VP3[u]['c'] + EP3[(u,v)]['p'] + VP3[v]['c']
                 VP3[v]['w'] = VP3[u]['w'] + EP3[(u,v)]['w'] + VP3[v]['w']
@@ -1111,7 +1111,7 @@ def _(BFS_DFS, deque, nx):
                     raise Exception(f"Smth went wrong: u: {u}, other_exit: {other_exit}")
                 #this should be the other exit, no need to visit it.
                 pass
- 
+
             EP3.pop((v,u))
             EP3.pop((u,v))
             VP3.pop(u)
@@ -1126,7 +1126,7 @@ def _(BFS_DFS, deque, nx):
     def _break_graph(G, exit, entry): #relies on exit and entry being the first and last node of the graph, i.e. exit and entry are NOT articlation points 
 
         _G = _get_undirected(G)
-    
+
         bc = list(nx.biconnected_components(_G))
 
 
@@ -1134,7 +1134,7 @@ def _(BFS_DFS, deque, nx):
         ap = set(nx.articulation_points(_G))
         if entry in ap or exit in ap:
             raise Exception(f"Entry: {entry}, Exit: {exit}, ap: {ap}, exit and entry should not be in ap should be false.")
-    
+
         path = _BFS(G, exit, entry)
         if(path[0] != entry or path[-1] != exit):
             raise Exception(f"entry and exits not start and end of path. exit, entry, path, G {exit}, {entry}, {path}, { {u:G[u] for u in G.nodes()} }")
@@ -1148,7 +1148,7 @@ def _(BFS_DFS, deque, nx):
         else:
             bc_order.append(sets[0])
             pivots.append(path[0])
-        
+
         for i in range(len(path)):
             if path[i] in bc[bc_order[-1]]:
                 continue
@@ -1161,7 +1161,7 @@ def _(BFS_DFS, deque, nx):
                 dif = dif.pop()
                 if not path[i] in bc[dif]:
                     raise Exception(f"single length bc component?? grr")
-                
+
                 bc_order.append(dif)
 
         if exit == pivots[len(pivots)-1]: #always false?!?
@@ -1170,10 +1170,10 @@ def _(BFS_DFS, deque, nx):
 
         bc = [bc[i] for i in bc_order]
         return bc, pivots
-        
+
     def _find_sets(a,bc):
         sets = []
-    
+
         for i in range(len(bc)):
             if a in bc[i]:
                 sets.append(i)
@@ -1209,7 +1209,7 @@ def _(BFS_DFS, deque, nx):
         while path[-1] != entry:
             path.append(parent[path[-1]])
         path.reverse()
-    
+
         return path
 
 
@@ -1221,30 +1221,63 @@ def _(BFS_DFS, deque, nx):
 
     # 5. Utilise Brute force on sub problem
 
+
     def _Brute_Force(G, SU, VP, EP, exit, entry):
         G = _get_undirected(G)
-    
+
         n_V = len(G.nodes())
         n_E = len(G.edges())
         w = 1 + n_E - n_V #number of extra edges, as #V - 1 = (#E-w) => w = 1 + #E - #V
         E = list(G.edges())
-    
+
+        VPbrute = {v:{"location": v, "is_entry": v == entry, "is_exit": v == exit, "supply_unit":None} for v in G.nodes()}
+        for su in SU:
+            if (not su in VPbrute.keys()):
+                raise Exception(f"VPbrute = {VPbrute}, SU = {SU}")
+            VPbrute[su]["supply_unit"]  = su
+
+        walk_abstracted = Brute_Force(G, {0}, SU, VPbrute, {}, {su:{"location":su} for su in SU}, {0:{"location":entry}}, {})["walk"]
+
+        walk_len = 0
+        for i in range(1,len(walk_abstracted)): #doesn't count first cycle (VP[entry]['w'])
+            walk_len += EP[(walk_abstracted[i-1],walk_abstracted[i])]['w']
+            walk_len += VP[walk_abstracted[i]]['w']
+
+        walk = []
+        for i in range(1,len(walk_abstracted)):
+            walk += EP[(walk_abstracted[i-1],walk_abstracted[i])]['p']
+            walk += VP[walk_abstracted[i]]['c']
+
+
+
+
+        return walk, walk_len
+
+
+
+    def _Old_Brute_Force(G, SU, VP, EP, exit, entry):
+        G = _get_undirected(G)
+
+        n_V = len(G.nodes())
+        n_E = len(G.edges())
+        w = 1 + n_E - n_V #number of extra edges, as #V - 1 = (#E-w) => w = 1 + #E - #V
+        E = list(G.edges())
+
         perm = [0 for _ in range(n_E)]
         for i in range(w):
             perm[i] = 1
 
         original_perm  = perm.copy()
-        perm = _next_perm(perm)
 
         min_walk_abstracted = None
         min_walk_len = None
 
-        VPperm = {v:{"location": v, "is_entry": v == entry, "is_exit": v == exit, "supply_unit":None} for v in G.nodes()}
+        VPbrute = {v:{"location": v, "is_entry": v == entry, "is_exit": v == exit, "supply_unit":None} for v in G.nodes()}
         for su in SU:
-            if (not su in VPperm.keys()):
-                raise Exception(f"VPperm = {VPperm}, SU = {SU}")
-            VPperm[su]["supply_unit"]  = su
-    
+            if (not su in VPbrute.keys()):
+                raise Exception(f"VPbrute = {VPbrute}, SU = {SU}")
+            VPbrute[su]["supply_unit"]  = su
+
         while True:
             Gperm = G.copy()
             remove = set()
@@ -1253,22 +1286,22 @@ def _(BFS_DFS, deque, nx):
                     remove.add(E[i])
             Gperm.remove_edges_from(remove)
             if nx.is_connected(Gperm):
-            
 
-                walk_abstracted = BFS_DFS(Gperm, {0}, SU, VPperm, {}, {su:{"location":su} for su in SU}, {0:{"location":entry}}, {})["walk"]
-            
+
+                walk_abstracted = BFS_DFS(Gperm, {0}, SU, VPbrute, {}, {su:{"location":su} for su in SU}, {0:{"location":entry}}, {})["walk"]
+
                 walk_len = 0
                 for i in range(1,len(walk_abstracted)): #doesn't count first cycle (VP[entry]['w'])
                     walk_len += EP[(walk_abstracted[i-1],walk_abstracted[i])]['w']
                     walk_len += VP[walk_abstracted[i]]['w']
-    
+
                 if min_walk_len == None:
                     min_walk_len = walk_len
                     min_walk_abstracted = walk_abstracted
                 elif walk_len < min_walk_len:
                     min_walk_len = walk_len
                     min_walk_abstracted = walk_abstracted
-        
+
             perm = _next_perm(perm)
             same = True
             for i in range(len(perm)):
@@ -1281,13 +1314,13 @@ def _(BFS_DFS, deque, nx):
         for i in range(1,len(min_walk_abstracted)):
             walk += EP[(min_walk_abstracted[i-1],min_walk_abstracted[i])]['p']
             walk += VP[min_walk_abstracted[i]]['c']
-        
-    
-    
-    
+
+
+
+
         return walk, min_walk_len
-    
-        
+
+
 
     def _next_perm(perm):
         layer = -1
@@ -1502,6 +1535,42 @@ def _(BFS_DFS, Brute_Force, Divide_and_Conquer, Greedy):
     return (algorithms,)
 
 
+@app.function
+#validate output
+
+def validate_output(_out, G, AS, SU, VP, EP, SUP, ASP, GP):
+    _walk = _out["walk"]
+    _SU = _out["supply_units_recovered"]
+
+    for i in range(len(_walk)-1):
+        if not _walk[i] in G.nodes():
+            return "false node"
+        if not _walk[i+1] in G.nodes():
+            return "false node"
+        if not (_walk[i],_walk[i+1]) in G.edges():
+            return "false edge"
+
+    
+    if not VP[_walk[0]]["is_entry"]:
+        return "doesn't start at entry"
+    if not VP[_walk[-1]]["is_exit"]:
+        return "doesn't end at exit"
+        
+    walk_set = set(_walk)
+
+    if _SU - set(SUP.keys()):
+        return "su doesn't exist"
+    if ({SUP[s]["location"] for s in _SU} - walk_set):
+        return "su not in walk"
+    elif ({SUP[s]["location"] for s in SU} - {SUP[s]["location"] for s in _SU})&walk_set:
+        return "SU not in output"
+
+    if (len(_walk)-1 != _out["traversal_cost"]):
+        return "traversal cost not accurate"
+
+    return "valid"
+
+
 @app.cell(hide_code=True)
 def _(algorithms, fac_Bv2, m_fac_Av2, seed_input, time, tracemalloc):
     # RUN algorithms
@@ -1524,12 +1593,13 @@ def _(algorithms, fac_Bv2, m_fac_Av2, seed_input, time, tracemalloc):
         #print("size: "+str(_size2)+", peak:" + str(_peak2))
         #print("size: "+str(_size2-_size1)+", peak:" + str(_peak2-_peak1))
         tracemalloc.stop()
-        return out, _peak2 - _size1, time_taken, {"G": G, "AS": AS, "SU": SU, "VP":VP,"EP": EP,"SUP": SUP,"ASP": ASP,"GP": GP}
+        is_valid = validate_output(out, G, AS, SU, VP, EP, SUP, ASP, GP)
+        return out, _peak2 - _size1, time_taken, {"G": G, "AS": AS, "SU": SU, "VP":VP,"EP": EP,"SUP": SUP,"ASP": ASP,"GP": GP}, is_valid
 
 
-    out_v2, memory_v2, speed_v2, walk_v2 = {},{},{},{}
+    out_v2, memory_v2, speed_v2, walk_v2, valid_v2 = {},{},{},{}, {}
     for _algorithm in algorithms.keys():
-        out_v2[_algorithm], memory_v2[_algorithm],speed_v2[_algorithm], _ = test_algorithm(_algorithm) 
+        out_v2[_algorithm], memory_v2[_algorithm],speed_v2[_algorithm], _, valid_v2[_algorithm] = test_algorithm(_algorithm) 
         walk_v2[_algorithm] = out_v2[_algorithm]["walk"]
     return memory_v2, out_v2, speed_v2, test_algorithm, walk_v2
 
@@ -2406,11 +2476,17 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    <div class = "r">
     Every option above has its merits and its drawbacks, but option 3 seems to be the most optimal for the memo 1 problem as it balances speed with finding the optimal solution. Its time complexity is O(#Exits(V+E)), which is only always beaten by the DFS algorithm in terms of speed.
 
     Compared to the Brute force option, with time complexity O((V+E)S+S!) where S is #of supply units, the BFS + DFS solution is significantly faster for large values of S.
 
-    A significant drawback of the BFS + DFS algorithm is that it relies on the graph being a tree which might not be the case in memos beyond memo 1, leading to a potentially suboptimal solution for graphs with cycles.
+    A significant drawback of the BFS + DFS algorithm is that it relies on the graph being a tree which might not be the case in memos beyond memo 1, leading to a potentially suboptimal solution for graphs with cycles.</div><br>
+
+    <div class = "g">
+    Every option above has its merits and its drawbacks, although greedy isn't so great in this case as BFS_DFS is almost always better than it in terms of traversal cost. Every option discusses
+
+    </div>
     """)
     return
 
@@ -3306,10 +3382,10 @@ def _(mo):
 def _(mo):
     #What are the inputs again?
     mo.accordion({"What are the inputs again?":mo.md("""
-    the inputs are: G, SU, AS, EP, VP, SUP, ASP and GP.
+    the inputs are: G, AS, SU, VP, EP, SUP, ASP and GP.
     - G: (Graph of a Sector Grid) = (V,E)
-    - SU: (Supply Unit)
     - AS: (Autonomous System)
+    - SU: (Supply Unit)
     - EP: (Edge Properties)
     - VP: (Vertex Properties)
     - SUP: (Supply Unit Properties)
@@ -3440,12 +3516,27 @@ def _(
 
 
 @app.cell(hide_code=True)
-def _(SU, algorithm_input, memory_v2, mo, out_v2, speed_v2):
+def _(
+    AS,
+    ASP,
+    EP,
+    G,
+    GP,
+    SU,
+    SUP,
+    VP,
+    algorithm_input,
+    memory_v2,
+    mo,
+    out_v2,
+    speed_v2,
+):
     mo.callout(mo.hstack([
             mo.stat(label=f"Traversal Cost (minimum is {out_v2['Brute Force']['traversal_cost']})",    value=str(out_v2[algorithm_input.value]["traversal_cost"])),
             mo.stat(label="Time to Compute",    value=str((int)(speed_v2[algorithm_input.value]*1000))+" ms"),
             mo.stat(label="Memory to Compute",    value=str(round(memory_v2[algorithm_input.value]/1000))+" KB"),
             mo.stat(label="Supply Units Recovered",  value=str(len(out_v2[algorithm_input.value]["supply_units_recovered"]))+"/" + str(len(SU))),
+            mo.stat(label="Is Valid",  value=str(validate_output(out_v2[algorithm_input.value],G, AS, SU, VP, EP, SUP, ASP, GP)) ),
         ], gap=0, wrap=True),kind = "info")
     return
 
@@ -3511,6 +3602,7 @@ def _(
         _s = {alg:0 for alg in algorithms.keys()}
         _m = {alg:0 for alg in algorithms.keys()}
         _su = {alg:0 for alg in algorithms.keys()}
+        _valid = {alg:"valid" for alg in algorithms.keys()}
 
         _SU = 0
         if table_options.value == "Sample Set":
@@ -3518,11 +3610,13 @@ def _(
                 _seed = random.randint(0,99999999)
 
                 for alg in algorithms.keys():
-                    _out_v2, _memory_v2, _speed_v2, _input = test_algorithm(alg, seed = _seed)
+                    _out_v2, _memory_v2, _speed_v2, _input, _is_valid = test_algorithm(alg, seed = _seed)
                     _tc[alg] += _out_v2["traversal_cost"]
                     _s[alg] += _speed_v2
                     _m[alg] += _memory_v2
                     _su[alg] += 100*len((_out_v2["supply_units_recovered"]))/len(_input["SU"])
+                    if _valid[alg] == "valid":
+                        _valid[alg] = _is_valid
 
             for alg in algorithms.keys():
                 _tc[alg] /= sample_set_size.value
@@ -3537,6 +3631,8 @@ def _(
                 _s[alg] = speed_v2[alg]
                 _m[alg] = memory_v2[alg]
                 _su[alg] = 100*len((out_v2[alg]["supply_units_recovered"]))/len(SU)
+                if _valid[alg] == "valid":
+                    _valid[alg] = _is_valid
 
 
 
@@ -3549,6 +3645,7 @@ def _(
         d2 = {corner:"Speed (ms)"} | {algorithm:(int)(round(_s[algorithm]*1000)) for algorithm in algorithms}
         d3 = {corner:"RAM Used (KB)"} | {algorithm:round(_m[algorithm]/1000) for algorithm in algorithms}
         d4 = {corner:f"SUs recovered (%)"} | {algorithm:round(_su[algorithm]) for algorithm in algorithms}
+        d5 = {corner:"Is valid"} | {algorithm:_valid[algorithm] for algorithm in algorithms}
 
         best1 = [list(algorithms.keys())[0]]
         best2 = best1.copy()
@@ -3600,7 +3697,7 @@ def _(
 
 
         return mo.ui.table(
-            data=[d4,d1,d2,d3],
+            data=[d4,d1,d2,d3, d5],
             selection = None
         )
     table = m_comparison_table()
