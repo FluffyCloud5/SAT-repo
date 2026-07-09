@@ -8,6 +8,14 @@ app = marimo.App(
 )
 
 
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+ 
+    """)
+    return
+
+
 @app.cell
 def _():
     import marimo as mo
@@ -859,11 +867,11 @@ def _(deque):
 
 
 @app.cell(hide_code=True)
-def _(BFS_DFS, Brute_Force, deque, nx):
+def _(Brute_Force, deque, nx):
     # Divide and Conquer
 
     def Divide_and_Conquer(G, AS, SU, VP, EP, SUP, ASP, GP):
-
+    
         CRUDY_1 = list(AS)[0]
         V = G.nodes()
 
@@ -872,318 +880,94 @@ def _(BFS_DFS, Brute_Force, deque, nx):
             if VP[v]["is_exit"] == True:
                 exits.add(v)
 
-        SU_names = SU
-        SU = {SUP[su]["location"] for su in SU}
+        SU_locations = {SUP[su]["location"] for su in SU}
         entry = ASP[CRUDY_1]["location"]
         POI = exits.copy()
-        POI = POI.union(SU)
-        POI.add(entry)
-
-        G1 = _trim(G, POI) # replaces G with a trimmed version
-
-        G2, EP2 = _abstract_2deg(G1, EP, POI)
-
-        for edge in G2.edges():
-            if len(EP2[edge]['p']) != EP2[edge]['w']:
-                raise Exception(f"""p = {EP2[edge]['p']}, 
-                len(p) = {len(EP2[edge]['p'])}, w = {EP2[edge]['w']}""")
 
         walks = []
-        walk_lengths = []
 
-        exit_list = list(exits)
+        VPbrute = {v: VP[v].copy() for v in G.nodes()}
+        VPbrute[entry]["is_entry"] = False
+        for exit in exits:
+            VPbrute[exit]["is_exit"] = False
 
-        for i in range(len(exit_list)):
-            exit = exit_list[i]
+        SUPbrute = {su:{"location":su} for su in SU_locations}
 
-            G3, SU3, VP3, EP3, exit3, entry3 = _abstract_branches(G2, SU, VP, EP2, exit, entry, exit_list[1-i])
+        ap = set(nx.articulation_points(G.to_undirected(as_view = True)))
+    
+        for exit in exits:
 
-            for edge in G3.edges():
-                if len(EP3[edge]['p']) != EP3[edge]['w']:
-                    raise Exception(f"""p = {EP3[edge]['p']}, 
-                    len(p) = {len(EP3[edge]['p'])}, w = {EP3[edge]['w']}""")
+            sub_graphs, pivots = _break_graph(G, ap, exit, entry)
 
-            for v in G3.nodes():
-                if len(VP3[v]['c']) != VP3[v]['w']:
-                    raise Exception(f"""c = { VP3[v]['c']}, 
-                    len(c) = {len(VP3[v]['c'])}, w = {EP3[v]['w']}""")
+            pivots.insert(0,entry)
+            pivots.append(exit)
+        
+            walk = [entry]
+            for i in range(len(sub_graphs)):
+                sub_graph = G.subgraph(sub_graphs[i])
 
-            bc, pivots = _break_graph(G3, exit3, entry3)
+                SU_sub_graph = sub_graphs[i]&SU_locations
 
-            for i in range(len(bc)):
-                if(not pivots[i] in bc[i]):
-                    raise Exception()
-                if(not pivots[i+1] in bc[i]):
-                    raise Exception()
-
-            G5 = nx.Graph()
-            G5.add_nodes_from(pivots)
-            G5.add_edges_from([(pivots[i],pivots[i+1]) for i in range(len(pivots)-1)])
-
-            EP5 = {edge:{'p': None, 'w': None} for edge in G5.edges()}
-
-            for i in range(len(pivots)-1):
-                sub_graph = G3.copy()
-
-                sub_graph.remove_nodes_from(set(sub_graph.nodes()) - bc[i])
-                SU4 = bc[i]&SU3
-
-                walk, walk_len = _Brute_Force(sub_graph, SU4, VP3, EP3, pivots[i+1], pivots[i])
-
-                EP5[(pivots[i],pivots[i+1])]['p'] = walk
-                EP5[(pivots[i],pivots[i+1])]['w'] = walk_len
-
-                if len(EP5[(pivots[i],pivots[i+1])]['p']) != EP5[(pivots[i],pivots[i+1])]['w']:
-                    raise Exception()
-
-
-
-            walk = VP3[pivots[0]]['c'].copy()
-
-            walk_length = VP3[pivots[0]]['w']
-            if(len(walk) != walk_length):
-                raise Exception
-
-            for i in range(len(pivots) - 1):
-                walk += EP5[(pivots[i],pivots[i+1])]['p']
-                walk_length += EP5[(pivots[i],pivots[i+1])]['w']
-
+                VPbrute[pivots[i]]["is_entry"] = True
+                VPbrute[pivots[i+1]]["is_exit"] = True
+                walk += _Brute_Force(sub_graph, SU_sub_graph, VPbrute, SUPbrute, pivots[i+1], pivots[i])
+                VPbrute[pivots[i]]["is_entry"] = False
+                VPbrute[pivots[i+1]]["is_exit"] = False
+            
             walks.append(walk)
-            walk_lengths.append(walk_length)
-
-            if(len(walk) != walk_length): #not a valid check if weighted graph
-                raise Exception(f"walk was {walk}, walk_length was {walk_length}. Did not match.")
-
-        best_walk_i = -1
-        for i in range(len(walks)):
-            if best_walk_i == -1:
-                best_walk_i = i
-            elif walk_lengths[i] < walk_lengths[best_walk_i]:
-                best_walk_i = i
-
-        walks[best_walk_i] = [entry] + walks[best_walk_i]
-
-        return {"walk": walks[best_walk_i], "traversal_cost": len(walks[best_walk_i])-1, "supply_units_recovered": SU_names}
-
-    # 1. Trim unusable dead ends
-    def _trim(G, POI):
-
-        G1 = G.copy() #Trimmed Graph
-        leaf_nodes = set()
-
-        while True:
-            next_leaf_nodes = set()
-
-            for u in leaf_nodes:
-                v = list(G1[u])[0]
-                if G1.degree[v] == 4 and (not v in POI): # as directed graph
-                    next_leaf_nodes.add(v)
-
-            G1.remove_nodes_from(leaf_nodes)
-            leaf_nodes = next_leaf_nodes
-
-            if not leaf_nodes:
-                for v in G1.nodes():
-                    if G1.degree[v] == 2 and (not v in POI): # as directed graph
-                        leaf_nodes.add(v)
-            if not leaf_nodes:
-                break
-        return G1
-
-    # 2. Abstract nodes that aren't POI and have deg 2 or less away.
-    def _abstract_2deg(G1, EP, POI):
-        G2 = G1.copy() # Abstracted graph
-
-        V = G2.nodes()
-
-        deg3plus = set()
-        for v in V:
-            if G2.degree(v) >= 6: #in and out
-                deg3plus.add(v)
-
-        EP2 = {(u,v): {'p':[v], 'w':1} for u,v in G2.edges()} #Abstracted Edge Properties 2
-        # 'p' = path and 'w' = weight
-
-        boring = V - (deg3plus | POI)
-
-        while boring:
-            u = boring.pop()
-            neighbours = G2[u]
-            if len(neighbours) != 2:
-                raise Exception("Not okay man")
-            neighbours = list(neighbours.keys())
-
-            v = neighbours[0]
-            w = neighbours[1]
-            if (v,w) in G2.edges(): #edge relaxation :)
-                if EP2[(v,w)]['w'] > EP2[(v,u)]['w']+EP2[(u,w)]['w']:
-                    EP2[(v,w)]['w'] = EP2[(v,u)]['w']+EP2[(u,w)]['w']
-                    EP2[(w,v)]['w'] = EP2[(w,u)]['w']+EP2[(u,v)]['w']
-                    EP2[(v,w)]['p'] = EP2[(v,u)]['p']+EP2[(u,w)]['p']
-                    EP2[(w,v)]['p'] = EP2[(w,u)]['p']+EP2[(u,v)]['p']
-
-                if G2.degree(v) == 6:
-                    boring.add(v)
-                if G2.degree(w) == 6:
-                    boring.add(w)
-            else:
-                G2.add_edge(v,w)
-                G2.add_edge(w,v)
-                EP2[(v,w)] = {'p':[],'w':1}
-                EP2[(w,v)] = {'p':[],'w':1}
-                EP2[(v,w)]['w'] = EP2[(v,u)]['w']+EP2[(u,w)]['w']
-                EP2[(w,v)]['w'] = EP2[(w,u)]['w']+EP2[(u,v)]['w']
-                EP2[(v,w)]['p'] = EP2[(v,u)]['p']+EP2[(u,w)]['p']
-                EP2[(w,v)]['p'] = EP2[(w,u)]['p']+EP2[(u,v)]['p']
-
-            EP2.pop((v,u))
-            EP2.pop((u,v))
-            EP2.pop((w,u))
-            EP2.pop((u,w))
-            G2.remove_node(u)
-        return G2, EP2
-
-    # 3. Abstract Exits, Entries and supply units on to rounded graph.
-    #works only for 1 exit
-    def _abstract_branches(G2, SU, VP, EP2, exit, entry, other_exit): 
-        G3 = G2.copy()
-        EP3 = EP2.copy()
-        VP3 = {v:{'c':[], 'w':0}|VP[v].copy() for v in G3.nodes()}
-        entry3 = entry
-        exit3 = exit
-        SU3 = SU.copy()
-        #'c' is cycle and 'w' is weight
-
-        leaf_nodes = set()
-
-        for v in G3.nodes():
-            if G3.degree[v] == 2: # as directed graph
-                leaf_nodes.add(v)
-
-        while leaf_nodes:
-            u = leaf_nodes.pop()
-
-            neighbours = list(G3[u])
-            if len(neighbours) == 0:
-                if leaf_nodes or  len(G3.nodes()) != 1: #should always be false
-                    raise Exception("disconnected graphs are not allowed grr")
-                break
-            elif len(neighbours) != 1:
-                raise Exception("Nodes in leaf_nodes should only have one neighbour")
-
-            v = neighbours[0]
-
-            if (u == entry3 and v == exit3) or (u == exit3 and v == entry3):
-                #so that the exit and entry don't overlap, could cause confusion about compacting other verticies onto them
-                continue
-
-            #if (u == entry3 or u == exit3):
-             #   continue #REMOVE this once testing is done
-
-            if G3.degree[v] == 4:
-                leaf_nodes.add(v)
-
-            #could be in multiple
-            if u == exit3 and u == entry3:
-                raise Exception("should only be possible when u has no neighbours.")
-
-            if u == entry3:
-                VP3[v]['c'] = VP3[u]['c'] + EP3[(u,v)]['p'] + VP3[v]['c']
-                VP3[v]['w'] = VP3[u]['w'] + EP3[(u,v)]['w'] + VP3[v]['w']
-                if u in SU3:
-                    SU3.add(v)
-                    SU3.remove(u)
-                entry3 = v
-            elif u == exit3:
-                VP3[v]['c'] = VP3[v]['c'] + EP3[(v,u)]['p'] + VP3[u]['c']
-                VP3[v]['w'] = VP3[v]['w'] + EP3[(v,u)]['w'] + VP3[u]['w']
-                if u in SU3:
-                    SU3.add(v)
-                    SU3.remove(u)
-                exit3 = v
-            elif u in SU3:
-                VP3[v]['c'] =  VP3[v]['c'] + EP3[(v,u)]['p'] + VP3[u]['c'] + EP3[(u,v)]['p']
-                VP3[v]['w'] =  VP3[v]['w'] + EP3[(v,u)]['w'] + VP3[u]['w'] + EP3[(u,v)]['w']
-                SU3.add(v)
-                SU3.remove(u)
-            else:
-                if(u != other_exit):
-                    raise Exception(f"Smth went wrong: u: {u}, other_exit: {other_exit}")
-                #this should be the other exit, no need to visit it.
-                pass
-
-            EP3.pop((v,u))
-            EP3.pop((u,v))
-            VP3.pop(u)
-            G3.remove_node(u)
-
-        if(len(SU) < len(SU3)):
-            raise Exception(f"SU must be smaller than SU3, SU = {SU}, SU3 = {SU3}")
-
-        return G3, SU3, VP3, EP3, exit3, entry3
-
-    # 4. Break up graph into sub graphs by articulation points 
-    def _break_graph(G, exit, entry): #relies on exit and entry being the first and last node of the graph, i.e. exit and entry are NOT articlation points 
-
-        _G = _get_undirected(G)
-
-        bc = list(nx.biconnected_components(_G))
 
 
-        #verifying - remove for efficiency.
-        ap = set(nx.articulation_points(_G))
-        if entry in ap or exit in ap:
-            raise Exception(f"Entry: {entry}, Exit: {exit}, ap: {ap}, exit and entry should not be in ap should be false.")
+
+        best_walk = None
+        for check_walk in walks:
+            if best_walk == None:
+                best_walk = check_walk
+            elif len(check_walk) < len(best_walk):
+                best_walk = check_walk
+
+        return {"walk": best_walk, "traversal_cost": len(best_walk)-1, "supply_units_recovered": SU}
+
+
+
+    # 1. Break up graph into sub graphs by articulation points 
+    def _break_graph(G, ap, exit, entry):
 
         path = _BFS(G, exit, entry)
-        if(path[0] != entry or path[-1] != exit):
-            raise Exception(f"entry and exits not start and end of path. exit, entry, path, G {exit}, {entry}, {path}, { {u:G[u] for u in G.nodes()} }")
 
-        bc_order = []
+    
         pivots = []
+        in_sub_graphs = []
 
-        sets = _find_sets(path[0],bc)
-        if len(sets) != 1:
-            raise Exception(f"entry should be in just 1 biconnected component, was in {sets}")
-        else:
-            bc_order.append(sets[0])
-            pivots.append(path[0])
 
-        for i in range(len(path)):
-            if path[i] in bc[bc_order[-1]]:
-                continue
+        for i in range(1,len(path)-1):
+            if path[i] in ap and G.degree(path[i]) == 4: #there are more spaces to split the graph, but its a bit complicated so I'm not gonna go there. (i.e. when the other degrees of the path are trees.)
+                pivots.append(path[i])
+                in_sub_graphs.append(path[i+1])
+    
+        sub_graphs = []
+        sub_graphs.append(_find_local_group(G, entry, pivots))
+
+        for u in in_sub_graphs:
+            if u in pivots:
+                sub_graphs.append({u,pivots[pivots.index(u)-1]})
             else:
-                sets = _find_sets(path[i-1],bc)
-                dif = set(sets) - set(bc_order)
-                if (len(dif) != 1):
-                    raise Exception(f"Okay not cool man, dif was {dif}, should have len 1.")
-                pivots.append(path[i-1])
-                dif = dif.pop()
-                if not path[i] in bc[dif]:
-                    raise Exception(f"single length bc component?? grr")
+                sub_graphs.append(_find_local_group(G, u, pivots))
 
-                bc_order.append(dif)
+        missed_nodes = set(G.nodes())
+        for sub_graph in sub_graphs:
+            missed_nodes -= sub_graph
 
-        if exit == pivots[len(pivots)-1]: #always false?!?
-            raise Exception("exit should not be able to be pivot yet")
-        pivots.append(exit)
+        while missed_nodes:
+            u = missed_nodes.pop()
+            local_group = _find_local_group(G, u, pivots)
+            for sub_graph in sub_graphs:
+                if local_group&sub_graph:
+                    sub_graph |= local_group
+                    break
+            missed_nodes -= local_group
+        
 
-        bc = [bc[i] for i in bc_order]
-        return bc, pivots
-
-    def _find_sets(a,bc):
-        sets = []
-
-        for i in range(len(bc)):
-            if a in bc[i]:
-                sets.append(i)
-        return sets
-
-    def _get_undirected(G):
-        _G = nx.Graph()
-        _G.add_nodes_from(G.nodes())
-        _G.add_edges_from(G.edges())
-        return _G
+        return sub_graphs, pivots
 
     def _BFS(G, exit, entry): #to find path, any will do.
         #s is first vertex
@@ -1212,320 +996,36 @@ def _(BFS_DFS, Brute_Force, deque, nx):
 
         return path
 
+    def _find_local_group(G, entry, pivots):
+        if entry in pivots:
+            raise Exception()
+
+        V = G.nodes()
+        BFS_Queue = deque()
+        BFS_Queue.append(entry)
+        visited = {v: False for v in V} #map
+        visited[entry] = True
+        local_group = {entry}
+
+        while BFS_Queue:
+            u = BFS_Queue.popleft()
+            for v in G[u]:
+                if not visited[v] and not v in pivots:
+                    local_group.add(v)
+                    visited[v] = True
+                    BFS_Queue.append(v)
+                elif v in pivots:
+                    local_group.add(v)
+
+        return local_group
 
 
+    # 2. Utilise Brute force on sub problem
+    def _Brute_Force(G, SU, VP, SUP, exit, entry):
 
-
-
-
-
-    # 5. Utilise Brute force on sub problem
-
-
-    def _Brute_Force(G, SU, VP, EP, exit, entry):
-        G = _get_undirected(G)
-
-        n_V = len(G.nodes())
-        n_E = len(G.edges())
-        w = 1 + n_E - n_V #number of extra edges, as #V - 1 = (#E-w) => w = 1 + #E - #V
-        E = list(G.edges())
-
-        VPbrute = {v:{"location": v, "is_entry": v == entry, "is_exit": v == exit, "supply_unit":None} for v in G.nodes()}
-        for su in SU:
-            if (not su in VPbrute.keys()):
-                raise Exception(f"VPbrute = {VPbrute}, SU = {SU}")
-            VPbrute[su]["supply_unit"]  = su
-
-        #meant for unweighted graphs, can't handle weighted at the moment
-        walk_abstracted = Brute_Force(G, {0}, SU, VPbrute, {}, {su:{"location":su} for su in SU}, {0:{"location":entry}}, {})["walk"] 
-    
-        walk_len = 0
-        walk_len += VP[walk_abstracted[0]]['w']
-        for i in range(1,len(walk_abstracted)): #doesn't count first cycle (VP[entry]['w'])
-            walk_len += EP[(walk_abstracted[i-1],walk_abstracted[i])]['w']
-            if walk_abstracted[i] != entry and walk_abstracted[i] != exit:
-                walk_len += VP[walk_abstracted[i]]['w']
-        walk_len += VP[walk_abstracted[-1]]['w']     
-
-        walk = []
-        walk += VP[walk_abstracted[0]]['c']
-        for i in range(1,len(walk_abstracted)):
-            walk += EP[(walk_abstracted[i-1],walk_abstracted[i])]['p']
-            if walk_abstracted[i] != entry and walk_abstracted[i] != exit:
-                walk += VP[walk_abstracted[i]]['c']
-        walk += VP[walk_abstracted[-1]]['c']
-   
-        return walk, walk_len
-
-
-
-    def _Old_Brute_Force(G, SU, VP, EP, exit, entry):
-        G = _get_undirected(G)
-
-        n_V = len(G.nodes())
-        n_E = len(G.edges())
-        w = 1 + n_E - n_V #number of extra edges, as #V - 1 = (#E-w) => w = 1 + #E - #V
-        E = list(G.edges())
-
-        perm = [0 for _ in range(n_E)]
-        for i in range(w):
-            perm[i] = 1
-
-        original_perm  = perm.copy()
-
-        min_walk_abstracted = None
-        min_walk_len = None
-
-        VPbrute = {v:{"location": v, "is_entry": v == entry, "is_exit": v == exit, "supply_unit":None} for v in G.nodes()}
-        for su in SU:
-            if (not su in VPbrute.keys()):
-                raise Exception(f"VPbrute = {VPbrute}, SU = {SU}")
-            VPbrute[su]["supply_unit"]  = su
-
-        while True:
-            Gperm = G.copy()
-            remove = set()
-            for i in range(n_E):
-                if(perm[i] == 1):
-                    remove.add(E[i])
-            Gperm.remove_edges_from(remove)
-            if nx.is_connected(Gperm):
-
-
-                walk_abstracted = BFS_DFS(Gperm, {0}, SU, VPbrute, {}, {su:{"location":su} for su in SU}, {0:{"location":entry}}, {})["walk"]
-
-                walk_len = 0
-                for i in range(1,len(walk_abstracted)): #doesn't count first cycle (VP[entry]['w'])
-                    walk_len += EP[(walk_abstracted[i-1],walk_abstracted[i])]['w']
-                    walk_len += VP[walk_abstracted[i]]['w']
-
-                if min_walk_len == None:
-                    min_walk_len = walk_len
-                    min_walk_abstracted = walk_abstracted
-                elif walk_len < min_walk_len:
-                    min_walk_len = walk_len
-                    min_walk_abstracted = walk_abstracted
-
-            perm = _next_perm(perm)
-            same = True
-            for i in range(len(perm)):
-                if perm[i] != original_perm[i]:
-                    same = False
-                    break
-            if same:
-                break
-        walk = []
-        for i in range(1,len(min_walk_abstracted)):
-            walk += EP[(min_walk_abstracted[i-1],min_walk_abstracted[i])]['p']
-            walk += VP[min_walk_abstracted[i]]['c']
-
-
-
-
-        return walk, min_walk_len
-
-
-
-    def _next_perm(perm):
-        layer = -1
-        max_index = -1
-
-        #Finds the layer and max_index
-        for i in range(len(perm)-1):
-            if perm[i] < perm[i+1]:
-                layer = i+1
-                for j in range(i+1):
-                    if perm[j] < perm[i+1]:
-                        if max_index == -1:
-                            max_index = j
-                break
-
-        #swaps layer and max_index
-        if(layer != -1):  
-            z = perm[layer]
-            perm[layer] = perm[max_index]
-            perm[max_index] = z
-        else:
-            layer = len(perm)
-
-        #swaps the subpermuation up to layer around
-        for i in range((layer+(layer%2))//2):
-            z = perm[i]
-            perm[i] = perm[layer-i-1]
-            perm[layer-i-1] = z
-
-        return perm
-
-
+        return Brute_Force(G, {0}, SU, VP, {}, SUP, {0:{"location":entry}}, {})["walk"][1:]
 
     return (Divide_and_Conquer,)
-
-
-@app.cell(disabled=True, hide_code=True)
-def _(Av2, draw_fac_v2, entrys, fac_v2, nx, plt, random):
-    # 2. visualisation
-    def g_POI(G, AS, SU, VP, EP, SUP, ASP, GP):
-        CRUDY_1 = list(AS)[0]
-        V = G.nodes()
-
-        exits = set()
-        for v in V:
-            if VP[v]["is_exit"] == True: 
-                exits.add(v)
-
-        SU_nodes = {SUP[su]["location"] for su in SU} # a set of SU locations
-        entry = ASP[CRUDY_1]["location"]
-        POI = exits.copy()
-        POI = POI.union(SU_nodes)
-        POI.add(entry)
-        return POI, exit, entrys, SU_nodes
-
-    def m_step2_fac(G, AS, SU, VP, EP, SUP, ASP, GP):
-        CRUDY_1 = list(AS)[0]
-        V = G.nodes()
-
-        exits = set()
-        for v in V:
-            if VP[v]["is_exit"] == True: 
-                exits.add(v)
-
-        SU_nodes = {SUP[su]["location"] for su in SU} # a set of SU locations
-        entry = ASP[CRUDY_1]["location"]
-        POI = exits.copy()
-        POI = POI.union(SU_nodes)
-        POI.add(entry)
-
-        G = _trim(G, AS, SU, VP, EP, SUP, ASP, GP, POI) # replaces G with a trimmed version
-
-        simple_fac = _abstract_2deg(G, AS, SU, VP, EP, SUP, ASP, GP, POI)[0]
-
-        dict = {Av2(v): "#FF6666" for v in simple_fac.nodes()}
-
-        _fig, _ax = draw_fac_v2(fac_v2, legend = False)
-
-        pos_dict = {v: (v[0]+0.5,v[1]+0.5) for v in simple_fac.nodes()}
-
-        nx.draw_networkx(simple_fac, pos = pos_dict, ax = _ax, arrowstyle = '-',with_labels = False, node_size = 50, edge_color = "#9999FF", width = 5,node_color = "#000000")
-
-        return _fig, _ax
-
-    def m_step2_2(G, AS, SU, VP, EP, SUP, ASP, GP):
-        CRUDY_1 = list(AS)[0]
-        V = G.nodes()
-
-        exits = set()
-        for v in V:
-            if VP[v]["is_exit"] == True: 
-                exits.add(v)
-
-        SU_nodes = {SUP[su]["location"] for su in SU} # a set of SU locations
-        entry = ASP[CRUDY_1]["location"]
-        POI = exits.copy()
-        POI = POI.union(SU_nodes)
-        POI.add(entry)
-
-        G = _trim(G, AS, SU, VP, EP, SUP, ASP, GP, POI) # replaces G with a trimmed version
-
-        simple_fac = _abstract_2deg(G, AS, SU, VP, EP, SUP, ASP, GP, POI)[0]
-
-        pos_dict = {v: (v[0]+0.5,v[1]+0.5) for v in simple_fac.nodes()}
-
-        label_dict = {v: "" for v in simple_fac.nodes()}
-        _POI, _entry, _exits, _SU = g_POI(G, AS, SU, VP, EP, SUP, ASP, GP)
-        label_dict[_entry] = "In"
-        for _exit in _exits:
-            label_dict[_exit] = "Out"
-        for _su in _SU:
-            label_dict[_su] = "SU"
-        rnd_pos = pos_dict.copy()
-
-        for _v in rnd_pos.keys():
-            rnd_pos[_v] = (rnd_pos[_v][0], random.uniform(-0.5,0.5))
-
-        #_pos_dict = nx.drawing.bfs_layout(G = simple_fac,start = _entry) 
-        _pos_dict = nx.drawing.spring_layout(G= simple_fac, threshold = 1e-7, iterations = 1000, k = 2.3, pos = rnd_pos, fixed = {_entry,list(_exits)[0]})
-        nx.draw_networkx(simple_fac, arrowstyle = '-',labels = label_dict, node_size = 500,node_color = "#9999FF", pos = _pos_dict )
-        plt.show()
-
-    return
-
-
-@app.cell(disabled=True, hide_code=True)
-def _(
-    AS,
-    ASP,
-    Divide_and_Conquer,
-    EP,
-    G,
-    GP,
-    SU,
-    SUP,
-    VP,
-    draw_fac_v2,
-    fac_v2,
-    nx,
-    plt,
-):
-    G3, EP3, VP3 = Divide_and_Conquer(G, AS, SU, VP, EP, SUP, ASP, GP)
-
-    _fig, _ax = draw_fac_v2(fac_v2, legend = False)
-    nx.draw(G3, pos = {v:(v[0]+0.5,v[1]+0.5) for v in G3.nodes()}, ax = _ax)
-    plt.show()
-    return
-
-
-@app.cell(disabled=True, hide_code=True)
-def _():
-    #BRUTE TESTING
-    def next_perm(perm):
-        #first = 12345
-        #last = 54321
-        layer = -1
-        max_index = -1
-
-        #Finds the layer and max_index
-        for i in range(len(perm)-1):
-            if perm[i] < perm[i+1]:
-                layer = i+1
-                for j in range(i+1):
-                    if perm[j] < perm[i+1]:
-                        if max_index == -1:
-                            max_index = j
-                break
-
-        #swaps layer and max_index
-        if(layer != -1):  
-            z = perm[layer]
-            perm[layer] = perm[max_index]
-            perm[max_index] = z
-        else:
-            layer = len(perm)
-        new_perm = perm.copy()
-
-        #swaps the subpermuation up to layer around
-        for i in range(layer):
-            new_perm[i] = perm[layer-i-1]
-        return new_perm
-
-
-
-    perm = [0,0,1,2,3,3,3,4,4,5,6]
-    original = perm.copy()
-
-    _i = 0
-    while True:
-        perm = next_perm(perm)
-        _i += 1
-
-        same = True
-        for j in range(len(perm)):
-            if (original[j] != perm[j]):
-                same = False
-                break
-        if same:
-            break
-    print(_i)
-    return
 
 
 @app.cell(hide_code=True)
@@ -1554,12 +1054,12 @@ def validate_output(_out, G, AS, SU, VP, EP, SUP, ASP, GP):
         if not (_walk[i],_walk[i+1]) in G.edges():
             return "false edge"
 
-    
+
     if not VP[_walk[0]]["is_entry"]:
         return "doesn't start at entry"
     if not VP[_walk[-1]]["is_exit"]:
         return "doesn't end at exit"
-        
+
     walk_set = set(_walk)
 
     if _SU - set(SUP.keys()):
@@ -1808,7 +1308,7 @@ def _(mo):
 @app.cell
 def _(default_title, draw_fac_v2, fac_v2):
     #draw_facility
-    draw_fac_v2(fac_v2, title = default_title(n_wing=2))
+    _fig, _ax = draw_fac_v2(fac_v2, title = default_title(n_wing=2))
     return
 
 
@@ -2377,7 +1877,7 @@ def _(mo):
 
 
 
-    ### Option 1: Greedy (BFS)
+    ### Option 1: Greedy (with BFS)
 
     #### Pros and Cons:
 
@@ -2400,7 +1900,7 @@ def _(mo):
     Uses BFS to compute the distance and path between all POI (the exit, entry and supply units). Then starting from the entry, always going to the closest unvisited supply unit, traverse all supply units. Then traverse to the nearest exit.
     </div>
 
-    ### Option 2: Brute Force (BFS)
+    ### Option 2: Brute Force (with BFS)
 
     #### Pros and Cons
 
@@ -2452,6 +1952,55 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(mo):
+    #DFS returns best walk for a tree proof
+    mo.accordion({"**DFS returns best walk for a tree proof**": """
+    Scope: undirected trees. (can be weighted)
+
+    POI = Points of Interest, here meaning entries, exits and supply units.
+
+    Conjecture: A shortest walk containing all POI (points of interest) ending at a specific node can be found utilising a modified DFS on a subtree with only POI as leaf nodes.
+
+    Lemma 1: to visit all nodes and return to the source, DFS provides a shortest walk.
+    1. Since to get to a node from another node there is only one path as G is a tree.
+    2. To get to a single node and back to the source, all edges in that path have to be traversed at least twice as there is only one path to go there and back.
+    3. Each edge in the graph has to connect at least one node to the tree connected to the source meaning that all edges have to be traversed at least twice to visit all nodes and return to the source.
+    4. Therefore the walk has to have length at <u>**least**</u> 2sum(E) (where sum(E) is the sum of all edge weights) as each edge is traversed twice.
+    5. But DFS produces a walk of length 2sum(E) as it has to traverse all edges (in a tree) and then back again.
+    6. This means DFS produces an optimal walk for its length is the shortest it could be.
+
+    Lemma 2: DFS can produce a walk with length 2sum(E) - dist(source,v), if it has to visit all nodes from a source and end at v.
+    1. Consider if DFS stacks the node with v as a decendant or v itself first at each iteration. Then DFS will explore all other branches before it pops v, and at that point it will explore the desendants of v. once it has explored all nodes, DFS will start returning to the source, and v has to be on that route as it (or a desendant of v) was explored last.
+    2. Therefore as it will end at v having explored all nodes and on a direct path to the source with distance dist(source,v) and we know that a full DFS takes 2sum(E), the length of this walk must be 2sum(E) - dist(source,v).
+
+    Lemma 3 There is no walk shorter than 2sum(E) - dist(source,v), if it has to visit all nodes from a source and end at v.
+    1. Assume the opposite, there is a walk with length l < 2sum(E) - dist(source,v) that visits all nodes starting at the source and ending at v.
+    2. Then l + dist(source,v) equals the return trip length of a walk visiting all nodes starting and ending at the source, as one just has to go from v to source and dist(source,v) = dist(v, source), which must be at least 2sum(E) from lemma 1.
+    3. but l + dist(source,v) < 2sum(E) - dist(source,v) + dist(source,v) = 2sum(E).
+    4. 2sum(E) $\leq$ l + dist(source,v) < 2sum(E) $\implies$ 2sum(E) < 2sum(E)
+    5. Therefore by contradiction Lemma 3 is true.
+
+    Lemma 4: DFS provides a shortest walk to traverse all nodes from an arbitrary node to an arbitrary node.
+    1. By lemma 2 and lemma 3 DFS must produce the shortest walk possible from an arbitrary node to an arbitrary node traversing all nodes as its length is equal to the lower bound.
+
+    Lemma 5: DFS provides a shortest walk containing all leaf nodes and ending at an arbitrary node.
+    - As the graph is a tree, there is only one path between any two nodes, meaning to get to a leaf node from the source, all parents of the leaf node must be traversed.
+    - As every node in a graph is either a parent of a leaf node or a leaf node, all nodes must be traversed if all leaf nodes are to be traversed.
+    - As all nodes must be traversed, this problem falls under lemma 4, showing lemma 5 to be true.
+
+    Applying to a specific POI:
+    - consider a minimal subtree of the tree that is big enough to contain all the POI
+    - This means that all leaf nodes will be POI as otherwise they could be trimmed.
+    - Lemma 5 applies here meaning that the shortest walk to contain the POI is 2sum(E) - dist(source,exit) but sum(E) is of edges in the the subgraph.
+    - Q.E.D.
+
+    #### Proof Summary
+
+    As the BFS+DFS algorithm utilises DFS in the manner discussed in the proof, BFS+DFS returns the shortest walk for memo 1, but not necessarily memo A1."""})
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
     mo.md(r"""
     <div class = "g">
 
@@ -2464,6 +2013,18 @@ def _(mo):
     - Simplifies the problem significantly to a much smaller graph.<br>
     - divides the simplified graph into smaller sub problems.<br>
     Cons: <br>
+    - very difficult to program - prone to lots of human error.<br>
+    - may have a bit of overhead, meaning performance for smaller graphs will likely worse than that of brute force.<br>
+
+    <h4>Algorithm</h4>
+
+    Divide and Conquer is broken up into 3 main steps.<br>
+
+
+    1. Break up graph into sub graphs by articulation points - nodes where, if removed cause the graph to be broken in two.<br>
+    2. Utilise Brute force on sub graphs to find optimal walk (refer to brute force, option 2.)<br>
+    3. Piece the walk back together and return.
+
     </div>
     """)
     return
@@ -2481,14 +2042,22 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     <div class = "r">
-    Every option above has its merits and its drawbacks, but option 3 seems to be the most optimal for the memo 1 problem as it balances speed with finding the optimal solution. Its time complexity is O(#Exits(V+E)), which is only always beaten by the DFS algorithm in terms of speed.
+    Every option above has its merits and its drawbacks, but option 3 seems to be the most optimal for the memo 1 problem as it balances speed with finding the optimal solution. Its time complexity is O(#Exits(V+E)), which is only always beaten by the DFS algorithm in terms of speed.<br>
 
-    Compared to the Brute force option, with time complexity O((V+E)S+S!) where S is #of supply units, the BFS + DFS solution is significantly faster for large values of S.
+    Compared to the Brute force option, with time complexity O((V+E)S+S!) where S is #of supply units, the BFS + DFS solution is significantly faster for large values of S.<br>
 
     A significant drawback of the BFS + DFS algorithm is that it relies on the graph being a tree which might not be the case in memos beyond memo 1, leading to a potentially suboptimal solution for graphs with cycles.</div><br>
 
     <div class = "g">
-    Every option above has its merits and its drawbacks, although greedy isn't so great in this case as BFS_DFS is almost always better than it in terms of traversal cost. Every option discusses
+    Every option above has its merits and its drawbacks, with some being simplier, while others being perfect solutions and some being very efficient. All solutions collect all supply units. Out of all the options given, 3 stand out for distinct reasons.<br>
+
+    1. Brute Force. Despite being notoriously slow, brute forcing this problem is suprisingly straightforward and efficent, as the time only grows at factorial speeds with an increase in supply units. But since there are only 4-5 supply units, brute force shines here as a simple, optimal and efficient solution.<br>
+
+    2. BFS+DFS. Although originally designed to traverse only trees, BFS+DFS performs suprisingly well in this environment, with unmatched computational speed and relatively good traversal cost. Its complication as an algorithm is a drawback, but if implimented correctly is a great heuristic for this problem, thanks to the relatively few cycles of the facility.<br>
+
+    3. Divide and Conquer. As an algorithm returning an optimal solution by breaking down the problem into small and easy to deal with chunks, this algorithm is great for an efficient solution when optimality is key and speed is crucial.<br>
+
+    The choosen algorithm will be discussed and justified in part D.
 
     </div>
     """)
@@ -2889,6 +2458,14 @@ def _(algorithm_input, mo):
     	RETURN parent
     ```
     """
+
+    Divide_and_Conquer_pseudocode = rf"""
+
+    <span style = "font-size: 100px">🚧🔨</span><br>
+     **No psuedocode is avaliable for {algorithm_input.value}** <!--TODO add pseudocode for Divide and Conquer-->
+
+    """
+
     _out = """"""
     if(algorithm_input.value == "BFS+DFS"):
         _out = BFS_DFS_pseudocode
@@ -2896,6 +2473,10 @@ def _(algorithm_input, mo):
         _out = Greedy_pseudocode
     elif(algorithm_input.value == "Brute Force"):
         _out = Brute_Force_pseudocode
+    elif(algorithm_input.value == "Divide and Conquer"):
+        _out = Divide_and_Conquer_pseudocode
+
+    mo.stop(_out == "")
     mo.md(_out)
     return
 
@@ -3352,6 +2933,165 @@ def _(algorithm_input, mo):
 
     """
 
+    Divide_and_Conquer_python = r"""
+    <span class = "y">Divide and Conquer is a newly added algorithm</span>
+
+    ```python
+    def Divide_and_Conquer(G, AS, SU, VP, EP, SUP, ASP, GP):
+    
+        CRUDY_1 = list(AS)[0]
+        V = G.nodes()
+
+        exits = set()
+        for v in V:
+            if VP[v]["is_exit"] == True:
+                exits.add(v)
+
+        SU_locations = {SUP[su]["location"] for su in SU}
+        entry = ASP[CRUDY_1]["location"]
+        POI = exits.copy()
+
+        walks = []
+
+        VPbrute = {v: VP[v].copy() for v in G.nodes()}
+        VPbrute[entry]["is_entry"] = False
+        for exit in exits:
+            VPbrute[exit]["is_exit"] = False
+
+        SUPbrute = {su:{"location":su} for su in SU_locations}
+
+        ap = set(nx.articulation_points(G.to_undirected(as_view = True)))
+    
+        for exit in exits:
+
+            sub_graphs, pivots = _break_graph(G, ap, exit, entry)
+
+            pivots.insert(0,entry)
+            pivots.append(exit)
+        
+            walk = [entry]
+            for i in range(len(sub_graphs)):
+                sub_graph = G.subgraph(sub_graphs[i])
+
+                SU_sub_graph = sub_graphs[i]&SU_locations
+
+                VPbrute[pivots[i]]["is_entry"] = True
+                VPbrute[pivots[i+1]]["is_exit"] = True
+                walk += _Brute_Force(sub_graph, SU_sub_graph, VPbrute, SUPbrute, pivots[i+1], pivots[i])
+                VPbrute[pivots[i]]["is_entry"] = False
+                VPbrute[pivots[i+1]]["is_exit"] = False
+            
+            walks.append(walk)
+
+        best_walk = None
+        for check_walk in walks:
+            if best_walk == None:
+                best_walk = check_walk
+            elif len(check_walk) < len(best_walk):
+                best_walk = check_walk
+
+        return {"walk": best_walk, "traversal_cost": len(best_walk)-1, "supply_units_recovered": SU}
+
+
+
+    # 1. Break up graph into sub graphs by articulation points 
+    def _break_graph(G, ap, exit, entry):
+
+        path = _BFS(G, exit, entry)
+
+    
+        pivots = []
+        in_sub_graphs = []
+
+
+        for i in range(1,len(path)-1):
+            if path[i] in ap and G.degree(path[i]) == 4: #there are more spaces to split the graph, but its a bit complicated so I'm not gonna go there. (i.e. when the other degrees of the path are trees.)
+                pivots.append(path[i])
+                in_sub_graphs.append(path[i+1])
+    
+        sub_graphs = []
+        sub_graphs.append(_find_local_group(G, entry, pivots))
+
+        for u in in_sub_graphs:
+            if u in pivots:
+                sub_graphs.append({u,pivots[pivots.index(u)-1]})
+            else:
+                sub_graphs.append(_find_local_group(G, u, pivots))
+
+        missed_nodes = set(G.nodes())
+        for sub_graph in sub_graphs:
+            missed_nodes -= sub_graph
+
+        while missed_nodes:
+            u = missed_nodes.pop()
+            local_group = _find_local_group(G, u, pivots)
+            for sub_graph in sub_graphs:
+                if local_group&sub_graph:
+                    sub_graph |= local_group
+                    break
+            missed_nodes -= local_group
+        
+
+        return sub_graphs, pivots
+
+    def _BFS(G, exit, entry): #to find path, any will do.
+        #s is first vertex
+        V = G.nodes()
+        BFS_Queue = deque()
+        BFS_Queue.append(entry)
+        visited = {v: False for v in V} #map
+        visited[entry] = True
+
+        parent = {v: None for v in V} #map
+
+        while BFS_Queue:
+            u = BFS_Queue.popleft()
+            for v in G[u]:
+                if not visited[v]:
+
+                    visited[v] = True
+                    BFS_Queue.append(v)
+
+                    parent[v] = u
+
+        path = [exit]
+        while path[-1] != entry:
+            path.append(parent[path[-1]])
+        path.reverse()
+
+        return path
+
+    def _find_local_group(G, entry, pivots):
+        if entry in pivots:
+            raise Exception()
+
+        V = G.nodes()
+        BFS_Queue = deque()
+        BFS_Queue.append(entry)
+        visited = {v: False for v in V} #map
+        visited[entry] = True
+        local_group = {entry}
+
+        while BFS_Queue:
+            u = BFS_Queue.popleft()
+            for v in G[u]:
+                if not visited[v] and not v in pivots:
+                    local_group.add(v)
+                    visited[v] = True
+                    BFS_Queue.append(v)
+                elif v in pivots:
+                    local_group.add(v)
+
+        return local_group
+
+
+    # 2. Utilise Brute force on sub problem
+    def _Brute_Force(G, SU, VP, SUP, exit, entry):
+
+        return Brute_Force(G, {0}, SU, VP, {}, SUP, {0:{"location":entry}}, {})["walk"][1:]
+    ```
+    """
+
     _out = """"""
 
     if(algorithm_input.value == "BFS+DFS"):
@@ -3360,6 +3100,8 @@ def _(algorithm_input, mo):
         _out = Brute_Force_python
     elif(algorithm_input.value == "Greedy"):
         _out = Greedy_python
+    elif(algorithm_input.value == "Divide and Conquer"):
+        _out = Divide_and_Conquer_python
 
     mo.stop(_out == "")
     mo.md(_out)
@@ -3581,7 +3323,7 @@ def _(mo):
 
 @app.cell
 def _(mo):
-    sample_set_size = mo.ui.slider(start = 1, stop = 200, step = 1, value = 100, full_width= True)
+    sample_set_size = mo.ui.slider(start = 10, stop = 500, step = 10, value = 30, full_width= True)
     table_options = mo.ui.tabs({"Current Seed": "", "Sample Set":sample_set_size})
     return sample_set_size, table_options
 
@@ -3726,7 +3468,19 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### DFS returns best walk proof
+    <div class = "g">
+    <h2>Choosing an algorithm</h2>
+    <p>
+    Please take a moment to engage with the table in part C4. If you select the 'Sample Set' option, you will be able to see the averaging of many random seeds with the best algorithm(s) shown on the right and the validity of the algorithms output down the bottom.</p>
+
+    <p>
+    As you can see from the outputs, it can be seen that all algorithms recover all supply units, although with only Brute Force and Divide and Conquer consistantly returning optimal traversal costs. Taking into account speed, some credit has to be given to BFS+DFS for being orders of magnitude faster than the other algorithms while only sacrifising traversal cost a minimal amount. Although Divide and Conquer is meant to be a more efficient version of Brute Force, it is significantly slower, likely due to overhead
+    </p>
+
+    <p>
+    As minamising traversal cost is rather important, and the difference in speed and memory use between the algorithms  is negligible, it seems like Brute Force is the best algorithm for the job for its speed, simplicity and optimality.
+    </p>
+    </div>
     """)
     return
 
@@ -3734,85 +3488,13 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Scope: undirected trees. (can be weighted)
-
-    POI = Points of Interest, here meaning entries, exits and supply units.
-
-    Conjecture: A shortest walk containing all POI (points of interest) ending at a specific node can be found utilising a modified DFS on a subtree with only POI as leaf nodes.
-
-    Lemma 1: to visit all nodes and return to the source, DFS provides a shortest walk.
-    1. Since to get to a node from another node there is only one path as G is a tree.
-    2. To get to a single node and back to the source, all edges in that path have to be traversed at least twice as there is only one path to go there and back.
-    3. Each edge in the graph has to connect at least one node to the tree connected to the source meaning that all edges have to be traversed at least twice to visit all nodes and return to the source.
-    4. Therefore the walk has to have length at <u>**least**</u> 2sum(E) (where sum(E) is the sum of all edge weights) as each edge is traversed twice.
-    5. But DFS produces a walk of length 2sum(E) as it has to traverse all edges (in a tree) and then back again.
-    6. This means DFS produces an optimal walk for its length is the shortest it could be.
-
-    Lemma 2: DFS can produce a walk with length 2sum(E) - dist(source,v), if it has to visit all nodes from a source and end at v.
-    1. Consider if DFS stacks the node with v as a decendant or v itself first at each iteration. Then DFS will explore all other branches before it pops v, and at that point it will explore the desendants of v. once it has explored all nodes, DFS will start returning to the source, and v has to be on that route as it (or a desendant of v) was explored last.
-    2. Therefore as it will end at v having explored all nodes and on a direct path to the source with distance dist(source,v) and we know that a full DFS takes 2sum(E), the length of this walk must be 2sum(E) - dist(source,v).
-
-    Lemma 3 There is no walk shorter than 2sum(E) - dist(source,v), if it has to visit all nodes from a source and end at v.
-    1. Assume the opposite, there is a walk with length l < 2sum(E) - dist(source,v) that visits all nodes starting at the source and ending at v.
-    2. Then l + dist(source,v) equals the return trip length of a walk visiting all nodes starting and ending at the source, as one just has to go from v to source and dist(source,v) = dist(v, source), which must be at least 2sum(E) from lemma 1.
-    3. but l + dist(source,v) < 2sum(E) - dist(source,v) + dist(source,v) = 2sum(E).
-    4. 2sum(E) $\leq$ l + dist(source,v) < 2sum(E) $\implies$ 2sum(E) < 2sum(E)
-    5. Therefore by contradiction Lemma 3 is true.
-
-    Lemma 4: DFS provides a shortest walk to traverse all nodes from an arbitrary node to an arbitrary node.
-    1. By lemma 2 and lemma 3 DFS must produce the shortest walk possible from an arbitrary node to an arbitrary node traversing all nodes as its length is equal to the lower bound.
-
-    Lemma 5: DFS provides a shortest walk containing all leaf nodes and ending at an arbitrary node.
-    - As the graph is a tree, there is only one path between any two nodes, meaning to get to a leaf node from the source, all parents of the leaf node must be traversed.
-    - As every node in a graph is either a parent of a leaf node or a leaf node, all nodes must be traversed if all leaf nodes are to be traversed.
-    - As all nodes must be traversed, this problem falls under lemma 4, showing lemma 5 to be true.
-
-    Applying to a specific POI:
-    - consider a minimal subtree of the tree that is big enough to contain all the POI
-    - This means that all leaf nodes will be POI as otherwise they could be trimmed.
-    - Lemma 5 applies here meaning that the shortest walk to contain the POI is 2sum(E) - dist(source,exit) but sum(E) is of edges in the the subgraph.
-    - Q.E.D.
-    """)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    #### Proof Summary
-
-    As the BFS+DFS algorithm utilises DFS in the manner discussed in the proof, BFS+DFS returns the shortest walk for the memo 1 problem.
-    """)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
+    <div class = r>
     ### Suitability:
-    """)
-    return
 
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
     The ESRC is a **undirected, unweighted tree** meaning that my BFS+DFS algorithm--which requires an unweighted and undirected graph and returns an optimal solution for a tree--is a perfect match. It is also rather efficient (O((V+E)#Exits)), so for this particular problem (as #exits = 2 and it is sparse with ||E|| =143), it outperforms more general solutions, such as brute force and greedy.
-    """)
-    return
 
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
     ### Coherence:
-    """)
-    return
 
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md("""
     ADTs Used:
     - the map VP--for vertex properties--is called with VP[v]["supply_unit"] to check if a sector has a supply unit, in order to help build a subtree of G.
     - The graph G is used in BFS to find the neighbours of a vertex v, with G.vertices().
@@ -3820,21 +3502,9 @@ def _(mo):
 
     My ADT design is a bit over the top including lots of details in multiple places as well as some parts that aren't relevant to the memo 1 problem, such as ASP, AS, SUP and GP as they are static, which my algorithm ignores.<br>
     In part A, I call the graph the combination of two sets--V and E--but then I call it its own ADT which I use in the pseudocode and python.
-    """)
-    return
 
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
     ### Constraints:
-    """)
-    return
 
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
     1. The first vertex of the walk AS makes must be an entry.
         - The source node is the first node in the walk from DFS.
     2. The last vertex of the walk AS makes must be an exit.
@@ -3847,6 +3517,16 @@ def _(mo):
        - As there are only 5 supply units, this isn't an issue.
 
     Therefore, all constraints are met!
+    </div>
+    ### Suitability:
+
+    ### Coherence:
+
+    ### Constraints:
+    <div class = "g>
+
+
+    </div>
     """)
     return
 
