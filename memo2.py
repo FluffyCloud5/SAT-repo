@@ -961,6 +961,8 @@ def _(BFS_DFS, Brute_Force, deque, nx):
             elif walk_lengths[i] < walk_lengths[best_walk_i]:
                 best_walk_i = i
 
+        walks[best_walk_i] = [entry] + walks[best_walk_i]
+
         return {"walk": walks[best_walk_i], "traversal_cost": len(walks[best_walk_i])-1, "supply_units_recovered": SU_names}
 
     # 1. Trim unusable dead ends
@@ -1050,8 +1052,6 @@ def _(BFS_DFS, Brute_Force, deque, nx):
         entry3 = entry
         exit3 = exit
         SU3 = SU.copy()
-        VP3[entry3]['c'] = [entry3]
-        VP3[entry3]['w'] = 1 #change for weighted
         #'c' is cycle and 'w' is weight
 
         leaf_nodes = set()
@@ -1102,8 +1102,8 @@ def _(BFS_DFS, Brute_Force, deque, nx):
                     SU3.remove(u)
                 exit3 = v
             elif u in SU3:
-                VP3[v]['c'] = EP3[(v,u)]['p'] + VP3[u]['c'] + EP3[(u,v)]['p'] + VP3[v]['c']
-                VP3[v]['w'] = EP3[(v,u)]['w'] + VP3[u]['w'] + EP3[(u,v)]['w'] + VP3[v]['w']
+                VP3[v]['c'] =  VP3[v]['c'] + EP3[(v,u)]['p'] + VP3[u]['c'] + EP3[(u,v)]['p']
+                VP3[v]['w'] =  VP3[v]['w'] + EP3[(v,u)]['w'] + VP3[u]['w'] + EP3[(u,v)]['w']
                 SU3.add(v)
                 SU3.remove(u)
             else:
@@ -1236,21 +1236,25 @@ def _(BFS_DFS, Brute_Force, deque, nx):
                 raise Exception(f"VPbrute = {VPbrute}, SU = {SU}")
             VPbrute[su]["supply_unit"]  = su
 
-        walk_abstracted = Brute_Force(G, {0}, SU, VPbrute, {}, {su:{"location":su} for su in SU}, {0:{"location":entry}}, {})["walk"]
-
+        #meant for unweighted graphs, can't handle weighted at the moment
+        walk_abstracted = Brute_Force(G, {0}, SU, VPbrute, {}, {su:{"location":su} for su in SU}, {0:{"location":entry}}, {})["walk"] 
+    
         walk_len = 0
+        walk_len += VP[walk_abstracted[0]]['w']
         for i in range(1,len(walk_abstracted)): #doesn't count first cycle (VP[entry]['w'])
             walk_len += EP[(walk_abstracted[i-1],walk_abstracted[i])]['w']
-            walk_len += VP[walk_abstracted[i]]['w']
+            if walk_abstracted[i] != entry and walk_abstracted[i] != exit:
+                walk_len += VP[walk_abstracted[i]]['w']
+        walk_len += VP[walk_abstracted[-1]]['w']     
 
         walk = []
+        walk += VP[walk_abstracted[0]]['c']
         for i in range(1,len(walk_abstracted)):
             walk += EP[(walk_abstracted[i-1],walk_abstracted[i])]['p']
-            walk += VP[walk_abstracted[i]]['c']
-
-
-
-
+            if walk_abstracted[i] != entry and walk_abstracted[i] != exit:
+                walk += VP[walk_abstracted[i]]['c']
+        walk += VP[walk_abstracted[-1]]['c']
+   
         return walk, walk_len
 
 
@@ -1601,7 +1605,7 @@ def _(algorithms, fac_Bv2, m_fac_Av2, seed_input, time, tracemalloc):
     for _algorithm in algorithms.keys():
         out_v2[_algorithm], memory_v2[_algorithm],speed_v2[_algorithm], _, valid_v2[_algorithm] = test_algorithm(_algorithm) 
         walk_v2[_algorithm] = out_v2[_algorithm]["walk"]
-    return memory_v2, out_v2, speed_v2, test_algorithm, walk_v2
+    return memory_v2, out_v2, speed_v2, test_algorithm, valid_v2, walk_v2
 
 
 @app.cell(hide_code=True)
@@ -2504,7 +2508,7 @@ def _(algorithms, mo):
     #Choose Algorithm
     algorithm_input = mo.ui.tabs({_algo:"" for _algo in algorithms.keys()})
 
-    mo.callout(mo.vstack([ algorithm_input, mo.md("""**Only Divide and Conquer will be discussed in part D**""")],align = "center"),kind = "success")
+    mo.callout(mo.vstack([ algorithm_input],align = "center"),kind = "success")
     return (algorithm_input,)
 
 
@@ -3595,6 +3599,7 @@ def _(
     speed_v2,
     table_options,
     test_algorithm,
+    valid_v2,
 ):
     # make table
     def m_comparison_table():
@@ -3632,7 +3637,7 @@ def _(
                 _m[alg] = memory_v2[alg]
                 _su[alg] = 100*len((out_v2[alg]["supply_units_recovered"]))/len(SU)
                 if _valid[alg] == "valid":
-                    _valid[alg] = _is_valid
+                    _valid[alg] = valid_v2[alg]
 
 
 
