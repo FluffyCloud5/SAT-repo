@@ -572,8 +572,10 @@ def _(deque):
 
             previous_u = u
 
-        while not VP[walk[len(walk)-1]]["is_exit"]:
-            walk.append(parent[walk[len(walk)-1]])
+        while not VP[walk[-1]]["is_exit"]:
+            walk.append(parent[walk[-1]])
+            if (walk[-1] == None):
+                raise Exception(f"Something went wrong, walk: {walk}, VP: {VP}, parent: {parent}")
 
 
         return walk
@@ -857,7 +859,7 @@ def _(deque):
 
 
 @app.cell(hide_code=True)
-def _(deque):
+def _(BFS_DFS, deque, nx):
     # Divide and Conquer
 
     def Divide_and_Conquer(G, AS, SU, VP, EP, SUP, ASP, GP):
@@ -870,21 +872,99 @@ def _(deque):
             if VP[v]["is_exit"] == True:
                 exits.add(v)
 
-        SU_nodes = {SUP[su]["location"] for su in SU} # a set of SU locations
+        SU_names = SU
+        SU = {SUP[su]["location"] for su in SU}
         entry = ASP[CRUDY_1]["location"]
         POI = exits.copy()
-        POI = POI.union(SU_nodes)
+        POI = POI.union(SU)
         POI.add(entry)
 
-        G1 = _trim(G, AS, SU, VP, EP, SUP, ASP, GP, POI) # replaces G with a trimmed version
+        G1 = _trim(G, POI) # replaces G with a trimmed version
 
-        G2, EP2 = _abstract_2deg(G1, AS, SU, VP, EP, SUP, ASP, GP, POI)
+        G2, EP2 = _abstract_2deg(G1, EP, POI)
 
-        G3, EP3, VP3, POI3, entry3, exit3 = _abstract_branches(G2, AS, SU, VP, EP2, SUP, ASP, GP, POI, list(exits)[0], entry)
-        return G3, EP3, VP3
+        for edge in G2.edges():
+            if len(EP2[edge]['p']) != EP2[edge]['w']:
+                raise Exception(f"""p = {EP2[edge]['p']}, 
+                len(p) = {len(EP2[edge]['p'])}, w = {EP2[edge]['w']}""")
+
+        walks = []
+        walk_lengths = []
+
+        exit_list = list(exits)
+    
+        for i in range(len(exit_list)):
+            exit = exit_list[i]
+        
+            G3, SU3, VP3, EP3, exit3, entry3 = _abstract_branches(G2, SU, VP, EP2, exit, entry, exit_list[1-i])
+
+            for edge in G3.edges():
+                if len(EP3[edge]['p']) != EP3[edge]['w']:
+                    raise Exception(f"""p = {EP3[edge]['p']}, 
+                    len(p) = {len(EP3[edge]['p'])}, w = {EP3[edge]['w']}""")
+
+            for v in G3.nodes():
+                if len(VP3[v]['c']) != VP3[v]['w']:
+                    raise Exception(f"""c = { VP3[v]['c']}, 
+                    len(c) = {len(VP3[v]['c'])}, w = {EP3[v]['w']}""")
+
+            bc, pivots = _break_graph(G3, exit3, entry3)
+
+            for i in range(len(bc)):
+                if(not pivots[i] in bc[i]):
+                    raise Exception()
+                if(not pivots[i+1] in bc[i]):
+                    raise Exception()
+
+            G5 = nx.Graph()
+            G5.add_nodes_from(pivots)
+            G5.add_edges_from([(pivots[i],pivots[i+1]) for i in range(len(pivots)-1)])
+
+            EP5 = {edge:{'p': None, 'w': None} for edge in G5.edges()}
+        
+            for i in range(len(pivots)-1):
+                sub_graph = G3.copy()
+            
+                sub_graph.remove_nodes_from(set(sub_graph.nodes()) - bc[i])
+                SU4 = bc[i]&SU3
+            
+                walk, walk_len = _Brute_Force(sub_graph, SU4, VP3, EP3, pivots[i+1], pivots[i])
+
+                EP5[(pivots[i],pivots[i+1])]['p'] = walk
+                EP5[(pivots[i],pivots[i+1])]['w'] = walk_len
+
+                if len(EP5[(pivots[i],pivots[i+1])]['p']) != EP5[(pivots[i],pivots[i+1])]['w']:
+                    raise Exception()
+            
+
+        
+            walk = VP3[pivots[0]]['c']
+
+            walk_length = VP3[pivots[0]]['w']
+            if(len(walk) != walk_length):
+                raise Exception
+
+            for i in range(len(pivots) - 1):
+                walk += EP5[(pivots[i],pivots[i+1])]['p']
+                walk_length += EP5[(pivots[i],pivots[i+1])]['w']
+
+            walks.append(walk)
+            walk_lengths.append(walk_length)
+
+            if(len(walk) != walk_length): #not a valid check if weighted graph
+                raise Exception(f"walk was {walk}, walk_length was {walk_length}. Did not match.")
+    
+        best_walk_i = -1
+        for i in range(len(walks)):
+            if best_walk_i == -1:
+                best_walk_i = i
+            elif walk_lengths[i] < walk_lengths[best_walk_i]:
+                best_walk_i = i
+
+        return {"walk": walks[best_walk_i], "traversal_cost": len(walks[best_walk_i])-1, "supply_units_recovered": SU}
 
     # 1. Trim unusable dead ends
-    def _trim(G, AS, SU, VP, EP, SUP, ASP, GP, POI):
+    def _trim(G, POI):
 
         G1 = G.copy() #Trimmed Graph
         leaf_nodes = set()
@@ -909,7 +989,7 @@ def _(deque):
         return G1
 
     # 2. Abstract nodes that aren't POI and have deg 2 or less away.
-    def _abstract_2deg(G1, AS, SU, VP, EP, SUP, ASP, GP, POI):
+    def _abstract_2deg(G1, EP, POI):
         G2 = G1.copy() # Abstracted graph
 
         V = G2.nodes()
@@ -961,117 +1041,17 @@ def _(deque):
             G2.remove_node(u)
         return G2, EP2
 
-
-    # 3. Break graph up into sub problems by utilising what I will refer to as a pivot.
-    def find_pivots(G, s):
-        layer, layers = _BFS(G,s)
-
-        #these are little kind of groups of nodes that will tell us info about the pivots
-        stream = {v:set() for v in G.nodes()}
-        streams = {} #Map keyed by streams to give vectors
-
-        #Backtrace to find streams
-        for i in range(len(layers)-1,0,-1):
-            got_already = set()
-            for v in layers[i]:
-                if stream[v]:
-                    got_already.add(v)
-            stream, streams = _add_streams(got_already,G, layer, layers, stream, streams, i)
-            stream, streams = _backtrace_streams(G, layer, layers, stream, streams, i-1)
-
-        #Pivots are any points in the graph such that, if one is removed, the graph is seperated, not connected. 
-        pivots = set() 
-
-        #Find pivots :)
-        for i in range(len(layers)):
-        
-            while layers[i]:
-                u = layers[i].pop()
-                is_pivot = True
-                to_remove = set()
-                for v in layers[i]:
-                    if v == u:
-                        continue
-                    if stream[u]&stream[v]:
-                        is_pivot = False
-                        to_remove.add(v)
-                if is_pivot:
-                    pivots.add(u)
-                else:
-                    layers[i] = layers[i] - (layers[i]&to_remove)
-
-        return pivots
-                    
-
-
-    def _backtrace_streams(G, layer, layers, stream, streams, which_layer):
-        for u in layers[which_layer+1]: 
-            for v in G[u]:
-                if layer[v] == layer[u]-1:
-                    for s in (stream[u]|stream[v]) - stream[v]:
-                        streams[s].add(v)
-                    stream[v] |= stream[u]
-        return stream, streams
-                
-
-    def _add_streams(got_already, G, layer, layers, stream, streams, which_layer): #modifies streams directly so no real need to return.
-            for u in layers[which_layer]:
-                if u in got_already:
-                    continue
-                current_stream = len(streams)
-                streams[current_stream] = set()
-                stream_nodes = {u}
-                while stream_nodes:
-                    v = stream_nodes.pop()
-                    streams[current_stream].add(v)
-                    stream[v].add(current_stream)
-                    got_already.add(v)
-                    for w in G[v]:
-                        if layer[w] == layer[v] and (not w in got_already):
-                            stream_nodes.add(w)
-            return stream, streams
-
-    def _BFS(G, s):
-        #s is first vertex
-        V = G.nodes()
-        BFS_Queue = deque()
-        BFS_Queue.append(s)
-        visited = {v: False for v in V} #map
-        visited[s] = True
-
-        layer = {v: None for v in V} #map
-        layer[s] = 0
-        layers = [{s}]
-
-        current_layer = 0
-
-        while BFS_Queue:
-            u = BFS_Queue.popleft()
-            for v in G[u]:
-                if not visited[v]:
-
-                    visited[v] = True
-                    BFS_Queue.append(v)
-
-                    layer[v] = layer[u] + 1
-                    if (layer[v] == len(layers)-1):
-                        layers[len(layers)-1].add(v)
-                    else:
-                        layers.append({v})
-
-
-        return layer, layers
-
-    # 4. Abstract Exits, Entries and supply units on to rounded graph.
-
+    # 3. Abstract Exits, Entries and supply units on to rounded graph.
     #works only for 1 exit
-    def _abstract_branches(G2, AS, SU, VP, EP2, SUP, ASP, GP, POI, exit, entry):
-        POI3 = POI.copy()
+    def _abstract_branches(G2, SU, VP, EP2, exit, entry, other_exit): 
         G3 = G2.copy()
         EP3 = EP2.copy()
-        VP3 = {v:{'c':[], 'w':0}|VP[v].copy() for v in G2.nodes()}
+        VP3 = {v:{'c':[], 'w':0}|VP[v].copy() for v in G3.nodes()}
         entry3 = entry
         exit3 = exit
+        SU3 = SU.copy()
+        VP3[entry3]['c'] = [entry3]
+        VP3[entry3]['w'] = 1 #change for weighted
         #'c' is cycle and 'w' is weight
 
         leaf_nodes = set()
@@ -1082,41 +1062,270 @@ def _(deque):
 
         while leaf_nodes:
             u = leaf_nodes.pop()
-            v = list(G3[u])[0]
+        
+            neighbours = list(G3[u])
+            if len(neighbours) == 0:
+                if leaf_nodes or  len(G3.nodes()) != 1: #should always be false
+                    raise Exception("disconnected graphs are not allowed grr")
+                break
+            elif len(neighbours) != 1:
+                raise Exception("Nodes in leaf_nodes should only have one neighbour")
+
+            v = neighbours[0]
+
+            if (u == entry3 and v == exit3) or (u == exit3 and v == entry3):
+                #so that the exit and entry don't overlap, could cause confusion about compacting other verticies onto them
+                continue
+
+            #if (u == entry3 or u == exit3):
+             #   continue #REMOVE this once testing is done
+        
             if G3.degree[v] == 4:
                 leaf_nodes.add(v)
 
+            #could be in multiple
+            if u == exit3 and u == entry3:
+                raise Exception("should only be possible when u has no neighbours.")
+        
             if u == entry3:
                 VP3[v]['c'] = VP3[u]['c'] + EP3[(u,v)]['p'] + VP3[v]['c']
                 VP3[v]['w'] = VP3[u]['w'] + EP3[(u,v)]['w'] + VP3[v]['w']
+                if u in SU3:
+                    SU3.add(v)
+                    SU3.remove(u)
                 entry3 = v
             elif u == exit3:
-                VP3[v]['c'] = VP3[v]['c'] + EP3[(u,v)]['p'] + VP3[u]['c']
-                VP3[v]['w'] = VP3[v]['w'] + EP3[(u,v)]['w'] + VP3[u]['w']
+                VP3[v]['c'] = VP3[v]['c'] + EP3[(v,u)]['p'] + VP3[u]['c']
+                VP3[v]['w'] = VP3[v]['w'] + EP3[(v,u)]['w'] + VP3[u]['w']
+                if u in SU3:
+                    SU3.add(v)
+                    SU3.remove(u)
                 exit3 = v
-            else:
+            elif u in SU3:
                 VP3[v]['c'] = EP3[(v,u)]['p'] + VP3[u]['c'] + EP3[(u,v)]['p'] + VP3[v]['c']
                 VP3[v]['w'] = EP3[(v,u)]['w'] + VP3[u]['w'] + EP3[(u,v)]['w'] + VP3[v]['w']
-
-            POI3.add(v)
-            POI3.remove(u)
+                SU3.add(v)
+                SU3.remove(u)
+            else:
+                if(u != other_exit):
+                    raise Exception(f"Smth went wrong: u: {u}, other_exit: {other_exit}")
+                #this should be the other exit, no need to visit it.
+                pass
+ 
             EP3.pop((v,u))
             EP3.pop((u,v))
             VP3.pop(u)
             G3.remove_node(u)
 
+        if(len(SU) < len(SU3)):
+            raise Exception(f"SU must be smaller than SU3, SU = {SU}, SU3 = {SU3}")
 
-        return G3, EP3, VP3, POI3, entry3, exit3
+        return G3, SU3, VP3, EP3, exit3, entry3
+
+    # 4. Break up graph into sub graphs by articulation points 
+    def _break_graph(G, exit, entry): #relies on exit and entry being the first and last node of the graph, i.e. exit and entry are NOT articlation points 
+
+        _G = _get_undirected(G)
+    
+        bc = list(nx.biconnected_components(_G))
+
+
+        #verifying - remove for efficiency.
+        ap = set(nx.articulation_points(_G))
+        if entry in ap or exit in ap:
+            raise Exception(f"Entry: {entry}, Exit: {exit}, ap: {ap}, exit and entry should not be in ap should be false.")
+    
+        path = _BFS(G, exit, entry)
+        if(path[0] != entry or path[-1] != exit):
+            raise Exception(f"entry and exits not start and end of path. exit, entry, path, G {exit}, {entry}, {path}, { {u:G[u] for u in G.nodes()} }")
+
+        bc_order = []
+        pivots = []
+
+        sets = _find_sets(path[0],bc)
+        if len(sets) != 1:
+            raise Exception(f"entry should be in just 1 biconnected component, was in {sets}")
+        else:
+            bc_order.append(sets[0])
+            pivots.append(path[0])
+        
+        for i in range(len(path)):
+            if path[i] in bc[bc_order[-1]]:
+                continue
+            else:
+                sets = _find_sets(path[i-1],bc)
+                dif = set(sets) - set(bc_order)
+                if (len(dif) != 1):
+                    raise Exception(f"Okay not cool man, dif was {dif}, should have len 1.")
+                pivots.append(path[i-1])
+                dif = dif.pop()
+                if not path[i] in bc[dif]:
+                    raise Exception(f"single length bc component?? grr")
+                
+                bc_order.append(dif)
+
+        if exit == pivots[len(pivots)-1]: #always false?!?
+            raise Exception("exit should not be able to be pivot yet")
+        pivots.append(exit)
+
+        bc = [bc[i] for i in bc_order]
+        return bc, pivots
+        
+    def _find_sets(a,bc):
+        sets = []
+    
+        for i in range(len(bc)):
+            if a in bc[i]:
+                sets.append(i)
+        return sets
+
+    def _get_undirected(G):
+        _G = nx.Graph()
+        _G.add_nodes_from(G.nodes())
+        _G.add_edges_from(G.edges())
+        return _G
+
+    def _BFS(G, exit, entry): #to find path, any will do.
+        #s is first vertex
+        V = G.nodes()
+        BFS_Queue = deque()
+        BFS_Queue.append(entry)
+        visited = {v: False for v in V} #map
+        visited[entry] = True
+
+        parent = {v: None for v in V} #map
+
+        while BFS_Queue:
+            u = BFS_Queue.popleft()
+            for v in G[u]:
+                if not visited[v]:
+
+                    visited[v] = True
+                    BFS_Queue.append(v)
+
+                    parent[v] = u
+
+        path = [exit]
+        while path[-1] != entry:
+            path.append(parent[path[-1]])
+        path.reverse()
+    
+        return path
+
+
+
+
+
+
 
 
     # 5. Utilise Brute force on sub problem
-    # 6. Reconstruct Path from abstraction.
+
+    def _Brute_Force(G, SU, VP, EP, exit, entry):
+        G = _get_undirected(G)
+    
+        n_V = len(G.nodes())
+        n_E = len(G.edges())
+        w = 1 + n_E - n_V #number of extra edges, as #V - 1 = (#E-w) => w = 1 + #E - #V
+        E = list(G.edges())
+    
+        perm = [0 for _ in range(n_E)]
+        for i in range(w):
+            perm[i] = 1
+
+        original_perm  = perm.copy()
+        perm = _next_perm(perm)
+
+        min_walk_abstracted = None
+        min_walk_len = None
+
+        VPperm = {v:{"location": v, "is_entry": v == entry, "is_exit": v == exit, "supply_unit":None} for v in G.nodes()}
+        for su in SU:
+            if (not su in VPperm.keys()):
+                raise Exception(f"VPperm = {VPperm}, SU = {SU}")
+            VPperm[su]["supply_unit"]  = su
+    
+        while True:
+            Gperm = G.copy()
+            remove = set()
+            for i in range(n_E):
+                if(perm[i] == 1):
+                    remove.add(E[i])
+            Gperm.remove_edges_from(remove)
+            if nx.is_connected(Gperm):
+            
+
+                walk_abstracted = BFS_DFS(Gperm, {0}, SU, VPperm, {}, {su:{"location":su} for su in SU}, {0:{"location":entry}}, {})["walk"]
+            
+                walk_len = 0
+                for i in range(1,len(walk_abstracted)): #doesn't count first cycle (VP[entry]['w'])
+                    walk_len += EP[(walk_abstracted[i-1],walk_abstracted[i])]['w']
+                    walk_len += VP[walk_abstracted[i]]['w']
+    
+                if min_walk_len == None:
+                    min_walk_len = walk_len
+                    min_walk_abstracted = walk_abstracted
+                elif walk_len < min_walk_len:
+                    min_walk_len = walk_len
+                    min_walk_abstracted = walk_abstracted
+        
+            perm = _next_perm(perm)
+            same = True
+            for i in range(len(perm)):
+                if perm[i] != original_perm[i]:
+                    same = False
+                    break
+            if same:
+                break
+        walk = []
+        for i in range(1,len(min_walk_abstracted)):
+            walk += EP[(min_walk_abstracted[i-1],min_walk_abstracted[i])]['p']
+            walk += VP[min_walk_abstracted[i]]['c']
+        
+    
+    
+    
+        return walk, min_walk_len
+    
+        
+
+    def _next_perm(perm):
+        layer = -1
+        max_index = -1
+
+        #Finds the layer and max_index
+        for i in range(len(perm)-1):
+            if perm[i] < perm[i+1]:
+                layer = i+1
+                for j in range(i+1):
+                    if perm[j] < perm[i+1]:
+                        if max_index == -1:
+                            max_index = j
+                break
+
+        #swaps layer and max_index
+        if(layer != -1):  
+            z = perm[layer]
+            perm[layer] = perm[max_index]
+            perm[max_index] = z
+        else:
+            layer = len(perm)
+
+        #swaps the subpermuation up to layer around
+        for i in range((layer+(layer%2))//2):
+            z = perm[i]
+            perm[i] = perm[layer-i-1]
+            perm[layer-i-1] = z
+
+        return perm
+
+
 
     return (Divide_and_Conquer,)
 
 
-@app.cell
-def _(Av2, draw_fac_v2, fac_v2, nx, plt, random):
+@app.cell(disabled=True, hide_code=True)
+def _(Av2, draw_fac_v2, entrys, fac_v2, nx, plt, random):
     # 2. visualisation
     def g_POI(G, AS, SU, VP, EP, SUP, ASP, GP):
         CRUDY_1 = list(AS)[0]
@@ -1132,7 +1341,7 @@ def _(Av2, draw_fac_v2, fac_v2, nx, plt, random):
         POI = exits.copy()
         POI = POI.union(SU_nodes)
         POI.add(entry)
-        return POI, entry, exits, SU_nodes
+        return POI, exit, entrys, SU_nodes
 
     def m_step2_fac(G, AS, SU, VP, EP, SUP, ASP, GP):
         CRUDY_1 = list(AS)[0]
@@ -1204,7 +1413,7 @@ def _(Av2, draw_fac_v2, fac_v2, nx, plt, random):
     return
 
 
-@app.cell
+@app.cell(disabled=True, hide_code=True)
 def _(
     AS,
     ASP,
@@ -1283,12 +1492,13 @@ def _():
 
 
 @app.cell(hide_code=True)
-def _(BFS_DFS, Brute_Force, Greedy):
+def _(BFS_DFS, Brute_Force, Divide_and_Conquer, Greedy):
     #Define algorithms
     algorithms = {}
     algorithms["BFS+DFS"] = BFS_DFS
     algorithms["Brute Force"] = Brute_Force
     algorithms["Greedy"] = Greedy
+    algorithms["Divide and Conquer"] = Divide_and_Conquer
     return (algorithms,)
 
 
@@ -2113,7 +2323,7 @@ def _(mo):
     <div class = "r">Use BFS (single source all shortest paths) to find the path to the closest supply unit. Repeat from that node to the next closest unvisited supply unit and so on until there are no more supply units. Then use BFS to find the nearest exit and navigate there for extraction.</div>
 
     <div class = "g">
-    Uses BFS to compute the distance and path between all POI (the entry, exit and supply units). Then starting from the entry, always going to the closest unvisited supply unit, traverse all supply units. Then traverse to the nearest exit.
+    Uses BFS to compute the distance and path between all POI (the exit, entry and supply units). Then starting from the entry, always going to the closest unvisited supply unit, traverse all supply units. Then traverse to the nearest exit.
     </div>
 
     ### Option 2: Brute Force (BFS)
@@ -2234,8 +2444,6 @@ def _(mo):
 def _(algorithm_input, mo):
     mo.md(rf"""
     ## C1 - Algorithm in pseudocode - {algorithm_input.value}
-
-    <span class = "r">**Please note that marimo md renders indentation wrong for my pseudocode, please refer to the raw md**</span>
     """)
     return
 
