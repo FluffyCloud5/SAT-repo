@@ -7,7 +7,7 @@ app = marimo.App(
     auto_download=["html"],
 )
 
-with app.setup:
+with app.setup(hide_code=True):
     #import functions
     import marimo as mo
     import random
@@ -54,7 +54,7 @@ def comments():
     #--------------------------------------------------------------
 
 
-    #This marimo notebook is my response to the SAT notebooks
+    #This marimo notebook is Kieran's response to the SAT notebooks
 
 
     #Some coding naming convensions:
@@ -1131,6 +1131,17 @@ def validate_output(_out, G, AS, SU, VP, EP, SUP, ASP, GP):
     return "valid"
 
 
+@app.function(hide_code=True)
+#Define algorithms map
+def m_algorithms():
+    algorithms = {}
+    algorithms["BFS+DFS"] = BFS_DFS
+    algorithms["Brute Force"] = Brute_Force
+    algorithms["Greedy"] = Greedy
+    algorithms["Divide and Conquer"] = Divide_and_Conquer
+    return algorithms
+
+
 @app.cell(hide_code=True)
 def _(algorithms, seed_input):
     #define m_gif_v2
@@ -1273,22 +1284,11 @@ def _():
         label="Seed "
 
     )
-    mo.vstack([
-        mo.md("### Enter your seed, then press Enter to rebuild the facility."),
+    mo.callout(mo.vstack([
+        mo.md("### Enter the seed, then press Enter to rebuild the facility."),
         seed_input
-    ])
+    ]),kind = "success")
     return (seed_input,)
-
-
-@app.function(hide_code=True)
-#Define algorithms
-def m_algorithms():
-    algorithms = {}
-    algorithms["BFS+DFS"] = BFS_DFS
-    algorithms["Brute Force"] = Brute_Force
-    algorithms["Greedy"] = Greedy
-    algorithms["Divide and Conquer"] = Divide_and_Conquer
-    return algorithms
 
 
 @app.cell
@@ -1297,7 +1297,7 @@ def _():
     return (algorithms,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(algorithms, seed_input):
     # RUN algorithms
 
@@ -1327,7 +1327,7 @@ def _(algorithms, seed_input):
 
 @app.cell(hide_code=True)
 def _(algorithms, benchmark_algorithm):
-    out_v2, memory_v2, speed_v2, walk_v2, valid_v2 = {},{},{},{}, {}
+    out_v2, memory_v2, speed_v2, walk_v2, valid_v2 = {},{},{},{},{}
     for _algorithm in algorithms.keys():
         out_v2[_algorithm], memory_v2[_algorithm],speed_v2[_algorithm], _, valid_v2[_algorithm] = benchmark_algorithm(_algorithm) 
         walk_v2[_algorithm] = out_v2[_algorithm]["walk"]
@@ -1348,7 +1348,7 @@ def _(seed_input):
 
 @app.cell(hide_code=True)
 def _():
-    mo.accordion({"<p style = 'font-size: 30px'>Just give me the code to test the algorithms on my sample set</p>":rf"""
+    mo.callout(mo.accordion({"<p style = 'font-size: 25px'>Code to test algorithms</p>":rf"""
 
     Use main1 to test algorithms based off the facility seeds, and main2 to do it based of the the facilities themselves. Chooses which algorithm to test via the key 'algorithm'. Examples are given below all function definitions.
 
@@ -1373,7 +1373,7 @@ def _():
 
 
 
-    def main1(seeds, algorithm = "Brute Force"):
+    def main1(seeds, algorithm = "Brute Force"): #tests based off seeds
         algorithms = m_algorithms()
         outputs = []
         for seed in seeds:
@@ -1382,7 +1382,7 @@ def _():
             outputs.append(c_out_Av2(out_Bv2))
         return outputs
 
-    def main2(facilities, algorithm = "Brute Force"):
+    def main2(facilities, algorithm = "Brute Force"): #same as main1, except tests bases off facilities
         algorithms = m_algorithms()
         outputs = []
         for fac in facilities:
@@ -1416,7 +1416,7 @@ def _():
 
     ```
 
-    """})
+    """}))
     return
 
 
@@ -1539,6 +1539,12 @@ def _():
     - ASP: (Autonomous Systems Properties)
     - GP: (Graph Properties)
 
+    <div class = "g">
+    Other:<br>
+    &#x2022; Facility A: The representation of the facility defined by Kodie Nielsen<br>
+    &#x2022; Facility B: The representation of the facility defined by Kieran in part A1 - Algorithmic Problem Statement
+    </div>
+
     ## Assumptions:
     1.  An Autonomous System (AS) knows the layout of the ESRC sector grid before it navigates it (e.g. it has the blueprints).
     2.  The ASs can navigate in all directions without turning, and the AS knows its original orientation.
@@ -1619,7 +1625,7 @@ def _():
     mo.md("""
     #### Maps
 
-    The following four ADTs are maps of maps, where the key gives you a map of properties of that object. The properties might have keys with values, such as 'weight: 1'. The final map gives properties of the whole ESRC.
+    The following four ADTs are maps of maps, where the keys map to a map of properties of that key. The properties might have keys with values, such as 'weight: 1'. The final map gives properties of the whole ESRC.
     """)
     return
 
@@ -1766,8 +1772,8 @@ def _():
     2. The last vertex of the walk AS makes must be an exit.
     3. $\forall i [i \in \mathbb{N} \land i \in [1,n] \implies v_i \in V]$
     - meaning all vertices in the walk must be vertices of graph G.
-    4. $\forall i [i \in \mathbb{N} \land i \in [1,n-1] \implies e_i \in E \land e_i = (v_i,v_{i+1})]$
-    - meaning all edges in the walk must be edges of graph G and that the edge $e_i$ must be from $v_i$ to $v_{i+1}$.
+    4. $\forall i [i \in \mathbb{N} \land i \in [1,n-1] \implies (v_i,v_{i+1}) \in E]$
+    - meaning all edges in the walk must be edges of graph G.
 
     <div class = "g">
     5. Supply units collected must match the sectors with supply units traversed by the walk<br>
@@ -2721,7 +2727,7 @@ def _():
 @app.cell(hide_code=True)
 def _():
     #What are the inputs again?
-    mo.accordion({"What are the inputs again?":mo.md("""
+    _info1 = mo.accordion({"What are the inputs again?":mo.md("""
     the inputs are: G, AS, SU, VP, EP, SUP, ASP and GP.
     - G: (Graph of a Sector Grid) = (V,E)
     - AS: (Autonomous System)
@@ -2731,12 +2737,8 @@ def _():
     - SUP: (Supply Unit Properties)
     - ASP: (Autonomous Systems Properties)
     - GP: (Graph Properties)""")})
-    return
 
-
-@app.cell(hide_code=True)
-def _():
-    mo.accordion({"How is the generated facility converted into G, AS, SU, VP, EP, SUP, ASP and GP?":rf"""
+    _info2 = mo.accordion({"How is the generated facility converted into G, AS, SU, VP, EP, SUP, ASP and GP?":rf"""
     The following function c_fac_Bv2 is used to convert the generated facility (fac_Av2) into the representation disscussed in part A1 - Algorithmic Problem Statement.<br>
     It has two helper functions, c_Av2 and c_Bv2 to help convert singular nodes.
 
@@ -2753,6 +2755,8 @@ def _():
     {inspect.getsource(c_fac_Bv2)}
     ```
     """})
+
+    mo.callout(mo.vstack([_info1, _info2]))
     return
 
 
@@ -2927,7 +2931,7 @@ def _(algorithm_input, out_v2):
 
 @app.cell(hide_code=True)
 def _():
-    mo.accordion({"How can I convert this output to a generated facility's (facility A) output?":rf"""
+    mo.callout(mo.accordion({"How can this output be converted to a walk traversing generated facility (facility A)?":rf"""
     Please use the c_out_Av2 function to convert from facility B's output (out_Bv2) to a walk in facility A.
 
     ```python
@@ -2940,7 +2944,7 @@ def _():
     ```
 
 
-    """})
+    """}))
     return
 
 
@@ -2952,7 +2956,7 @@ def _():
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _():
     sample_set_size = mo.ui.slider(start = 5, stop = 500, step = 5, value = 100, full_width= True)
     table_options = mo.ui.tabs({"Current Seed": "", "Sample Set":sample_set_size})
@@ -3081,25 +3085,19 @@ def _(
 
 
 @app.cell
-def _():
-    validity_checker_info = mo.accordion({"How is the validity of an algorithm's output checked?": rf"""
-    The output is run through the "validate_ouput" automated checker to make sure the walk matches the constraints specified in part A1.
-    ```python
-    {inspect.getsource(validate_output)}
-    ```
-    """})
-    return (validity_checker_info,)
-
-
-@app.cell
 def _(table, table_options):
     mo.callout(mo.vstack([table_options,table]), kind = "success")
     return
 
 
-@app.cell
-def _(validity_checker_info):
-    validity_checker_info
+@app.cell(hide_code=True)
+def _():
+    mo.callout(mo.accordion({"How is the validity of an algorithm's output checked?": rf"""
+    The output is run through the "validate_ouput" automated checker to make sure the walk matches the constraints specified in part A1.
+    ```python
+    {inspect.getsource(validate_output)}
+    ```
+    """}))
     return
 
 
@@ -3117,10 +3115,10 @@ def _():
     <div class = "g">
     <h3>Choosing an algorithm</h3>
     <p>
-    Please take a moment to engage with the table in part C4. If you select the 'Sample Set' option, you will be able to see the averaging of many random seeds with the best algorithm(s) shown on the right and the validity of the algorithms output down the bottom.</p>
+    Please take a moment to engage with the table in part C4. When the 'Sample Set' option is selected, the average benchmarks of many random seeds will be visible. The best algorithm(s) for the benchmark are shown on the right and the validity of the algorithm's output is displayed down the bottom.</p>
 
     <p>
-    As you can see from the outputs, it can be seen that all algorithms recover all supply units, although with only Brute Force and Divide and Conquer consistantly returning optimal traversal costs. Taking into account speed, some credit has to be given to BFS+DFS for being orders of magnitude faster than the other algorithms while only sacrifising traversal cost a minimal amount. Although Divide and Conquer is meant to be a more efficient version of Brute Force, it is significantly slower, likely due to overhead.
+    From the table it can be seen that all algorithms recover all supply units, although only 'Brute Force' and 'Divide and Conquer' consistantly return optimal traversal costs. Taking into account speed, some credit has to be given to BFS+DFS for being orders of magnitude faster than the other algorithms while only sacrificing traversal cost a minimal amount. On another note, although 'Divide and Conquer' is meant to be a more efficient version of 'Brute Force', it is significantly slower, likely due to overhead.
     </p>
 
     <p>
@@ -3137,10 +3135,15 @@ def _():
 
 
     <h3>Coherence:</h3>
-    The 'Brute Force' implimentation natively utilises the inputs specified in part A1, taking G, AS, SU, VP, EP, SUP, ASP and GP as inputs. It then returns the output map specified in part A1.
+    <p>The 'Brute Force' implimentation natively utilises the inputs specified in part A1, taking G, AS, SU, VP, EP, SUP, ASP and GP as inputs. It then returns the output map specified in part A1, meaning it is well intergrated and coherent with the problem specification in part A.</p>
 
+    <p>However, a problem with the implimentation is that is a bit cluncky with many parts that aren't in use or rather redundant, namely SU, AS, SUP, ASP and GP</p>
 
-    <h3>Constraints:</h3>
+    <p>Perhaps an improvement would be to wrap the inputs into a map to help hide the clunk and make the psuedocode and python code cleaner. This might look like:</p>
+
+    ```python
+    fac_B = {"G":G, "AS":AS, "SU":SU, "VP":VP, "EP":EP, "SUP":SUP, "ASP":ASP, "GP": GP}
+    ```
     </div>
     """)
     return
@@ -3149,7 +3152,60 @@ def _():
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
-    <!--<div class = r>-->
+    ### <span class = "g"> Constraints</span>
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _():
+    mo.callout(mo.accordion({"What are the constraints again?":mo.md(r"""
+    ### Constraints as defined in part A1 - Algorithmic Problem Statement
+
+    1. The first vertex of the walk AS makes must be an entry.
+    2. The last vertex of the walk AS makes must be an exit.
+    3. $\forall i [i \in \mathbb{N} \land i \in [1,n] \implies v_i \in V]$
+    - meaning all vertices in the walk must be vertices of graph G.
+    4. $\forall i [i \in \mathbb{N} \land i \in [1,n-1] \implies (v_i,v_{i+1}) \in E]$
+    - meaning all edges in the walk must be edges of graph G.
+    5. Supply units collected must match the sectors with supply units traversed by the walk<br>
+    6. Traversal cost must match the traversal cost of the walk.
+
+    *3 and 4 are simply ensuring the walk is indeed a walk on graph G.
+
+    """)}))
+    return
+
+
+@app.cell(hide_code=True)
+def _():
+    mo.md(r"""
+    <div class = "g">
+    <p></p>1. Does Brute Force's walk start at an entry? <br>
+    When Brute Force contructs the walk, it defines it as  'walk = [entry]', and only appends to the list, meaning that the walk does start at an entry.<br>
+    2. Is the last vertex of the walk an exit?<br>
+    In the Brute Force code, an exit is always appended to the end of the walk permutation as in 'perm.append(exit)', meaning the last node visited will always be an exit.<br>
+    3. Are all nodes in the walk nodes in G?<br>
+    As the only things added to the walk list are the entry and nodes from the pm, also nodes of G, all nodes of the walk must be in G.<br>
+    4. Are all edges of the walk edges of G?<br>
+    Each edge of the walk is found in the pm by BFS. As BFS only traverses between nodes by edges of the graph G, all edges of the walk must be in G.<br>
+    5. Is the "supply_units_recovered" set consistent with the supply units traversed by the walk?<br>
+    As Brute Force is designed to visit all supply units, and it returns that it recovered all supply units, they is consistent.<br>
+    6. does 'traversal_cost' match the traversal cost of the walk?<br>
+    Since the 'traversal_cost' returned is the number of nodes (repetitions counted) in the walk minus 1, this is consistent with the traversal cost of the walk, as an unweighted length of a walk is just the number of edges in the walk, = |V| - 1</p><br>
+
+    <p>Therefore all constraints are met. This can be verified for a sample set of seeds automatically by utilising the table in part C4.</p>
+
+
+    </div>
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _():
+    mo.md(r"""
+    <div class = r>
     ### Suitability:
 
     The ESRC is a **undirected, unweighted tree** meaning that my BFS+DFS algorithm--which requires an unweighted and undirected graph and returns an optimal solution for a tree--is a perfect match. It is also rather efficient (O((V+E)#Exits)), so for this particular problem (as #exits = 2 and it is sparse with ||E|| =143), it outperforms more general solutions, such as brute force and greedy.
@@ -3177,7 +3233,7 @@ def _():
     6. Crudy can carry at most 5 supply units.
        - As there are only 5 supply units, this isn't an issue.
 
-    Therefore, all constraints are met!
+    Therefore, all constraints are met!</div>
     """)
     return
 
