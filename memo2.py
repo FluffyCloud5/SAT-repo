@@ -1837,8 +1837,12 @@ def _():
     2. The physical layout of the sector grid is abstracted away into this grid, as it only matters how to get from one sector to another sector to be able to traverse the whole grid. This can be calculated using the cardinal direction. (i.e. only relative space matters, not absolute.)
 
     Length
-    <div class = "r">1. The length of an edge (i.e. a corridor) can be abstracted away as in memo  <span class = "r">1</span> <span class = "g">A1</span><!--TODO changes in memo A2-->, all corridors have the same length, meaning the AS only has to move in multiples of one edge length of the graph.</div>
-    <div class = "g">1. Length in Memo A1 is modelled through pythagoreans theorem applied to the displacement vector from one location tuple to another.</div>
+    <div class = "r">1. The length of an edge (i.e. a corridor) can be abstracted away as in memo 1, all corridors have the same length, meaning the AS only has to move in multiples of one edge length of the graph.</div>
+    <div class = "g">
+    1. Length in physical space in Memo A1 is modelled through magnitude of the displacement vector from one location tuple to another, this however is not to be confused with traversal cost.<br>
+    2. Therefore, the length of an edge is the magnitude of the displacement vector from the location of the initial node to its destination. <br>
+    2. The length of a walk is the sum of the lengths of the edges in the walk.</div>
+
 
     Time
     1. Time is not modelled in the abstraction of memo  <span class = "r">1</span> <span class = "g">A1</span>.
@@ -2248,15 +2252,15 @@ def _():
     A significant drawback of the BFS + DFS algorithm is that it relies on the graph being a tree which might not be the case in memos beyond memo 1, leading to a potentially suboptimal solution for graphs with cycles.</div><br>
 
     <div class = "g">
-    Every option above has its merits and its drawbacks, with some being simplier, while others being perfect solutions and some being very efficient. All solutions collect all supply units. Out of all the options given, 3 stand out for distinct reasons.<br>
+    Every option above has its merits and its drawbacks, with some being simpler, while others being perfect solutions and some being very efficient. All solutions collect all supply units. Out of all the options given, 3 stand out for distinct reasons.<br>
 
-    1. Brute Force. Despite being notoriously slow, brute forcing this problem is suprisingly straightforward and efficent, as the time only grows at factorial speeds with an increase in supply units. But since there are only 4-5 supply units, brute force shines here as a simple, optimal and efficient solution.<br>
+    1. Brute Force. Despite being notoriously slow, brute forcing this problem is surprisingly straightforward and efficient, as the time only grows at factorial speeds with an increase in supply units. But since there are only 4-5 supply units, brute force shines here as a simple, optimal and efficient solution.<br>
 
-    2. BFS+DFS. Although originally designed to traverse only trees, BFS+DFS performs suprisingly well in this environment, with unmatched computational speed and relatively good traversal cost. Its complication as an algorithm is a drawback, but if implemented correctly is a great heuristic for this problem, thanks to the relatively few cycles of the facility.<br>
+    2. BFS+DFS. Although originally designed to traverse only trees, BFS+DFS performs surprisingly well in this environment, with unmatched computational speed and relatively good traversal cost. Its complication as an algorithm is a drawback, but if implemented correctly is a great heuristic for this problem, thanks to the relatively few cycles of the facility.<br>
 
     3. Divide and Conquer. As an algorithm returning an optimal solution by breaking down the problem into small and easy to deal with chunks, this algorithm is great for an efficient solution when optimality is key and speed is crucial.<br>
 
-    The choosen algorithm will be discussed and justified in part D.
+    The chosen algorithm will be discussed and justified in part D.
 
     </div>
     """)
@@ -2661,7 +2665,7 @@ def _(algorithm_input):
     Divide_and_Conquer_pseudocode = rf"""
 
     <span style = "font-size: 100px">🚧🔨</span><br>
-     **No psuedocode is avaliable for {algorithm_input.value}** <!--TODO add pseudocode for Divide and Conquer-->
+     **No pseudocode is avaliable for {algorithm_input.value}** <!--TODO add pseudocode for Divide and Conquer-->
 
     """
 
@@ -3145,21 +3149,21 @@ def _():
     As minimising traversal cost is rather important, and the difference in speed and memory use between the algorithms  is negligible, it seems like Brute Force is the best algorithm for the job for its speed, simplicity and optimality.
     </p>
 
-    <h3>suitability:</h3>
+    <h3>Suitability:</h3>
     <p>The facility is a fully connected undirected unweighted graph with cycles. The current 'Brute Force' implementation can handle undirected and fully connected graphs. Therefore the facility fits into the scope of what the 'Brute Force' is designed to solve, showing the suitability of Brute force for this problem.</p>
 
 
     <p>
-    For a sample set of a resonable size (100 or more seeds, refer to table and slider) it can be seen that 'Brute Force' is cutting edge in 3 of the four benchmarks, only beaten in speed by several milliseconds. Despite not being specifically designed for this problem to account for the few cycles, like 'Divide and Conquer', it has almost no overhead allowing it to run lightning fast.
+    For a sample set of a reasonable size (100 or more seeds, refer to table and slider) it can be seen that 'Brute Force' performs optimally (compared to the other algorithms) for 3 of the 4 benchmarks, only beaten in speed by several milliseconds. Despite not being specifically designed for this problem to account for the few cycles, like 'Divide and Conquer', it has almost no overhead allowing it to run lightning fast.
     </p>
 
 
     <h3>Coherence:</h3>
-    <p>The 'Brute Force' implementation natively utilises the inputs specified in part A1, taking G, AS, SU, VP, EP, SUP, ASP and GP as inputs. It then returns the output map specified in part A1, meaning it is well intergrated and coherent with the problem specification in part A.</p>
+    <p>The 'Brute Force' implementation natively utilises the inputs specified in part A1, taking G, AS, SU, VP, EP, SUP, ASP and GP as inputs. It then returns the output map specified in part A1, meaning it is well integrated and coherent with the problem specification in part A.</p>
 
     <p>However, a problem with the implementation is that is a bit clunky with many parts that aren't in use or rather redundant, namely SU, AS, SUP, ASP and GP</p>
 
-    <p>Perhaps an improvement would be to wrap the inputs into a map to help hide the clunk and make the psuedocode and python code cleaner. This might look like:</p>
+    <p>Perhaps an improvement would be to wrap the inputs into a map to help hide the clunk and make the pseudocode and python code cleaner. This might look like:</p>
 
     ```python
     fac_B = {"G":G, "AS":AS, "SU":SU, "VP":VP, "EP":EP, "SUP":SUP, "ASP":ASP, "GP": GP}
@@ -3206,11 +3210,11 @@ def _():
     2. Is the last vertex of the walk an exit?<br>
     In the Brute Force code, an exit is always appended to the end of the walk permutation as in 'perm.append(exit)', meaning the last node visited will always be an exit.<br>
     3. Are all nodes in the walk nodes in G?<br>
-    As the only things added to the walk list are the entry and nodes from the pm, also nodes of G, all nodes of the walk must be in G.<br>
+    The only nodes added to the walk list are the entry and nodes from the pm. As these are all nodes of G, all nodes of the walk must be in G.<br>
     4. Are all edges of the walk edges of G?<br>
     Each edge of the walk is found in the pm by BFS. As BFS only traverses between nodes by edges of the graph G, all edges of the walk must be in G.<br>
     5. Is the "supply_units_recovered" set consistent with the supply units traversed by the walk?<br>
-    As Brute Force is designed to visit all supply units, and it returns that it recovered all supply units, they is consistent.<br>
+    As the 'Brute Force' algorithm visits all supply units, and it returns that it recovered all supply units, the "supply_units_recovered" output is consistent with reality.<br>
     6. does 'traversal_cost' match the traversal cost of the walk?<br>
     Since the 'traversal_cost' returned is the number of nodes (repetitions counted) in the walk minus 1, this is consistent with the traversal cost of the walk, as an unweighted length of a walk is just the number of edges in the walk, = |V| - 1<br>
 
