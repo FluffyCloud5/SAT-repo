@@ -57,8 +57,8 @@ def comments():
     #This marimo notebook is Kieran's response to the SAT notebooks
 
 
-    #Some coding naming convensions:
-        #This notebook is a large project so the will likely be some unconvesional or badly named objects.
+    #Some coding naming conventions:
+        #This notebook is a large project so the will likely be some unconventional or badly named objects.
 
         #v1 - memo 1
         #v2 - memo A1
@@ -378,7 +378,7 @@ def c_Bv2(node, fac_Av2 = {"wing_cols":WING_COLS, "gap": GAP}):
 @app.function(hide_code=True)
 #Define convert facility A to facility B memo A1 (c_fac_Bv2)
 def c_fac_Bv2(fac_Av2):
-    # turn Mr Nielsen's implementation (A) into the implimentation specified in part A1 (B)
+    # turn Mr Nielsen's implementation (A) into the implementation specified in part A1 (B)
 
 
     vertices = []
@@ -1457,17 +1457,36 @@ def _():
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
-    # Problem Outline (memo  <span class = "r">1</span> <span class = "g">A1</span> ): <!-- #TODO change from memo 1 to 2 -->
+    ### Memo 1 to Memo A1 Changes
+    - <span class = "y">Yellow text describes changes made.</span>
+    - <span class = "g">Green text is newly added content.</span>
+    - <span class = "r">Red text is removed content.</span>
+
+    Although an effort was made to highlight all changes, some changes involved complex structures that can't be highlighted and others were too small to mention (like spelling). In the case of a complex structure being added, deleted or changed, yellow text should be present to describe the changes made.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _():
+    mo.md(r"""
+    # Problem Outline (memo  <span class = "r">1</span> <span class = "g">A1</span> ):
 
     Seismic activity has destabilised the Emberlight Subterranean Research Complex (ESRC). Five critical supply units — designated S1 through S5 — remain scattered throughout the structure and are to be recovered.
 
-    <span class = "r">The ESRC is organised as a sector grid. Each sector is a discrete navigable unit. Sectors are connected by reinforced corridors. The sector grid can be seen below.</span>
+    <div class = "r">
+    <p>The ESRC is organised as a sector grid. Each sector is a discrete navigable unit. Sectors are connected by reinforced corridors. The sector grid can be seen below.</p>
 
-    <span class = "g">
-    The ESRC is organised as multiple sector grids. Each sector grid is a rectangle containing 10 by 10 sectors. Each sector is a discrete navigable unit. Sectors are connected by reinforced corridors, and sector grids are connected by inter-wing corridors. The sector grid can be seen below.
-    </span>
+    <p>The objective is to command CRUDY-1 (Corridor Reconnaissance and Utility Drone — Year 1)--an Autonomous System (AS)--to navigate the facility’s corridor network and transport recovered supply units to an extraction point while maximising recovered supply units and ensuring a safe extraction.</p>
+    </div><br>
 
-    The objective is to command CRUDY-1 (Corridor Reconnaissance and Utility Drone — Year 1)--an Autonomous System (AS)--to navigate the facility’s corridor network and transport recovered supply units to an extraction point while maximising recovered supply units and ensuring a safe extraction.
+    <div class = "g">
+    <p>The ESRC is organised as multiple sector grids. Each sector grid is a rectangle containing 10 by 10 sectors. Each sector is a discrete navigable unit. Sectors are connected by reinforced intra-wing corridors, and sector grids are connected by inter-wing corridors. The sector grid can be seen below.</p>
+
+    <p>The objective is to command CRUDY-1 (Corridor Reconnaissance and Utility Drone — Year 1)--an Autonomous System (AS)--to navigate the facility’s corridor network and transport recovered supply units to an extraction point while ensuring a safe extraction. Ideally, the route taken by the AS minimises traversal cost and maximises the number of supply units recovered.</p></div>
+
+
+
 
     (Nielsen, 2026)
     """)
@@ -1541,8 +1560,9 @@ def _():
 
     <div class = "g">
     Other:<br>
-    &#x2022; Facility A: The representation of the facility defined by Kodie Nielsen<br>
-    &#x2022; Facility B: The representation of the facility defined by Kieran in part A1 - Algorithmic Problem Statement
+    &#x2022; Facility: Another word for the ESRC, the environment containing all the sector grids.<br>
+    &#x2022; Facility A: The representation of the facility defined by Kodie Nielsen.<br>
+    &#x2022; Facility B: The representation of the facility defined by Kieran in part A1 - Algorithmic Problem Statement.
     </div>
 
     ## Assumptions:
@@ -1641,13 +1661,13 @@ def _():
 
     <span class = "g">- nothing in memo A1 problem scope</span>
 
-    Beyond the scope of memo 1:
+    Beyond the scope of memo  <span class = "r">1</span> <span class = "g">A1</span>:
 
     - a real number indicating the cost to traverse (as it is all the same)
     - a real number indicating the stability of the corridor.
     - a real number indicating the length of the corridor.
 
-    In memo 1, a possible implementation of this is:
+    In memo  <span class = "r">1</span> <span class = "g">A1</span>, a possible implementation of this is:
 
     <span class = "r">EP = {(u,v):{ "cardinal_angle": real number (cardinal angle from u to v)}
     	| u,v ∈ V ∧ (u,v) ∈ E}</span>
@@ -1665,13 +1685,13 @@ def _():
     - <span class = "g">a tuple of real valued numbers indicating position, where 1 unit length is equal to 1 intra-wing corridor's length.</span>
     - <span class = "g">a string indicating which wing the vertex is located in.</span>
 
-    Beyond the scope of memo 1:
+    Beyond the scope of memo  <span class = "r">1</span> <span class = "g">A1</span>:
 
     - a value indicating the stability of the sector.
     - size
     - shape
 
-    In memo 1, a possible implementation of this is:
+    In memo  <span class = "r">1</span> <span class = "g">A1</span>, a possible implementation of this is:
 
     VP = {v : {
         "supply_unit": nullable string (name of supply unit within the sector, null if it doesn't contain a supply unit),<br>
@@ -1687,15 +1707,15 @@ def _():
 
     - a sector (a vertex of graph G) indicating location (the sector on which the supply unit lies)
 
-    Beyond the scope of memo 1:<br>
-    In the memo 1 problem scope, these properties of the supply units are irrelevant, so they won't be included in the map returned for each supply unit:
-    - a real number indicating the weight of the supply unit (as in the memo 1 problem, all supply unit weights are the same)
+    Beyond the scope of memo  <span class = "r">1</span> <span class = "g">A1</span>:<br>
+    In the memo  <span class = "r">1</span> <span class = "g">A1</span> problem scope, these properties of the supply units are irrelevant, so they won't be included in the map returned for each supply unit:
+    - a real number indicating the weight of the supply unit (as in the memo  <span class = "r">1</span> <span class = "g">A1</span> problem, all supply unit weights are the same)
     - fragility
     - importance
     - size
     - lifespan
 
-    In memo 1, a possible implementation of this is:
+    In memo  <span class = "r">1</span> <span class = "g">A1</span>, a possible implementation of this is:
 
     SUP = {s:{"location": v (the sector of the SU)} | v∈V∧s∈SU}
 
@@ -1705,10 +1725,10 @@ def _():
 
     - a vertex which is the starting location (or entry) of the AS.
 
-    Beyond the scope of memo 1:
+    Beyond the scope of memo  <span class = "r">1</span> <span class = "g">A1</span>:
 
-    - a string indicating type (e.g. CRUDY-1) (as in memo 1 there is only one type)
-    - a real number indicating the total weight the AS can carry. (as in memo 1 this equals the total supply units on the map)
+    - a string indicating type (e.g. CRUDY-1) (as in memo  <span class = "r">1</span> <span class = "g">A1</span> there is only one type)
+    - a real number indicating the total weight the AS can carry. (as in memo  <span class = "r">1</span> <span class = "g">A1</span> this equals the total supply units on the map)
     - a real number indicating how many supply units AS can carry at once. (that is different from the weight, right now they are the same so this is not necessary)
     - a real number indicating total energy of the AS.
     - a real number indicating how much energy a corridor takes.
@@ -1716,7 +1736,7 @@ def _():
     - a vertex indicating assigned extraction point for the AS.
     - a real number indicating speed of the AS.
 
-    In memo 1, a possible implementation of this is:
+    In memo  <span class = "r">1</span> <span class = "g">A1</span>, a possible implementation of this is:
 
     ASP (Autonomous System Properties) = {x:{"entry": v (indicates entry for AS)}| x ∈ AS ∧ v ∈ V}
 
@@ -1727,7 +1747,7 @@ def _():
     - a Boolean value indicating whether emergency lighting is operational
     - a time limit
 
-    These are all beyond the memo 1 problem scope, so:
+    These are all beyond the memo  <span class = "r">1</span> <span class = "g">A1</span> problem scope, so:
 
     GP = {}
 
@@ -1785,10 +1805,10 @@ def _():
     ### Objectives
 
     1. Maximise supply unit recovery.
-    2. Minimise energy cost. In memo 1, this is proportional to the number of edges traversed in the walk, so ||walk|| should be minimised. This is a lower priority compared to the first objective.
+    2. Minimise energy cost. In memo  <span class = "r">1</span> <span class = "g">A1</span><!--TODO in memo A2, change this as not proportional to no edges traversed in the walk-->, this is proportional to the number of edges traversed in the walk, so ||walk|| should be minimised. This is a lower priority compared to the first objective.
     3. Minimise computational time of the algorithm
 
-    These three objectives mean that in the memo 1 problem, the objective is to compute the shortest walk collecting all supply units and making it to the exit with a minimal computational time. This is as the memo 1 problem is quite small and therefore even a bruteforce approach is relatively fast.
+    These three objectives mean that in the memo  <span class = "r">1</span> <span class = "g">A1</span> problem, the objective is to compute the shortest walk collecting all supply units and making it to the exit with a minimal computational time. This is as the memo  <span class = "r">1</span> <span class = "g">A1</span> problem is quite small and therefore even a bruteforce approach is relatively fast.
     """)
     return
 
@@ -1817,11 +1837,11 @@ def _():
     2. The physical layout of the sector grid is abstracted away into this grid, as it only matters how to get from one sector to another sector to be able to traverse the whole grid. This can be calculated using the cardinal direction. (i.e. only relative space matters, not absolute.)
 
     Length
-    <div class = "r">1. The length of an edge (i.e. a corridor) can be abstracted away as in memo 1, all corridors have the same length, meaning the AS only has to move in multiples of one edge length of the graph.</div>
+    <div class = "r">1. The length of an edge (i.e. a corridor) can be abstracted away as in memo  <span class = "r">1</span> <span class = "g">A1</span><!--TODO changes in memo A2-->, all corridors have the same length, meaning the AS only has to move in multiples of one edge length of the graph.</div>
     <div class = "g">1. Length in Memo A1 is modelled through pythagoreans theorem applied to the displacement vector from one location tuple to another.</div>
 
     Time
-    1. Time is not modelled in the abstraction of memo 1.
+    1. Time is not modelled in the abstraction of memo  <span class = "r">1</span> <span class = "g">A1</span>.
     2. This is a safe abstraction as conditions are stable.
 
     Mass
@@ -1831,7 +1851,7 @@ def _():
 
     Corridors
     1. These are modelled as two edges between the sectors it is between, representing the two ways that one can pass through a corridor. The direction of the corridor is modelled as an cardinal angle.
-    2. The shape of the corridor and the roughness of it is abstracted away as it is assumed that all corridors are traversable by the AS. This may or may not be a safe abstraction. The length of these corridors are abstracted away as they have the same length and the stability is abstracted away as it is assumed that conditions are stable in memo 1.
+    2. The shape of the corridor and the roughness of it is abstracted away as it is assumed that all corridors are traversable by the AS. This may or may not be a safe abstraction. The length of these corridors are abstracted away as they have the same length<!--TODO change in memo A2--> and the stability is abstracted away as it is assumed that conditions are stable in memo  <span class = "r">1</span> <span class = "g">A1</span>.
 
     Sectors
     1. These are modelled as vertices on the graph G.
@@ -1848,10 +1868,10 @@ def _():
     Autonomous Systems (AS)
     1. These are modelled (in the environment) with a location (being a vertex on the graph) and a maximum load capacity.
         - a real number indicating how many supply units AS can carry at once. (that is different from the weight, right now they are the same so this is not necessary)
-        - total energy of the AS. (currently irrelevant in the memo 1 problem scope, the AS has more than enough energy)
+        - total energy of the AS. (currently irrelevant in the memo  <span class = "r">1</span> <span class = "g">A1</span> problem scope, the AS has more than enough energy)
         - SUs that the AS has been assigned to extract. (all of them so doesn't need to be explicitly mentioned to the AS)
         - assigned extraction point for the AS. (doesn't matter as AS can exit at any extraction point)
-        - speed of the AS. (doesn't matter as time is irrelevant in the memo 1 problem scope)
+        - speed of the AS. (doesn't matter as time is irrelevant in the memo  <span class = "r">1</span> <span class = "g">A1</span> problem scope)
     """)
     return
 
@@ -2004,14 +2024,14 @@ def _():
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
-    Known properties of the memo 1 problem:
+    Known properties of the memo  <span class = "r">1</span> <span class = "g">A1</span> problem:
 
-    - all edges have the same weight, so it can be treated as an unweighted graph.
-    - the graph is a tree
+    - all edges have the same weight, so it can be treated as an unweighted graph. <!--TODO change in memo A2-->
+    - <span class = "r">the graph is a tree</span>
     - the maximum degree of any vertex is 4 as it is in a grid, meaning it is a 'sparse' graph for the sake of computation. (so an adjacency list is the way to go here).
-    - There are 5 supply units
+    - There are <span class = "g">4-</span>5 supply units
     - There are 2 exits.
-    - There are ||V|| = 144 sectors.
+    - <span class = "r">There are ||V|| = 144 sectors.</span>
 
     BFS is the best way to find the shortest path from a node to all nodes O(V+E) for an unweighted graph.
 
@@ -2232,7 +2252,7 @@ def _():
 
     1. Brute Force. Despite being notoriously slow, brute forcing this problem is suprisingly straightforward and efficent, as the time only grows at factorial speeds with an increase in supply units. But since there are only 4-5 supply units, brute force shines here as a simple, optimal and efficient solution.<br>
 
-    2. BFS+DFS. Although originally designed to traverse only trees, BFS+DFS performs suprisingly well in this environment, with unmatched computational speed and relatively good traversal cost. Its complication as an algorithm is a drawback, but if implimented correctly is a great heuristic for this problem, thanks to the relatively few cycles of the facility.<br>
+    2. BFS+DFS. Although originally designed to traverse only trees, BFS+DFS performs suprisingly well in this environment, with unmatched computational speed and relatively good traversal cost. Its complication as an algorithm is a drawback, but if implemented correctly is a great heuristic for this problem, thanks to the relatively few cycles of the facility.<br>
 
     3. Divide and Conquer. As an algorithm returning an optimal solution by breaking down the problem into small and easy to deal with chunks, this algorithm is great for an efficient solution when optimality is key and speed is crucial.<br>
 
@@ -2451,7 +2471,7 @@ def _(algorithm_input):
     """
 
     Greedy_pseudocode = r"""
-    <span class = "y">This is a newly implimented algorithm</span>
+    <span class = "y">This is a newly implemented algorithm</span>
 
     ```
     FUNCTION Greedy(G: Directed Unweighted Graph, SU: Set, AS: Set, VP: Map, EP: Map, SUP: Map, ASP: Map, GP: Map) -> Map
@@ -2553,7 +2573,7 @@ def _(algorithm_input):
     """
 
     Brute_Force_pseudocode = r"""
-    <span class = "y">This is a newly implimented algorithm</span>
+    <span class = "y">This is a newly implemented algorithm</span>
 
     ```
     FUNCTION Brute_Force(G: Directed Unweighted Graph, SU: Set, AS: Set, VP: Map, EP: Map, SUP: Map, ASP: Map, GP: Map) -> Map
@@ -2688,7 +2708,7 @@ def _(algorithm_input, algorithms):
 
 
     Generic_new_python = rf"""
-    <span class = "y">'{algorithm_input.value}' is a newly implimented algorithm</span>
+    <span class = "y">'{algorithm_input.value}' is a newly implemented algorithm</span>
 
     ```python
     {inspect.getsource(algorithms[algorithm_input.value])}
@@ -2739,7 +2759,7 @@ def _():
     - GP: (Graph Properties)""")})
 
     _info2 = mo.accordion({"How is the generated facility converted into G, AS, SU, VP, EP, SUP, ASP and GP?":rf"""
-    The following function c_fac_Bv2 is used to convert the generated facility (fac_Av2) into the representation disscussed in part A1 - Algorithmic Problem Statement.<br>
+    The following function c_fac_Bv2 is used to convert the generated facility (fac_Av2) into the representation discussed in part A1 - Algorithmic Problem Statement.<br>
     It has two helper functions, c_Av2 and c_Bv2 to help convert singular nodes.
 
     ```python
@@ -3118,15 +3138,15 @@ def _():
     Please take a moment to engage with the table in part C4. When the 'Sample Set' option is selected, the average benchmarks of many random seeds will be visible. The best algorithm(s) for the benchmark are shown on the right and the validity of the algorithm's output is displayed down the bottom.</p>
 
     <p>
-    From the table it can be seen that all algorithms recover all supply units, although only 'Brute Force' and 'Divide and Conquer' consistantly return optimal traversal costs. Taking into account speed, some credit has to be given to BFS+DFS for being orders of magnitude faster than the other algorithms while only sacrificing traversal cost a minimal amount. On another note, although 'Divide and Conquer' is meant to be a more efficient version of 'Brute Force', it is significantly slower, likely due to overhead.
+    From the table it can be seen that all algorithms recover all supply units, although only 'Brute Force' and 'Divide and Conquer' consistently return optimal traversal costs. Taking into account speed, some credit has to be given to BFS+DFS for being orders of magnitude faster than the other algorithms while only sacrificing traversal cost a minimal amount. On another note, although 'Divide and Conquer' is meant to be a more efficient version of 'Brute Force', it is significantly slower, likely due to overhead.
     </p>
 
     <p>
-    As minamising traversal cost is rather important, and the difference in speed and memory use between the algorithms  is negligible, it seems like Brute Force is the best algorithm for the job for its speed, simplicity and optimality.
+    As minimising traversal cost is rather important, and the difference in speed and memory use between the algorithms  is negligible, it seems like Brute Force is the best algorithm for the job for its speed, simplicity and optimality.
     </p>
 
-    <h3>Suitablility:</h3>
-    <p>The facility is a fully connected undirected unweighted graph with cycles. The current 'Brute Force' implimentation can handle undirected and fully connected graphs. Therefore the facility fits into the scope of what the 'Brute Force' is designed to solve, showing the suitablility of Brute force for this problem.</p>
+    <h3>suitability:</h3>
+    <p>The facility is a fully connected undirected unweighted graph with cycles. The current 'Brute Force' implementation can handle undirected and fully connected graphs. Therefore the facility fits into the scope of what the 'Brute Force' is designed to solve, showing the suitability of Brute force for this problem.</p>
 
 
     <p>
@@ -3135,9 +3155,9 @@ def _():
 
 
     <h3>Coherence:</h3>
-    <p>The 'Brute Force' implimentation natively utilises the inputs specified in part A1, taking G, AS, SU, VP, EP, SUP, ASP and GP as inputs. It then returns the output map specified in part A1, meaning it is well intergrated and coherent with the problem specification in part A.</p>
+    <p>The 'Brute Force' implementation natively utilises the inputs specified in part A1, taking G, AS, SU, VP, EP, SUP, ASP and GP as inputs. It then returns the output map specified in part A1, meaning it is well intergrated and coherent with the problem specification in part A.</p>
 
-    <p>However, a problem with the implimentation is that is a bit cluncky with many parts that aren't in use or rather redundant, namely SU, AS, SUP, ASP and GP</p>
+    <p>However, a problem with the implementation is that is a bit clunky with many parts that aren't in use or rather redundant, namely SU, AS, SUP, ASP and GP</p>
 
     <p>Perhaps an improvement would be to wrap the inputs into a map to help hide the clunk and make the psuedocode and python code cleaner. This might look like:</p>
 
@@ -3181,7 +3201,7 @@ def _():
 def _():
     mo.md(r"""
     <div class = "g">
-    <p></p>1. Does Brute Force's walk start at an entry? <br>
+    1. Does Brute Force's walk start at an entry? <br>
     When Brute Force contructs the walk, it defines it as  'walk = [entry]', and only appends to the list, meaning that the walk does start at an entry.<br>
     2. Is the last vertex of the walk an exit?<br>
     In the Brute Force code, an exit is always appended to the end of the walk permutation as in 'perm.append(exit)', meaning the last node visited will always be an exit.<br>
@@ -3192,7 +3212,7 @@ def _():
     5. Is the "supply_units_recovered" set consistent with the supply units traversed by the walk?<br>
     As Brute Force is designed to visit all supply units, and it returns that it recovered all supply units, they is consistent.<br>
     6. does 'traversal_cost' match the traversal cost of the walk?<br>
-    Since the 'traversal_cost' returned is the number of nodes (repetitions counted) in the walk minus 1, this is consistent with the traversal cost of the walk, as an unweighted length of a walk is just the number of edges in the walk, = |V| - 1</p><br>
+    Since the 'traversal_cost' returned is the number of nodes (repetitions counted) in the walk minus 1, this is consistent with the traversal cost of the walk, as an unweighted length of a walk is just the number of edges in the walk, = |V| - 1<br>
 
     <p>Therefore all constraints are met. This can be verified for a sample set of seeds automatically by utilising the table in part C4.</p>
 
@@ -3205,7 +3225,7 @@ def _():
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
-    <div class = r>
+    <div class = "r">
     ### Suitability:
 
     The ESRC is a **undirected, unweighted tree** meaning that my BFS+DFS algorithm--which requires an unweighted and undirected graph and returns an optimal solution for a tree--is a perfect match. It is also rather efficient (O((V+E)#Exits)), so for this particular problem (as #exits = 2 and it is sparse with ||E|| =143), it outperforms more general solutions, such as brute force and greedy.
