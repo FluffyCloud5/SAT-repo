@@ -1,43 +1,47 @@
 
 Assumptions: 
-- ==Add assumption that the inter-wing corridors are of length 4 in physical space (to match the representation provided).==
+- Added an assumption that the inter-wing corridors are of length 4 in physical space (to match the representation provided).
 
-Problem Outline: change to match new problem scope.
+Problem Outline: Changed to match new problem scope of memo A1.
 
-==Definitions: change the definition of a corridor.==
+Definitions: Changed the definition of a corridor.
 
 A1:
 - Inputs:
-    - ==add location property to VP giving a tuple as a location==
-    - ==add wing property to VP==
-    - ==remove cardinal angle from EP==
+    - Added location property to VP giving a tuple as a location
+    - Added wing property to VP
+    - Removed cardinal angle from EP
 - Outputs:
-    - ==change move(a: angle, l: length) functions to move(x: East, y: North)==
-    - ==change output to have location of vertices not vertex names as the location of vertices.== 
+    - change move(a: angle, l: length) functions to move(x: East, y: North)
+    - change output to have location of vertices not vertex names as the location of vertices. 
 
 A2 - Salient Features:
-- ==Location and direction are stored differently and abstracted differently.==
+- Changed Location and direction in the salient features as they are stored differently and abstracted differently than in memo 1.
 
 A3:
- - Add tuple and pairing data type.
-- ADTs used in the algorithm
+ - Added tuple ADT.
+- Updated the ADTs used in the algorithm
+- Cannot mutate arrays, so ADT was updated for arrays.
 
 B - Algorithmic Design:
-- ==Remove the DFS option as it is quite bad.==
-- Add a new **<u>brute force</u>** option that divides and conquers (ish).
-- change the discussion around the new algorithm
+- Removed the DFS option as it is quite bad for this problem.
+- Added a Divide and Conquer solution
+- Changed the discussion around the new algorithm
 
 C - Code:
 - To BFS code and pseudocode: 
-	- ==change move and exit calls==
-- change based of algo, make it to accommodate for different algorithms.
+	- change move and exit calls
+- Accommodates for all options, including at least python code for all of the different algorithms.
 - Change the representation to accommodate for new facility
-- ==Change the output to only give raw output==
-- Add a comparison section
-- Changes to Pseudocode conventions
+- Change the output to only give raw output
+- Added a comparison section to compare algorithms.
+- Changes to pseudocode conventions including removing all END... statements.
 
 
 D - Justification: 
-- make the justification for the new algorithm.
+- Modified the justification to accommodate for the new chosen algorithm (Brute Force).
+
+
+---------------------------------
 
 Read Memo A1 to make sure all requirements have been met

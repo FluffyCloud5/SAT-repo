@@ -1393,9 +1393,9 @@ def _():
 
 
 
-  
+
     {inspect.getsource(m_algorithms)}
-        
+
     {inspect.getsource(m_fac_Av2)}
 
     {inspect.getsource(c_Av2)}
@@ -1425,7 +1425,13 @@ def _():
     mo.md(r"""
     ### Amendments to memo 1
 
-    **A - Problem Specification:**
+
+    Assumptions:
+    - Add assumption that the inter-wing corridors are of length 4 in physical space (to match the representation provided).
+
+    Problem Outline: change to match new problem scope.
+
+    Definitions: change the definition of a corridor.
 
     A1:
     - Inputs:
@@ -1434,22 +1440,34 @@ def _():
         - remove cardinal angle from EP
     - Outputs:
         - change move(a: angle, l: length) functions to move(x: East, y: North)
+        - change output to have location of vertices not vertex names as the location of vertices.
 
     A2 - Salient Features:
     - Location and direction are stored differently and abstracted differently.
 
     A3:
+     - Add tuple and pairing data type.
     - ADTs used in the algorithm
 
     B - Algorithmic Design:
-    - Remove the DFS option as it is quite bad.
-    - Add a new **<u>Brute force</u>** option that divides and conquers (ish).
+    - Remove the DFS option as it is quite bad.==
+    - Add a new **<u>brute force</u>** option that divides and conquers (ish).
+    - change the discussion around the new algorithm
 
     C - Code:
-    - change based of the algorithm, make it to accommodate for different algorithms.
+    - To BFS code and pseudocode:
+    	- change move and exit calls
+    - change based of algo, make it to accommodate for different algorithms.
+    - Change the representation to accommodate for new facility
+    - Change the output to only give raw output
+    - Add a comparison section
+    - Changes to Pseudocode conventions
+
 
     D - Justification:
     - make the justification for the new algorithm.
+
+    Read Memo A1 to make sure all requirements have been met
     """)
     return
 
@@ -1463,6 +1481,44 @@ def _():
     - <span class = "r">Red text is removed content.</span>
 
     Although an effort was made to highlight all changes, some changes involved complex structures that can't be highlighted and others were too small to mention (like spelling). In the case of a complex structure being added, deleted or changed, yellow text should be present to describe the changes made.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _():
+    mo.md(r"""
+    ### Action 1 Revision -- Data Model Redesign
+
+    #### Part 1 -- Identify limitations of the Memo 1 model
+    The inputs and outputs described in memo one part A1 are sufficient to accomodate for the memo A1 problem. However they were a bit clunky and some unrelated changes were made, including:
+
+    - Inputs:
+        - Added location property to VP giving a tuple as a location
+        - Added wing property to VP
+        - Removed cardinal angle from EP
+    - Outputs:
+        - change move(a: angle, l: length) functions to move(x: East, y: North)
+        - change output to have location of vertices not vertex names as the location of vertices.
+
+    #### Part 2 -- Evaluate two design approaches
+    - Flat Graph:
+        - The current algorithmic problem statement handles this perfectly.
+        - Pro: It allows for easy traversal between the wings as they are abstracted away.
+        - Con: Might be worse for a heuristic algorithm approach, as traversing through each wing sequencially is an efficient solution.
+    - Hierachical Graph:
+        - This would involve changing the algorithmic problem statement by adding another overaching graph.
+        - Pro: It would allow for clear segmentation between the wings.
+        - Con: It causes the input to become incredibly complicated and makes algorithms to find optimal solutions harder to impliment.
+    #### Part 3 -- Select, specify, and justify
+    - The tuple ADT was added to allow for cooridinate positions to be represented in the graph. A tuple was selected as it is an immutable data type, allowing for constants to be easily conveyed.
+
+
+    ### Action 2 Revision -- Algorithm Redesign
+
+    #### Part 1 -- Identify the new sub-problems
+    #### Part 2 -- Evaluate two wing-traversal strategies
+    #### Part 3 -- Describe your revised algorithm in full
     """)
     return
 
@@ -1841,7 +1897,7 @@ def _():
     <div class = "g">
     1. Length in physical space in Memo A1 is modelled through magnitude of the displacement vector from one location tuple to another, this however is not to be confused with traversal cost.<br>
     2. Therefore, the length of an edge is the magnitude of the displacement vector from the location of the initial node to its destination. <br>
-    2. The length of a walk is the sum of the lengths of the edges in the walk.</div>
+    3. The length of a walk is the sum of the lengths of the edges in the walk.</div>
 
 
     Time
@@ -1943,6 +1999,7 @@ def _():
     - list_name[i] ⇔ list_name.lookup(i) (when getting the value at i)
     - list_name[i] ← e ⇔ list_name.set(i,e) (when setting the value at i to e)
 
+
     **5. Stack**<br>
     push(s: Stack, e: Element) → Stack<br>
     pop(s: Stack) → Stack X Element<br>
@@ -1969,13 +2026,22 @@ def _():
 
     **8. Array**<br>
     set(a: Array, i: Index, e: Element) → Array<br>
-    remove_at(a: Array, i: Index) → Array<br>
+    <span class = "r">remove_at(a: Array, i: Index) → Array</span><br>
     lookup(a: Array, i: Index) → Element<br>
     length(a: Array) → Integer
 
     Note:
     - array_name[i] ⇔ array_name.lookup(i) (when getting the value at i)
     - array_name[i] ← e ⇔ array_name.set(i,e) (when setting the value at i to e)
+
+    <div class = "g">
+    9. Tuple<br>
+    lookup(t: Tuple, i: Index) → Element<br>
+    length(t: Tuple) → Integer<br>
+
+    Note:<br>
+    &#x2022; tuple_name[i] ⇔ tuple_name.lookup(i) (when getting the value at i)
+    </div>
 
     ### ADTs used <!--potential improvements to be made-->
 
@@ -1992,19 +2058,17 @@ def _():
     #### Outputs:
 
     map containing the whole output, including a:
-    - List (of vertices and edges traversed in walk).
+    - List (of vertices <span class = "r">and edges</span> traversed in walk).
     - set (of supply units recovered)
-    - integer (cost of walk)
+    - Integer (cost of the walk)
 
     having these outputs all in a map allows for ease of use as they are packaged together.
 
     #### Within the Algorithm
 
-    The algorithm is quite complicated with many ADTs used but some key ADTs used are:
-    - A queue for BFS
-    - A stack for DFS
-    - Multiple maps to represent a tree, visited etc.
-    - A list for the walk (ordered and allows for access to all locations without mutations.)
+    Some key ADTs used by the 'Brute Force' algorithm are:
+    - A map of maps for an traversal cost matrix.
+    - A list of the walk and of the permutation.
     """)
     return
 
@@ -2035,13 +2099,16 @@ def _():
     - the maximum degree of any vertex is 4 as it is in a grid, meaning it is a 'sparse' graph for the sake of computation. (so an adjacency list is the way to go here).
     - There are <span class = "g">4-</span>5 supply units
     - There are 2 exits.
+    - <span class = "g">There are relatively few cycles.
     - <span class = "r">There are ||V|| = 144 sectors.</span>
 
-    BFS is the best way to find the shortest path from a node to all nodes O(V+E) for an unweighted graph.
+    <div class = "r">
+    BFS is the best way to find the shortest path from a node to all nodes O(V+E) for an unweighted graph.<br>
 
-    Note: if edge traversal cost starts to differ (but stays positive) use Dijkstra's instead of BFS, O(log(V)(V+E)).
+    Note: if edge traversal cost starts to differ (but stays positive) use Dijkstra's instead of BFS, O(log(V)(V+E)).<br>
 
     Note: if there are negative edges (but not negative cycles), use Bellman Ford instead of BFS, O(VE).
+    </div>
     """)
     return
 
@@ -2101,7 +2168,7 @@ def _():
     <div class = "r">Use BFS (single source all shortest paths) to find the path to the closest supply unit. Repeat from that node to the next closest unvisited supply unit and so on until there are no more supply units. Then use BFS to find the nearest exit and navigate there for extraction.</div>
 
     <div class = "g">
-    Uses BFS to compute the distance and path between all POI (the exit, entry and supply units). Then starting from the entry, always going to the closest unvisited supply unit, traverse all supply units. Then traverse to the nearest exit.
+    Uses BFS to compute the distance and path between all POI (the exit, entry and supply units). Then starting from the entry, always going to the closest unvisited supply unit, traverse all supply units. Then it traverses to the nearest exit.
     </div>
 
     ### Option 2: Brute Force (with BFS)
@@ -2120,7 +2187,7 @@ def _():
 
     #### Algorithm:
 
-    First: Finds all shortest paths between the supply units, the entry and the exits, put these into a (S+#entries + #exits) squared matrix.
+    Firstly it finds all the shortest paths between the supply units, the entry and the exits and puts these into a path and distance matrix.
 
     Secondly use said matrix to find the length of the walk Entry, ..., $s_1$, ..., $s_2$, ..., $s_n$, ..., Exit,
     where each permutation of $s_1$ to $s_n$ is tried along with different exit options.
@@ -2131,8 +2198,9 @@ def _():
 
     Pros:
 
-    - Returns the optimal <span class = "r">route</span> <span class = "g">walk</span>
-    - Not bad time efficiency with O(#Exits(V+E)).
+    <span class = "r">- Returns the optimal walk.</span>
+    - Works well for graphs with few cycles.
+    - Good time compexity with O(#Exits(V+E)).
 
     Cons:
 
@@ -2157,7 +2225,7 @@ def _():
 @app.cell(hide_code=True)
 def _():
     #DFS returns best walk for a tree proof
-    mo.accordion({"**DFS returns best walk for a tree proof**": """
+    mo.callout(mo.accordion({"**BFS+DFS returns best walk for a tree proof**": """
     Scope: undirected trees. (can be weighted)
 
     POI = Points of Interest, here meaning entries, exits and supply units.
@@ -2199,7 +2267,7 @@ def _():
 
     #### Proof Summary
 
-    As the BFS+DFS algorithm utilises DFS in the manner discussed in the proof, BFS+DFS returns the shortest walk for memo 1, but not necessarily memo A1."""})
+    As the BFS+DFS algorithm utilises DFS in the manner discussed in the proof, BFS+DFS returns the shortest walk for memo 1, but not necessarily memo A1."""}))
     return
 
 
@@ -2254,13 +2322,13 @@ def _():
     <div class = "g">
     Every option above has its merits and its drawbacks, with some being simpler, while others being perfect solutions and some being very efficient. All solutions collect all supply units. Out of all the options given, 3 stand out for distinct reasons.<br>
 
-    1. Brute Force. Despite being notoriously slow, brute forcing this problem is surprisingly straightforward and efficient, as the time only grows at factorial speeds with an increase in supply units. But since there are only 4-5 supply units, brute force shines here as a simple, optimal and efficient solution.<br>
+    1. Brute Force. Brute forcing this problem is straightforward and efficient as there are only 4-5 supply units and the time taken only grows at factorial speeds relative to the supply unit count. Brute force here as a simple, optimal and efficient solution.<br>
 
-    2. BFS+DFS. Although originally designed to traverse only trees, BFS+DFS performs surprisingly well in this environment, with unmatched computational speed and relatively good traversal cost. Its complication as an algorithm is a drawback, but if implemented correctly is a great heuristic for this problem, thanks to the relatively few cycles of the facility.<br>
+    2. BFS+DFS. Although originally designed to traverse only trees, BFS+DFS performs well in this environment, with unmatched computational speed and relatively good traversal cost, being a good heuristic for this problem.<br>
 
-    3. Divide and Conquer. As an algorithm returning an optimal solution by breaking down the problem into small and easy to deal with chunks, this algorithm is great for an efficient solution when optimality is key and speed is crucial.<br>
+    3. Divide and Conquer. As an algorithm returning an optimal solution by breaking down the problem into small and easy to deal with chunks, this algorithm is great for an efficient solution when optimality is key and speed is crucial and should outperform Brute Force.<br>
 
-    The chosen algorithm will be discussed and justified in part D.
+    The chosen algorithm will be discussed and justified further in part D.
 
     </div>
     """)
@@ -2665,7 +2733,7 @@ def _(algorithm_input):
     Divide_and_Conquer_pseudocode = rf"""
 
     <span style = "font-size: 100px">🚧🔨</span><br>
-     **No pseudocode is avaliable for {algorithm_input.value}** <!--TODO add pseudocode for Divide and Conquer-->
+     **No pseudocode is available for {algorithm_input.value}** <!--TODO add pseudocode for Divide and Conquer-->
 
     """
 
@@ -2752,7 +2820,7 @@ def _():
 def _():
     #What are the inputs again?
     _info1 = mo.accordion({"What are the inputs again?":mo.md("""
-    the inputs are: G, AS, SU, VP, EP, SUP, ASP and GP.
+    The inputs are: G, AS, SU, VP, EP, SUP, ASP and GP.
     - G: (Graph of a Sector Grid) = (V,E)
     - AS: (Autonomous System)
     - SU: (Supply Unit)
@@ -3161,7 +3229,7 @@ def _():
     <h3>Coherence:</h3>
     <p>The 'Brute Force' implementation natively utilises the inputs specified in part A1, taking G, AS, SU, VP, EP, SUP, ASP and GP as inputs. It then returns the output map specified in part A1, meaning it is well integrated and coherent with the problem specification in part A.</p>
 
-    <p>However, a problem with the implementation is that is a bit clunky with many parts that aren't in use or rather redundant, namely SU, AS, SUP, ASP and GP</p>
+    <p>However, a problem with the implementation is that it is a bit clunky with many parts that aren't in use or rather redundant, namely SU, AS, SUP, ASP and GP</p>
 
     <p>Perhaps an improvement would be to wrap the inputs into a map to help hide the clunk and make the pseudocode and python code cleaner. This might look like:</p>
 
@@ -3215,7 +3283,7 @@ def _():
     Each edge of the walk is found in the pm by BFS. As BFS only traverses between nodes by edges of the graph G, all edges of the walk must be in G.<br>
     5. Is the "supply_units_recovered" set consistent with the supply units traversed by the walk?<br>
     As the 'Brute Force' algorithm visits all supply units, and it returns that it recovered all supply units, the "supply_units_recovered" output is consistent with reality.<br>
-    6. does 'traversal_cost' match the traversal cost of the walk?<br>
+    6. Does 'traversal_cost' match the traversal cost of the walk?<br>
     Since the 'traversal_cost' returned is the number of nodes (repetitions counted) in the walk minus 1, this is consistent with the traversal cost of the walk, as an unweighted length of a walk is just the number of edges in the walk, = |V| - 1<br>
 
     <p>Therefore all constraints are met. This can be verified for a sample set of seeds automatically by utilising the table in part C4.</p>
