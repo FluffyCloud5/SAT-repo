@@ -7,17 +7,8 @@ app = marimo.App(
     auto_download=["html"],
 )
 
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
- 
-    """)
-    return
-
-
-@app.cell
-def _():
+with app.setup:
+    #import functions
     import marimo as mo
     import random
     import networkx as nx
@@ -33,12 +24,58 @@ def _():
     import time
     import tracemalloc
     import math
+    import inspect
 
-    return deque, imageio, mo, mpatches, nx, os, plt, random, time, tracemalloc
+
+    #Some constants
+    COLS, ROWS =12,12
+    WING_COLS, WING_ROWS = 10, 10
+    GAP = 3  # grid-unit gap between wings in the visualisation
+
+
+    # colors: 
+    COL_BG       = '#F5F7FA'
+    COL_GRID     = '#C8D0DC'
+    COL_WALL     = '#44546A'
+    COL_ENTRY    = '#0B6E6B'
+    COL_EXIT     = '#7A1E2C'
+    COL_SUPPLY   = '#4AA8A0'
+    COL_PATH     = '#0B6E6B'
+    COL_VISITED  = '#B8D8D7'
+    COL_FRONTIER = '#F4C97A'
+    COL_CURRENT  = '#E8603C'
+    COL_JUNCTION = '#7A1E2C'
+
+
+@app.cell
+def comments():
+    #--------------------------------------------------------------
+    #---------------------------OVERVIEW---------------------------
+    #--------------------------------------------------------------
+
+
+    #This marimo notebook is my response to the SAT notebooks
+
+
+    #Some coding naming convensions:
+        #This notebook is a large project so the will likely be some unconvesional or badly named objects.
+
+        #v1 - memo 1
+        #v2 - memo A1
+        #v3 - memo A2
+        #fac - facility
+        #facility A - representation of the facility in Kodie Nielsen's way
+        #facility B - representation of the facility in Kieran's defined in part A1 - Algorithmic problem statement
+        #'m_' before something - to make that something
+        #'c_' before something - to convert into that something
+
+
+    #functions are defined inside one another for the reusability feature and being able to print them easily with inspect.getsource()
+    return
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def style():
     mo.md(r"""
     <style>
         h1 {
@@ -80,30 +117,9 @@ def _(mo):
     return
 
 
-@app.cell
-def _(mo):
-    #VALUES
-    COLS, ROWS =12,12
-    seed_input = mo.ui.number(
-        value=30012009,
-        start=0,
-        stop=99999999,
-        step=1,
-        label="Seed "
-
-    )
-    mo.vstack([
-        mo.md("### Enter your seed, then press Enter to rebuild the facility."),
-        seed_input
-    ])
-    return (seed_input,)
-
-
-@app.cell(hide_code=True)
-def _(nx, random, seed_input):
-    #make the A1 facility (m_fac_Av2)
-    WING_COLS, WING_ROWS = 10, 10
-    GAP = 3  # grid-unit gap between wings in the visualisation
+@app.function(hide_code=True)
+#Define make the A1 facility (m_fac_Av2)
+def m_fac_Av2(seed): #make facility version 2
 
     def _neighbours(cols, rows, c, r):
         for dc, dr in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
@@ -131,358 +147,314 @@ def _(nx, random, seed_input):
         carve(0, 0)
         return g
 
-    def m_fac_Av2(seed): #make facility version 2
-        int_seed = int(seed)
-        n_wings   = 2 + (int_seed % 3)          # 2, 3, or 4 wings from seed
-        wing_names = ['Alpha', 'Beta', 'Gamma', 'Delta'][:n_wings]
+    int_seed = int(seed)
+    n_wings   = 2 + (int_seed % 3)          # 2, 3, or 4 wings from seed
+    wing_names = ['Alpha', 'Beta', 'Gamma', 'Delta'][:n_wings]
 
-        # Build each wing from a deterministic derived seed
-        wings = []
-        for w in range(n_wings):
-            wrng = random.Random(int_seed * 31 + w * 7919)
-            wings.append(_build_wing(WING_COLS, WING_ROWS, wrng))
+    # Build each wing from a deterministic derived seed
+    wings = []
+    for w in range(n_wings):
+        wrng = random.Random(int_seed * 31 + w * 7919)
+        wings.append(_build_wing(WING_COLS, WING_ROWS, wrng))
 
-        # Inter-wing junctions: 2 corridors per adjacent wing pair
-        # Each junction connects (w, WING_COLS-1, r) to (w+1, 0, r)
-        junctions = []
-        for w in range(n_wings - 1):
-            jrng = random.Random(int_seed * 17 + w * 5003)
-            rows_avail = list(range(2, WING_ROWS - 2))
-            jrng.shuffle(rows_avail)
-            r1, r2 = sorted(rows_avail[:2])
-            junctions.append(((w, WING_COLS - 1, r1), (w + 1, 0, r1)))
-            junctions.append(((w, WING_COLS - 1, r2), (w + 1, 0, r2)))
+    # Inter-wing junctions: 2 corridors per adjacent wing pair
+    # Each junction connects (w, WING_COLS-1, r) to (w+1, 0, r)
+    junctions = []
+    for w in range(n_wings - 1):
+        jrng = random.Random(int_seed * 17 + w * 5003)
+        rows_avail = list(range(2, WING_ROWS - 2))
+        jrng.shuffle(rows_avail)
+        r1, r2 = sorted(rows_avail[:2])
+        junctions.append(((w, WING_COLS - 1, r1), (w + 1, 0, r1)))
+        junctions.append(((w, WING_COLS - 1, r2), (w + 1, 0, r2)))
 
-        # Fixed entry and exits
-        entry  = (0, 0, 0)
-        exit_a = (n_wings - 1, WING_COLS - 1, WING_ROWS - 1)
-        exit_b = (n_wings - 1, WING_COLS - 1, 0)
+    # Fixed entry and exits
+    entry  = (0, 0, 0)
+    exit_a = (n_wings - 1, WING_COLS - 1, WING_ROWS - 1)
+    exit_b = (n_wings - 1, WING_COLS - 1, 0)
 
-        # Supply placement: spread across wings, prefer dead-end nodes
-        srng = random.Random(int_seed * 13 + 42)
-        reserved = {entry, exit_a, exit_b}
-        for n1, n2 in junctions:
-            reserved.add(n1)
-            reserved.add(n2)
+    # Supply placement: spread across wings, prefer dead-end nodes
+    srng = random.Random(int_seed * 13 + 42)
+    reserved = {entry, exit_a, exit_b}
+    for n1, n2 in junctions:
+        reserved.add(n1)
+        reserved.add(n2)
 
-        # Collect dead-end candidates per wing
-        per_wing_cands = []
-        for w, wg in enumerate(wings):
-            de = [
-                (w, c, r) for (c, r) in wg.nodes()
-                if wg.degree((c, r)) == 1 and (w, c, r) not in reserved
-            ]
-            srng.shuffle(de)
-            per_wing_cands.append(de)
+    # Collect dead-end candidates per wing
+    per_wing_cands = []
+    for w, wg in enumerate(wings):
+        de = [
+            (w, c, r) for (c, r) in wg.nodes()
+            if wg.degree((c, r)) == 1 and (w, c, r) not in reserved
+        ]
+        srng.shuffle(de)
+        per_wing_cands.append(de)
 
-        # Round-robin: up to 2 supplies per wing, 5 total
-        supplies = []
-        for _ in range(2):
-            for wl in per_wing_cands:
-                if len(supplies) >= 5:
-                    break
-                for n in wl:
-                    if n not in supplies:
-                        supplies.append(n)
-                        break
+    # Round-robin: up to 2 supplies per wing, 5 total
+    supplies = []
+    for _ in range(2):
+        for wl in per_wing_cands:
             if len(supplies) >= 5:
                 break
+            for n in wl:
+                if n not in supplies:
+                    supplies.append(n)
+                    break
+        if len(supplies) >= 5:
+            break
 
-        return {
-            'n_wings':    n_wings,
-            'wing_names': wing_names,
-            'wings':      wings,
-            'wing_cols':  WING_COLS,
-            'wing_rows':  WING_ROWS,
-            'entry':      entry,
-            'exit_a':     exit_a,
-            'exit_b':     exit_b,
-            'supplies':   supplies[:5],
-            'junctions':  junctions,
-            'gap': GAP
-        }
-
-    fac_v2 = m_fac_Av2(seed_input.value)
-    return GAP, WING_COLS, fac_v2, m_fac_Av2
-
-
-@app.cell(hide_code=True)
-def _(GAP, mpatches, plt):
-    #draw the facility for memo A1 (draw_fac_v2)
-    COL_BG       = '#F5F7FA'
-    COL_GRID     = '#C8D0DC'
-    COL_WALL     = '#44546A'
-    COL_ENTRY    = '#0B6E6B'
-    COL_EXIT     = '#7A1E2C'
-    COL_SUPPLY   = '#4AA8A0'
-    COL_PATH     = '#0B6E6B'
-    COL_VISITED  = '#B8D8D7'
-    COL_FRONTIER = '#F4C97A'
-    COL_CURRENT  = '#E8603C'
-    COL_JUNCTION = '#7A1E2C'
+    return {
+        'n_wings':    n_wings,
+        'wing_names': wing_names,
+        'wings':      wings,
+        'wing_cols':  WING_COLS,
+        'wing_rows':  WING_ROWS,
+        'entry':      entry,
+        'exit_a':     exit_a,
+        'exit_b':     exit_b,
+        'supplies':   supplies[:5],
+        'junctions':  junctions,
+        'gap': GAP
+    }
 
 
-    def draw_fac_v2(fac, highlight_path=None, node_colors=None,
-                        supply_collected=None, title="Multi-Wing Facility", legend = True, grid = True):
+@app.function(hide_code=True)
+#Define draw the facility for memo A1 (draw_fac_v2)
+def draw_fac_v2(fac_Av2, highlight_path=None, node_colors=None,
+                    supply_collected=None, title="Multi-Wing Facility", legend = True, grid = True):
 
-        wc = fac['wing_cols']
-        wr = fac['wing_rows']
-        nw = fac['n_wings']
-        total_w = nw * wc + (nw - 1) * GAP
+    wc = fac_Av2['wing_cols']
+    wr = fac_Av2['wing_rows']
+    nw = fac_Av2['n_wings']
+    total_w = nw * wc + (nw - 1) * GAP
 
-        fig_w = max(10, total_w * 0.58)
-        fig_h = max(5, wr * 0.58 + 1.2)
-        fig, ax = plt.subplots(figsize=(fig_w, fig_h))
-        ax.set_facecolor(COL_BG)
-        fig.patch.set_facecolor(COL_BG)
+    fig_w = max(10, total_w * 0.58)
+    fig_h = max(5, wr * 0.58 + 1.2)
+    fig, ax = plt.subplots(figsize=(fig_w, fig_h))
+    ax.set_facecolor(COL_BG)
+    fig.patch.set_facecolor(COL_BG)
 
-        def xoff(w):
-            return w * (wc + GAP)
+    def xoff(w):
+        return w * (wc + GAP)
 
-        # Draw each wing
-        for w, wing in enumerate(fac['wings']):
-            ox = xoff(w)
+    # Draw each wing
+    for w, wing in enumerate(fac_Av2['wings']):
+        ox = xoff(w)
 
-            # Grid lines
-            if grid:
-                for c in range(wc + 1):
-                    ax.plot([ox + c, ox + c], [0, wr],
-                            color=COL_GRID, lw=0.4, zorder=1)
-                for r in range(wr + 1):
-                    ax.plot([ox, ox + wc], [r, r],
-                            color=COL_GRID, lw=0.4, zorder=1)
+        # Grid lines
+        if grid:
+            for c in range(wc + 1):
+                ax.plot([ox + c, ox + c], [0, wr],
+                        color=COL_GRID, lw=0.4, zorder=1)
+            for r in range(wr + 1):
+                ax.plot([ox, ox + wc], [r, r],
+                        color=COL_GRID, lw=0.4, zorder=1)
 
 
-            # Wing border
-            ax.add_patch(plt.Rectangle(
-                (ox, 0), wc, wr,
-                fill=False, edgecolor=COL_WALL, lw=2.2, zorder=3))
+        # Wing border
+        ax.add_patch(plt.Rectangle(
+            (ox, 0), wc, wr,
+            fill=False, edgecolor=COL_WALL, lw=2.2, zorder=3))
 
-            # Wing label
-            ax.text(ox + wc / 2, wr + 0.38,
-                    f"Wing {fac['wing_names'][w]}",
-                    ha='center', va='bottom', fontsize=9,
-                    fontweight='bold', color='#0B1F3B', zorder=8)
+        # Wing label
+        ax.text(ox + wc / 2, wr + 0.38,
+                f"Wing {fac_Av2['wing_names'][w]}",
+                ha='center', va='bottom', fontsize=9,
+                fontweight='bold', color='#0B1F3B', zorder=8)
 
-            # Internal walls (draw where no edge exists)
-            for c in range(wc):
-                for r in range(wr):
-                    if c + 1 < wc and not wing.has_edge((c, r), (c + 1, r)):
-                        ax.plot([ox + c + 1, ox + c + 1], [r, r + 1],
-                                color=COL_WALL, lw=1.4, zorder=3)
-                    if r + 1 < wr and not wing.has_edge((c, r), (c, r + 1)):
-                        ax.plot([ox + c, ox + c + 1], [r + 1, r + 1],
-                                color=COL_WALL, lw=1.4, zorder=3)
+        # Internal walls (draw where no edge exists)
+        for c in range(wc):
+            for r in range(wr):
+                if c + 1 < wc and not wing.has_edge((c, r), (c + 1, r)):
+                    ax.plot([ox + c + 1, ox + c + 1], [r, r + 1],
+                            color=COL_WALL, lw=1.4, zorder=3)
+                if r + 1 < wr and not wing.has_edge((c, r), (c, r + 1)):
+                    ax.plot([ox + c, ox + c + 1], [r + 1, r + 1],
+                            color=COL_WALL, lw=1.4, zorder=3)
 
-            # Node highlights
-            if node_colors:
-                for (ww, c, r), color in node_colors.items():
-                    if ww == w:
-                        ax.add_patch(plt.Rectangle(
-                            (ox + c, r), 1, 1,
-                            color=color, alpha=0.5, zorder=2))
+        # Node highlights
+        if node_colors:
+            for (ww, c, r), color in node_colors.items():
+                if ww == w:
+                    ax.add_patch(plt.Rectangle(
+                        (ox + c, r), 1, 1,
+                        color=color, alpha=0.5, zorder=2))
 
-        # Inter-wing corridors and junction nodes
-        for (w1, c1, r1), (w2, c2, r2) in fac['junctions']:
-            x1, y1 = xoff(w1) + c1 + 0.5, r1 + 0.5
-            x2, y2 = xoff(w2) + c2 + 0.5, r2 + 0.5
-            ax.plot([x1, x2], [y1, y2],
-                    color=COL_JUNCTION, lw=1.8,
-                    linestyle='--', alpha=0.7, zorder=4)
-            ax.plot(x1, y1, 'o', ms=8, color=COL_JUNCTION, zorder=5)
-            ax.plot(x2, y2, 'o', ms=8, color=COL_JUNCTION, zorder=5)
+    # Inter-wing corridors and junction nodes
+    for (w1, c1, r1), (w2, c2, r2) in fac_Av2['junctions']:
+        x1, y1 = xoff(w1) + c1 + 0.5, r1 + 0.5
+        x2, y2 = xoff(w2) + c2 + 0.5, r2 + 0.5
+        ax.plot([x1, x2], [y1, y2],
+                color=COL_JUNCTION, lw=1.8,
+                linestyle='--', alpha=0.7, zorder=4)
+        ax.plot(x1, y1, 'o', ms=8, color=COL_JUNCTION, zorder=5)
+        ax.plot(x2, y2, 'o', ms=8, color=COL_JUNCTION, zorder=5)
 
-        # Supply markers
-        for i, (ws, cs, rs) in enumerate(fac['supplies']):
-            ox = xoff(ws)
-            already = supply_collected and (ws, cs, rs) in supply_collected
-            col = '#AAAAAA' if already else COL_SUPPLY
-            mkr = 'x' if already else '*'
-            ax.plot(ox + cs + 0.5, rs + 0.5,
-                    marker=mkr, markersize=14, color=col,
-                    markeredgecolor=COL_ENTRY if not already else '#999',
-                    markeredgewidth=0.8, zorder=5)
-            ax.text(ox + cs + 0.62, rs + 0.58, f'S{i + 1}',
-                    fontsize=6, color=COL_WALL, zorder=6)
+    # Supply markers
+    for i, (ws, cs, rs) in enumerate(fac_Av2['supplies']):
+        ox = xoff(ws)
+        already = supply_collected and (ws, cs, rs) in supply_collected
+        col = '#AAAAAA' if already else COL_SUPPLY
+        mkr = 'x' if already else '*'
+        ax.plot(ox + cs + 0.5, rs + 0.5,
+                marker=mkr, markersize=14, color=col,
+                markeredgecolor=COL_ENTRY if not already else '#999',
+                markeredgewidth=0.8, zorder=5)
+        ax.text(ox + cs + 0.62, rs + 0.58, f'S{i + 1}',
+                fontsize=6, color=COL_WALL, zorder=6)
 
-        # Entry marker
-        we, ce, re = fac['entry']
-        ox = xoff(we)
+    # Entry marker
+    we, ce, re = fac_Av2['entry']
+    ox = xoff(we)
+    ax.add_patch(plt.Circle(
+        (ox + ce + 0.5, re + 0.5), 0.28,
+        color=COL_ENTRY, zorder=6))
+    ax.text(ox + ce + 0.5, re + 0.5, 'E',
+            ha='center', va='center',
+            fontsize=6, color='white', fontweight='bold', zorder=7)
+
+    # Exit markers
+    for lbl, (wx, cx, rx) in [('A', fac_Av2['exit_a']), ('B', fac_Av2['exit_b'])]:
+        ox = xoff(wx)
         ax.add_patch(plt.Circle(
-            (ox + ce + 0.5, re + 0.5), 0.28,
-            color=COL_ENTRY, zorder=6))
-        ax.text(ox + ce + 0.5, re + 0.5, 'E',
+            (ox + cx + 0.5, rx + 0.5), 0.28,
+            color=COL_EXIT, zorder=6))
+        ax.text(ox + cx + 0.5, rx + 0.5, lbl,
                 ha='center', va='center',
                 fontsize=6, color='white', fontweight='bold', zorder=7)
 
-        # Exit markers
-        for lbl, (wx, cx, rx) in [('A', fac['exit_a']), ('B', fac['exit_b'])]:
-            ox = xoff(wx)
-            ax.add_patch(plt.Circle(
-                (ox + cx + 0.5, rx + 0.5), 0.28,
-                color=COL_EXIT, zorder=6))
-            ax.text(ox + cx + 0.5, rx + 0.5, lbl,
-                    ha='center', va='center',
-                    fontsize=6, color='white', fontweight='bold', zorder=7)
+    # Highlight path
+    if highlight_path and len(highlight_path) > 1:
+        for i in range(len(highlight_path) - 1):
+            w1, c1, r1 = highlight_path[i]
+            w2, c2, r2 = highlight_path[i + 1]
+            ax.plot(
+                [xoff(w1) + c1 + 0.5, xoff(w2) + c2 + 0.5],
+                [r1 + 0.5, r2 + 0.5],
+                color=COL_PATH, lw=1.8, linestyle='--',
+                alpha=0.75, zorder=4)
 
-        # Highlight path
-        if highlight_path and len(highlight_path) > 1:
-            for i in range(len(highlight_path) - 1):
-                w1, c1, r1 = highlight_path[i]
-                w2, c2, r2 = highlight_path[i + 1]
-                ax.plot(
-                    [xoff(w1) + c1 + 0.5, xoff(w2) + c2 + 0.5],
-                    [r1 + 0.5, r2 + 0.5],
-                    color=COL_PATH, lw=1.8, linestyle='--',
-                    alpha=0.75, zorder=4)
-
-        # Legend
-        if(legend):
-            legend_items = [
-                mpatches.Patch(color=COL_ENTRY,    label='Entry'),
-                mpatches.Patch(color=COL_EXIT,     label='Exit A / B'),
-                mpatches.Patch(color=COL_SUPPLY,   label='Supply unit'),
-                mpatches.Patch(color=COL_JUNCTION, label='Inter-wing junction'),
+    # Legend
+    if(legend):
+        legend_items = [
+            mpatches.Patch(color=COL_ENTRY,    label='Entry'),
+            mpatches.Patch(color=COL_EXIT,     label='Exit A / B'),
+            mpatches.Patch(color=COL_SUPPLY,   label='Supply unit'),
+            mpatches.Patch(color=COL_JUNCTION, label='Inter-wing junction'),
+        ]
+        if node_colors:
+            legend_items += [
+                mpatches.Patch(color=COL_VISITED,  alpha=0.5, label='Visited'),
+                mpatches.Patch(color=COL_FRONTIER, alpha=0.5, label='Frontier'),
+                mpatches.Patch(color=COL_CURRENT,  alpha=0.7, label='Current'),
             ]
-            if node_colors:
-                legend_items += [
-                    mpatches.Patch(color=COL_VISITED,  alpha=0.5, label='Visited'),
-                    mpatches.Patch(color=COL_FRONTIER, alpha=0.5, label='Frontier'),
-                    mpatches.Patch(color=COL_CURRENT,  alpha=0.7, label='Current'),
-                ]
-            ax.legend(handles=legend_items, loc='upper left',
-                      fontsize=7, framealpha=0.9)
+        ax.legend(handles=legend_items, loc='upper left',
+                  fontsize=7, framealpha=0.9)
 
-        ax.set_xlim(-0.5, total_w + 0.5)
-        ax.set_ylim(-0.9, wr + 1.1)
-        ax.set_aspect('equal')
-        ax.axis('off')
-        ax.set_title(title, fontsize=11, fontweight='bold',
-                     color='#0B1F3B', pad=10)
-        plt.tight_layout()
-        return fig, ax
-
-    return COL_PATH, draw_fac_v2
+    ax.set_xlim(-0.5, total_w + 0.5)
+    ax.set_ylim(-0.9, wr + 1.1)
+    ax.set_aspect('equal')
+    ax.axis('off')
+    ax.set_title(title, fontsize=11, fontweight='bold',
+                 color='#0B1F3B', pad=10)
+    plt.tight_layout()
+    return fig, ax
 
 
-@app.cell(hide_code=True)
-def _(GAP, WING_COLS, m_fac_Av2, nx, seed_input):
-    # turn Mr Nielsen's implementation into mine :)
-
-    def Av2(a, Afac = {"wing_cols":WING_COLS, "gap": GAP}):
-        return (int((a[0]-(a[0]%(Afac["wing_cols"] + Afac["gap"])))/(Afac["wing_cols"] + Afac["gap"])),a[0]%(Afac["wing_cols"] + Afac["gap"]),a[1])
-
-    def Bv2(a, Afac = {"wing_cols":WING_COLS, "gap": GAP}):
-        return (a[1] + (Afac["wing_cols"]+Afac["gap"])*a[0], a[2])
+@app.function(hide_code=True)
+#Define c_Av2
+def c_Av2(node, fac_Av2 = {"wing_cols":WING_COLS, "gap": GAP}):
+    #maps node from facility B to facility A
+    return (int((node[0]-(node[0]%(fac_Av2["wing_cols"] + fac_Av2["gap"])))/(fac_Av2["wing_cols"] + fac_Av2["gap"])),node[0]%(fac_Av2["wing_cols"] + fac_Av2["gap"]),node[1])
 
 
-    def fac_Bv2(fac): #Doesn't work if wing_cols or Gap is different
-
-        vertices = []
-        G = nx.DiGraph()
-
-        n_nodes = fac["n_wings"]*fac["wing_cols"]*fac["wing_rows"] #number of nodes
-
-        #adds all sectors of fac to G
-        #Nodes are of the form (c,r)
-        graph = [Bv2((i,c,r),fac) for c in range(fac["wing_cols"]) for r in range(fac["wing_rows"]) for i in range(fac["n_wings"])]
-        G.add_nodes_from(graph)
+@app.function(hide_code=True)
+#Define c_Bv2
+def c_Bv2(node, fac_Av2 = {"wing_cols":WING_COLS, "gap": GAP}):
+    #maps node from facility B to facility A
+    return (node[1] + (fac_Av2["wing_cols"]+fac_Av2["gap"])*node[0], node[2])
 
 
-
-        #Edges are of the form ((c1,r1),(c2,r2))
-        for i in range(fac["n_wings"]):
-            for edge in fac["wings"][i].edges(): #for each edge of the ith wing, edge a tuple of two nodes.
-                G.add_edge(Bv2((i,edge[0][0],edge[0][1]),fac), Bv2((i,edge[1][0],edge[1][1]),fac))
-                G.add_edge(Bv2((i,edge[1][0],edge[1][1]),fac), Bv2((i,edge[0][0],edge[0][1]),fac))
-
-        for junc in fac["junctions"]:
-            G.add_edge(Bv2(junc[0],fac),Bv2(junc[1],fac))
-            G.add_edge(Bv2(junc[1],fac),Bv2(junc[0],fac))
-
-        SU = {i for i in range(len(fac["supplies"]))}
-
-        AS = {0}
+@app.function(hide_code=True)
+#Define convert facility A to facility B memo A1 (c_fac_Bv2)
+def c_fac_Bv2(fac_Av2):
+    # turn Mr Nielsen's implementation (A) into the implimentation specified in part A1 (B)
 
 
-        VP = {i:{"is_entry":False, "is_exit": False, "supply_unit": None, "wing": fac["wing_names"][Av2(i)[0]],"location": i} for i in G.nodes()}
-        VP[Bv2(fac["entry"],fac)]["is_entry"] = True
-        VP[Bv2(fac["exit_a"],fac)]["is_exit"] = True
-        VP[Bv2(fac["exit_b"],fac)]["is_exit"] = True
-        for i in range(len(fac["supplies"])):
-            VP[Bv2(fac["supplies"][i],fac)]["supply_unit"] = i
+    vertices = []
+    G = nx.DiGraph()
+
+    n_nodes = fac_Av2["n_wings"]*fac_Av2["wing_cols"]*fac_Av2["wing_rows"] #number of nodes
+
+    #adds all sectors of fac_Av2 to G
+    #Nodes are of the form (c,r)
+    graph = [c_Bv2((i,c,r),fac_Av2) for c in range(fac_Av2["wing_cols"]) for r in range(fac_Av2["wing_rows"]) for i in range(fac_Av2["n_wings"])]
+    G.add_nodes_from(graph)
 
 
 
-        EP = {edge: {}  for edge in G.edges}
+    #Edges are of the form ((c1,r1),(c2,r2))
+    for i in range(fac_Av2["n_wings"]):
+        for edge in fac_Av2["wings"][i].edges(): #for each edge of the ith wing, edge a tuple of two nodes.
+            G.add_edge(c_Bv2((i,edge[0][0],edge[0][1]),fac_Av2), c_Bv2((i,edge[1][0],edge[1][1]),fac_Av2))
+            G.add_edge(c_Bv2((i,edge[1][0],edge[1][1]),fac_Av2), c_Bv2((i,edge[0][0],edge[0][1]),fac_Av2))
+
+    for junc in fac_Av2["junctions"]:
+        G.add_edge(c_Bv2(junc[0],fac_Av2),c_Bv2(junc[1],fac_Av2))
+        G.add_edge(c_Bv2(junc[1],fac_Av2),c_Bv2(junc[0],fac_Av2))
+
+    SU = {i for i in range(len(fac_Av2["supplies"]))}
+
+    AS = {0}
 
 
-        SUP = {i:{"location": Bv2(fac["supplies"][i],fac)} for i in range(len(fac["supplies"]))}
-
-        ASP = {0:{"location":  Bv2(fac["entry"],fac)}}
-
-        GP = {}
-        return G, AS, SU, VP, EP, SUP, ASP, GP
-    #fac_Bv2 = {}
-    #fac_Bv2["G"], fac_Bv2["AS"], fac_Bv2["SU"], fac_Bv2["VP"], fac_Bv2["EP"], fac_Bv2["SUP"], fac_Bv2["ASP"], fac_Bv2["GP"]
-    G, AS, SU, VP, EP, SUP, ASP, GP = fac_Bv2(m_fac_Av2(seed_input.value))
-    return AS, ASP, Av2, Bv2, EP, G, GP, SU, SUP, VP, fac_Bv2
+    VP = {i:{"is_entry":False, "is_exit": False, "supply_unit": None, "wing": fac_Av2["wing_names"][c_Av2(i)[0]],"location": i} for i in G.nodes()}
+    VP[c_Bv2(fac_Av2["entry"],fac_Av2)]["is_entry"] = True
+    VP[c_Bv2(fac_Av2["exit_a"],fac_Av2)]["is_exit"] = True
+    VP[c_Bv2(fac_Av2["exit_b"],fac_Av2)]["is_exit"] = True
+    for i in range(len(fac_Av2["supplies"])):
+        VP[c_Bv2(fac_Av2["supplies"][i],fac_Av2)]["supply_unit"] = i
 
 
-@app.cell(hide_code=True)
-def _(deque):
-    #BFS+DFS
 
-    def BFS_DFS(G, AS, SU, VP, EP, SUP, ASP, GP):
-        #--------------------------------------------------
-        #------------Initialise data structures------------
-        #--------------------------------------------------
+    EP = {edge: {}  for edge in G.edges}
 
-        CRUDY_1 = list(AS)[0]
-        entry = ASP[CRUDY_1]["location"]
-        V = G.nodes()
 
-        #--------------------------------------------------
-        # ------------------Main loop----------------------
-        #--------------------------------------------------
+    SUP = {i:{"location": c_Bv2(fac_Av2["supplies"][i],fac_Av2)} for i in range(len(fac_Av2["supplies"]))}
 
-        #1. BFS
+    ASP = {0:{"location":  c_Bv2(fac_Av2["entry"],fac_Av2)}}
 
-        parent, child_count, leaf_nodes = _BFS(G, entry)
+    GP = {}
+    return G, AS, SU, VP, EP, SUP, ASP, GP
 
-        #2. Backtrace Tree 
 
-        exit_count, sub_exit = _make_sub_exits(G, VP)
-        sub_SU = {v: not (VP[v]["supply_unit"] == None) for v in V}
-        sub_exit, sub_SU = _backtrace_tree(parent, child_count, leaf_nodes, sub_exit, sub_SU)
+@app.function(hide_code=True)
+#Define convert output B to a walk in A.
+def c_out_Av2(out_Bv2): 
+    #converts output from any of the algorithms to a walk in B
+    return [c_Av2(v) for v in out_Bv2["walk"]]
 
-        #3. DFS for all exits
 
-        walks = []
-        for i in range(exit_count):
-            walks.append(_DFS(G, VP, entry, parent, sub_exit, sub_SU, i))
+@app.function(hide_code=True)
+#Define BFS+DFS
 
-        #4. Calculating traversal_cost
+def BFS_DFS(G, AS, SU, VP, EP, SUP, ASP, GP):
 
-        walk = _shortest_walk(walks)
-        length = len(walk) - 1
+    #--------------------------------------------------
+    #---------------------Imports----------------------
+    #--------------------------------------------------
 
-        #--------------------------------------------------
-        #-----------------return the output----------------
-        #--------------------------------------------------
+    import networkx as nx
+    from collections import deque
 
-        #Outputing to the physical environment the instructions for the AS
-
-        for i in range(length):
-            dif_vec = (walk[i+1][0]-walk[i][0],walk[i+1][1]-walk[i][1])
-            _move(dif_vec[0], dif_vec[1])
-        _exit()
-
-        return {"walk": walk, "traversal_cost": length, "supply_units_recovered": SU}
+    #--------------------------------------------------
+    #------------Initialise Helper Functions-----------
+    #--------------------------------------------------
 
     def _move(x,y):
         #move at x distance in x direction and y distance in y direction.
         return
+
     def _exit():
         #exit
         return
@@ -513,7 +485,6 @@ def _(deque):
 
         return parent, child_count, leaf_nodes
 
-
     def _make_sub_exits(G, VP):
         V = G.nodes()
         exit_map: dict[set] = {v: set() for v in V} #Map of empty sets
@@ -523,7 +494,6 @@ def _(deque):
                 exit_map[v].add(exit_count)
                 exit_count = exit_count + 1
         return exit_count, exit_map
-
 
     def _backtrace_tree(parent, child_count, leaf_nodes, sub_exit, sub_SU):
         while leaf_nodes: 
@@ -598,93 +568,67 @@ def _(deque):
 
         return walks[min_index]
 
+    #--------------------------------------------------
+    #------------Initialise data structures------------
+    #--------------------------------------------------
+
+    CRUDY_1 = list(AS)[0]
+    entry = ASP[CRUDY_1]["location"]
+    V = G.nodes()
+
+    #--------------------------------------------------
+    # ------------------Main loop----------------------
+    #--------------------------------------------------
+
+    #1. BFS
+
+    parent, child_count, leaf_nodes = _BFS(G, entry)
+
+    #2. Backtrace Tree 
+
+    exit_count, sub_exit = _make_sub_exits(G, VP)
+    sub_SU = {v: not (VP[v]["supply_unit"] == None) for v in V}
+    sub_exit, sub_SU = _backtrace_tree(parent, child_count, leaf_nodes, sub_exit, sub_SU)
+
+    #3. DFS for all exits
+
+    walks = []
+    for i in range(exit_count):
+        walks.append(_DFS(G, VP, entry, parent, sub_exit, sub_SU, i))
+
+    #4. Calculating traversal_cost
+
+    walk = _shortest_walk(walks)
+    length = len(walk) - 1
+
+    #--------------------------------------------------
+    #-----------------return the output----------------
+    #--------------------------------------------------
+
+    #Outputing to the physical environment the instructions for the AS
+
+    for i in range(length):
+        dif_vec = (walk[i+1][0]-walk[i][0],walk[i+1][1]-walk[i][1])
+        _move(dif_vec[0], dif_vec[1])
+    _exit()
+
+    return {"walk": walk, "traversal_cost": length, "supply_units_recovered": SU}
 
 
-    return (BFS_DFS,)
+@app.function(hide_code=True)
+#Define Brute Force
+def Brute_Force(G, AS, SU, VP, EP, SUP, ASP, GP):
 
+    #--------------------------------------------------
+    #---------------------Imports----------------------
+    #--------------------------------------------------
 
-@app.cell(hide_code=True)
-def _(deque):
-    #Brute Force
+    import networkx as nx
+    from collections import deque
 
-    def Brute_Force(G, AS, SU, VP, EP, SUP, ASP, GP):
-        CRUDY_1 = list(AS)[0]
-        entry = ASP[CRUDY_1]["location"]
-        V = G.nodes()
-
-        exits: set = set()
-        for v in V:
-            if VP[v]["is_exit"] == True: 
-                exits.add(v)
-
-        SU_locations = {SUP[su]["location"] for su in SU} # a set of SU locations
-
-        POI = exits.copy()
-        POI = POI.union(SU_locations)
-        POI.add(entry)
-
-        dm = {v:{u:None for u in POI} for v in POI} # Distance Matrix
-        pm = {v:{u:None for u in POI} for v in POI} #Path Matrix
-
-
-
-        #Getting distance and path between exits, the entry and SUs.
-        for v in POI:
-            parent = _BFS(G,v)
-            for u in POI:
-                w = u
-                path = []
-                while parent[w] != None:
-                    path.insert(0, w) #leaves out the first node
-                    w = parent[w]
-                pm[v][u] = path
-                dm[v][u] = len(path)
-
-
-        #Finding shortest walk.
-
-        min_perm = []
-        min_dist = None
-
-        su_perm = [i for i in range(len(SU_locations))]
-        original_perm = su_perm.copy()
-        su_loc = [v for v in SU_locations]
-        while True: 
-            for exit in exits: # su_perm is a list.
-                dist = 0
-                perm = [entry]
-                for i in range(len(su_perm)):
-                    perm.append(su_loc[su_perm[i]])
-                perm.append(exit)
-                for i in range(len(perm)-1):
-                    dist = dist + dm[perm[i]][perm[i+1]]
-                if min_dist == None:
-                    min_perm = perm
-                    min_dist = dist
-                elif dist < min_dist:
-                    min_perm = perm
-                    min_dist = dist
-            su_perm = _next_perm(su_perm)
-            back_to_original = True
-            for i in range(len(su_perm)):
-                if su_perm[i] != original_perm[i]:
-                    back_to_original = False
-                    break
-            if back_to_original:
-                break
-
-        walk = [entry]
-        for i in range(len(min_perm)-1):
-            walk += pm[min_perm[i]][min_perm[i+1]]
-
-        for i in range(len(walk)-1):
-            dif_vec = (VP[walk[i+1]]["location"][0]-VP[walk[i]]["location"][0],VP[walk[i+1]]["location"][1]-VP[walk[i]]["location"][1]) 
-            # a tuple
-            _move(dif_vec[0], dif_vec[1])
-        _exit()
-
-        return {"walk": walk, "traversal_cost": len(walk)-1, "supply_units_recovered": SU}
-
+    #--------------------------------------------------
+    #------------Initialise Helper Functions-----------
+    #--------------------------------------------------
     def _move(x,y):
         #move
         return
@@ -745,90 +689,102 @@ def _(deque):
 
         return parent
 
+    #--------------------------------------------------
+    #-----------------------Main-----------------------
+    #--------------------------------------------------
 
-    return (Brute_Force,)
+    CRUDY_1 = list(AS)[0]
+    entry = ASP[CRUDY_1]["location"]
+    V = G.nodes()
 
+    exits: set = set()
+    for v in V:
+        if VP[v]["is_exit"] == True: 
+            exits.add(v)
 
-@app.cell(hide_code=True)
-def _(deque):
-    # Greedy
+    SU_locations = {SUP[su]["location"] for su in SU} # a set of SU locations
 
-    def Greedy(G, AS, SU, VP, EP, SUP, ASP, GP):
-        CRUDY_1 = list(AS)[0]
-        entry = ASP[CRUDY_1]["location"]
-        V = G.nodes()
+    POI = exits.copy()
+    POI = POI.union(SU_locations)
+    POI.add(entry)
 
-        exits: set = set()
-        for v in V:
-            if VP[v]["is_exit"] == True: 
-                exits.add(v)
-
-        SU_locations = {SUP[su]["location"] for su in SU} # a set of SU locations
-
-        POI = exits.copy()
-        POI = POI.union(SU_locations)
-        POI.add(entry)
-
-        dm = {v:{u:None for u in POI} for v in POI} # Distance Matrix
-        pm = {v:{u:None for u in POI} for v in POI} #Path Matrix
+    dm = {v:{u:None for u in POI} for v in POI} # Distance Matrix
+    pm = {v:{u:None for u in POI} for v in POI} #Path Matrix
 
 
 
-        #Getting distance and path between exits, the entry and SUs.
-        for v in POI:
-            parent = _BFS(G,v)
-            for u in POI:
-                w = u
-                path = []
-                while parent[w] != None:
-                    path.insert(0, w) #leaves out the first node
-                    w = parent[w]
-                pm[v][u] = path
-                dm[v][u] = len(path)
+    #Getting distance and path between exits, the entry and SUs.
+    for v in POI:
+        parent = _BFS(G,v)
+        for u in POI:
+            w = u
+            path = []
+            while parent[w] != None:
+                path.insert(0, w) #leaves out the first node
+                w = parent[w]
+            pm[v][u] = path
+            dm[v][u] = len(path)
 
 
+    #Finding shortest walk.
 
-        got_su = {v:False for v in SU_locations}
-        perm = [entry]
+    min_perm = []
+    min_dist = None
 
-        #Go to closest SU
-        for i in range(len(SU_locations)):
-            closest_su = None
-            u = perm[len(perm)-1]
-            for v in POI:
-                if v in SU_locations:
-                    if not got_su[v] and closest_su == None:
-                        closest_su = v
-                    elif not got_su[v] and dm[u][v] < dm[u][closest_su]:
-                        closest_su = v
-            if closest_su == None:
+    su_perm = [i for i in range(len(SU_locations))]
+    original_perm = su_perm.copy()
+    su_loc = [v for v in SU_locations]
+    while True: 
+        for exit in exits: # su_perm is a list.
+            dist = 0
+            perm = [entry]
+            for i in range(len(su_perm)):
+                perm.append(su_loc[su_perm[i]])
+            perm.append(exit)
+            for i in range(len(perm)-1):
+                dist = dist + dm[perm[i]][perm[i+1]]
+            if min_dist == None:
+                min_perm = perm
+                min_dist = dist
+            elif dist < min_dist:
+                min_perm = perm
+                min_dist = dist
+        su_perm = _next_perm(su_perm)
+        back_to_original = True
+        for i in range(len(su_perm)):
+            if su_perm[i] != original_perm[i]:
+                back_to_original = False
                 break
-            perm.append(closest_su)
-            got_su[closest_su] = True
+        if back_to_original:
+            break
+
+    walk = [entry]
+    for i in range(len(min_perm)-1):
+        walk += pm[min_perm[i]][min_perm[i+1]]
+
+    for i in range(len(walk)-1):
+        dif_vec = (VP[walk[i+1]]["location"][0]-VP[walk[i]]["location"][0],VP[walk[i+1]]["location"][1]-VP[walk[i]]["location"][1]) 
+        # a tuple
+        _move(dif_vec[0], dif_vec[1])
+    _exit()
+
+    return {"walk": walk, "traversal_cost": len(walk)-1, "supply_units_recovered": SU}
 
 
-        #Go to closest exit
-        closest_exit = None
-        u = perm[len(perm)-1]
-        for v in POI:
-            if v in exits:
-                if  closest_exit == None:
-                    closest_exit = v
-                elif dm[u][v] < dm[u][closest_exit]:
-                    closest_exit = v
-        perm.append(closest_exit)  
+@app.function(hide_code=True)
+#Define Greedy
+def Greedy(G, AS, SU, VP, EP, SUP, ASP, GP):
 
-        walk = [entry]
-        for i in range(len(perm)-1):
-            walk += pm[perm[i]][perm[i+1]]
+    #--------------------------------------------------
+    #---------------------Imports----------------------
+    #--------------------------------------------------
 
-        for i in range(len(walk)-1):
-            dif_vec = (VP[walk[i+1]]["location"][0]-VP[walk[i]]["location"][0],VP[walk[i+1]]["location"][1]-VP[walk[i]]["location"][1]) 
-            # a tuple
-            _move(dif_vec[0], dif_vec[1])
-        _exit()
+    import networkx as nx
+    from collections import deque
 
-        return {"walk": walk, "traversal_cost": len(walk)-1, "supply_units_recovered": SU}
+    #--------------------------------------------------
+    #------------Initialise Helper Functions-----------
+    #--------------------------------------------------
 
     def _move(x,y):
         #move
@@ -837,8 +793,6 @@ def _(deque):
     def _exit():
         #exit
         return
-
-
 
     def _BFS(G, s):
         #s is first vertex
@@ -861,114 +815,113 @@ def _(deque):
 
         return parent
 
+    #--------------------------------------------------
+    #-----------------------Main-----------------------
+    #--------------------------------------------------
 
+    CRUDY_1 = list(AS)[0]
+    entry = ASP[CRUDY_1]["location"]
+    V = G.nodes()
 
-    return (Greedy,)
+    exits: set = set()
+    for v in V:
+        if VP[v]["is_exit"] == True: 
+            exits.add(v)
 
+    SU_locations = {SUP[su]["location"] for su in SU} # a set of SU locations
 
-@app.cell(hide_code=True)
-def _(Brute_Force, deque, nx):
-    # Divide and Conquer
+    POI = exits.copy()
+    POI = POI.union(SU_locations)
+    POI.add(entry)
 
-    def Divide_and_Conquer(G, AS, SU, VP, EP, SUP, ASP, GP):
-    
-        CRUDY_1 = list(AS)[0]
-        V = G.nodes()
-
-        exits = set()
-        for v in V:
-            if VP[v]["is_exit"] == True:
-                exits.add(v)
-
-        SU_locations = {SUP[su]["location"] for su in SU}
-        entry = ASP[CRUDY_1]["location"]
-        POI = exits.copy()
-
-        walks = []
-
-        VPbrute = {v: VP[v].copy() for v in G.nodes()}
-        VPbrute[entry]["is_entry"] = False
-        for exit in exits:
-            VPbrute[exit]["is_exit"] = False
-
-        SUPbrute = {su:{"location":su} for su in SU_locations}
-
-        ap = set(nx.articulation_points(G.to_undirected(as_view = True)))
-    
-        for exit in exits:
-
-            sub_graphs, pivots = _break_graph(G, ap, exit, entry)
-
-            pivots.insert(0,entry)
-            pivots.append(exit)
-        
-            walk = [entry]
-            for i in range(len(sub_graphs)):
-                sub_graph = G.subgraph(sub_graphs[i])
-
-                SU_sub_graph = sub_graphs[i]&SU_locations
-
-                VPbrute[pivots[i]]["is_entry"] = True
-                VPbrute[pivots[i+1]]["is_exit"] = True
-                walk += _Brute_Force(sub_graph, SU_sub_graph, VPbrute, SUPbrute, pivots[i+1], pivots[i])
-                VPbrute[pivots[i]]["is_entry"] = False
-                VPbrute[pivots[i+1]]["is_exit"] = False
-            
-            walks.append(walk)
+    dm = {v:{u:None for u in POI} for v in POI} # Distance Matrix
+    pm = {v:{u:None for u in POI} for v in POI} #Path Matrix
 
 
 
-        best_walk = None
-        for check_walk in walks:
-            if best_walk == None:
-                best_walk = check_walk
-            elif len(check_walk) < len(best_walk):
-                best_walk = check_walk
+    #Getting distance and path between exits, the entry and SUs.
+    for v in POI:
+        parent = _BFS(G,v)
+        for u in POI:
+            w = u
+            path = []
+            while parent[w] != None:
+                path.insert(0, w) #leaves out the first node
+                w = parent[w]
+            pm[v][u] = path
+            dm[v][u] = len(path)
 
-        return {"walk": best_walk, "traversal_cost": len(best_walk)-1, "supply_units_recovered": SU}
+
+
+    got_su = {v:False for v in SU_locations}
+    perm = [entry]
+
+    #Go to closest SU
+    for i in range(len(SU_locations)):
+        closest_su = None
+        u = perm[len(perm)-1]
+        for v in POI:
+            if v in SU_locations:
+                if not got_su[v] and closest_su == None:
+                    closest_su = v
+                elif not got_su[v] and dm[u][v] < dm[u][closest_su]:
+                    closest_su = v
+        if closest_su == None:
+            break
+        perm.append(closest_su)
+        got_su[closest_su] = True
+
+
+    #Go to closest exit
+    closest_exit = None
+    u = perm[len(perm)-1]
+    for v in POI:
+        if v in exits:
+            if  closest_exit == None:
+                closest_exit = v
+            elif dm[u][v] < dm[u][closest_exit]:
+                closest_exit = v
+    perm.append(closest_exit)  
+
+    walk = [entry]
+    for i in range(len(perm)-1):
+        walk += pm[perm[i]][perm[i+1]]
+
+    for i in range(len(walk)-1):
+        dif_vec = (VP[walk[i+1]]["location"][0]-VP[walk[i]]["location"][0],VP[walk[i+1]]["location"][1]-VP[walk[i]]["location"][1]) 
+        # a tuple
+        _move(dif_vec[0], dif_vec[1])
+    _exit()
+
+    return {"walk": walk, "traversal_cost": len(walk)-1, "supply_units_recovered": SU}
+
+
+@app.function(hide_code=True)
+#Define Divide and Conquer
+def Divide_and_Conquer(G, AS, SU, VP, EP, SUP, ASP, GP):
+
+    #--------------------------------------------------
+    #---------------------Imports----------------------
+    #--------------------------------------------------
+
+    import networkx as nx
+    from collections import deque
+
+    #--------------------------------------------------
+    #------------Initialise Helper Functions-----------
+    #--------------------------------------------------
+
+    def _move(x,y):
+        #move
+        return
+
+    def _exit():
+        #exit
+        return
 
 
 
     # 1. Break up graph into sub graphs by articulation points 
-    def _break_graph(G, ap, exit, entry):
-
-        path = _BFS(G, exit, entry)
-
-    
-        pivots = []
-        in_sub_graphs = []
-
-
-        for i in range(1,len(path)-1):
-            if path[i] in ap and G.degree(path[i]) == 4: #there are more spaces to split the graph, but its a bit complicated so I'm not gonna go there. (i.e. when the other degrees of the path are trees.)
-                pivots.append(path[i])
-                in_sub_graphs.append(path[i+1])
-    
-        sub_graphs = []
-        sub_graphs.append(_find_local_group(G, entry, pivots))
-
-        for u in in_sub_graphs:
-            if u in pivots:
-                sub_graphs.append({u,pivots[pivots.index(u)-1]})
-            else:
-                sub_graphs.append(_find_local_group(G, u, pivots))
-
-        missed_nodes = set(G.nodes())
-        for sub_graph in sub_graphs:
-            missed_nodes -= sub_graph
-
-        while missed_nodes:
-            u = missed_nodes.pop()
-            local_group = _find_local_group(G, u, pivots)
-            for sub_graph in sub_graphs:
-                if local_group&sub_graph:
-                    sub_graph |= local_group
-                    break
-            missed_nodes -= local_group
-        
-
-        return sub_graphs, pivots
-
     def _BFS(G, exit, entry): #to find path, any will do.
         #s is first vertex
         V = G.nodes()
@@ -1019,117 +972,175 @@ def _(Brute_Force, deque, nx):
 
         return local_group
 
+    def _break_graph(G, ap, exit, entry):
 
-    # 2. Utilise Brute force on sub problem
-    def _Brute_Force(G, SU, VP, SUP, exit, entry):
-
-        return Brute_Force(G, {0}, SU, VP, {}, SUP, {0:{"location":entry}}, {})["walk"][1:]
-
-    return (Divide_and_Conquer,)
+        path = _BFS(G, exit, entry)
 
 
-@app.cell(hide_code=True)
-def _(BFS_DFS, Brute_Force, Divide_and_Conquer, Greedy):
-    #Define algorithms
-    algorithms = {}
-    algorithms["BFS+DFS"] = BFS_DFS
-    algorithms["Brute Force"] = Brute_Force
-    algorithms["Greedy"] = Greedy
-    algorithms["Divide and Conquer"] = Divide_and_Conquer
-    return (algorithms,)
+        pivots = []
+        in_sub_graphs = []
 
 
-@app.function
-#validate output
+        for i in range(1,len(path)-1):
+            if path[i] in ap and G.degree(path[i]) == 4: #there are more spaces to split the graph, but its a bit complicated so I'm not gonna go there. (i.e. when the other degrees of the path are trees.)
+                pivots.append(path[i])
+                in_sub_graphs.append(path[i+1])
+
+        sub_graphs = []
+        sub_graphs.append(_find_local_group(G, entry, pivots))
+
+        for u in in_sub_graphs:
+            if u in pivots:
+                sub_graphs.append({u,pivots[pivots.index(u)-1]})
+            else:
+                sub_graphs.append(_find_local_group(G, u, pivots))
+
+        missed_nodes = set(G.nodes())
+        for sub_graph in sub_graphs:
+            missed_nodes -= sub_graph
+
+        while missed_nodes:
+            u = missed_nodes.pop()
+            local_group = _find_local_group(G, u, pivots)
+            for sub_graph in sub_graphs:
+                if local_group&sub_graph:
+                    sub_graph |= local_group
+                    break
+            missed_nodes -= local_group
+
+
+        return sub_graphs, pivots
+
+
+    #--------------------------------------------------
+    #-----------------------Main-----------------------
+    #--------------------------------------------------
+
+    CRUDY_1 = list(AS)[0]
+    V = G.nodes()
+
+    exits = set()
+    for v in V:
+        if VP[v]["is_exit"] == True:
+            exits.add(v)
+
+    SU_locations = {SUP[su]["location"] for su in SU}
+    entry = ASP[CRUDY_1]["location"]
+    POI = exits.copy()
+
+    walks = []
+
+    VPbrute = {v: VP[v].copy() for v in G.nodes()}
+    VPbrute[entry]["is_entry"] = False
+    for exit in exits:
+        VPbrute[exit]["is_exit"] = False
+
+    SUPbrute = {su:{"location":su} for su in SU_locations}
+
+    ap = set(nx.articulation_points(G.to_undirected(as_view = True)))
+
+    for exit in exits:
+
+        sub_graphs, pivots = _break_graph(G, ap, exit, entry)
+
+        pivots.insert(0,entry)
+        pivots.append(exit)
+
+        walk = [entry]
+        for i in range(len(sub_graphs)):
+            sub_graph = G.subgraph(sub_graphs[i])
+
+            SU_sub_graph = sub_graphs[i]&SU_locations
+
+            VPbrute[pivots[i]]["is_entry"] = True
+            VPbrute[pivots[i+1]]["is_exit"] = True
+
+            #Refer to the Brute Force algorithm option to see what goes on here.
+            walk += Brute_Force(sub_graph, {0}, SU_sub_graph, VPbrute, {}, SUPbrute, {0:{"location":pivots[i]}}, {})["walk"][1:]
+
+            VPbrute[pivots[i]]["is_entry"] = False
+            VPbrute[pivots[i+1]]["is_exit"] = False
+
+        walks.append(walk)
+
+
+
+    best_walk = None
+    for check_walk in walks:
+        if best_walk == None:
+            best_walk = check_walk
+        elif len(check_walk) < len(best_walk):
+            best_walk = check_walk
+
+    for i in range(len(best_walk)-1):
+        dif_vec = (VP[best_walk[i+1]]["location"][0]-VP[best_walk[i]]["location"][0],VP[best_walk[i+1]]["location"][1]-VP[best_walk[i]]["location"][1]) # a tuple
+        _move(dif_vec[0], dif_vec[1])
+    _exit()
+
+
+    return {"walk": best_walk, "traversal_cost": len(best_walk)-1, "supply_units_recovered": SU}
+
+
+@app.function(hide_code=True)
+#Define validate output
 
 def validate_output(_out, G, AS, SU, VP, EP, SUP, ASP, GP):
     _walk = _out["walk"]
     _SU = _out["supply_units_recovered"]
 
+
+     #----------------verifying walk------------------
     for i in range(len(_walk)-1):
+        #constraint 3
         if not _walk[i] in G.nodes():
-            return "false node"
-        if not _walk[i+1] in G.nodes():
-            return "false node"
+            return "Walk contains a false node"
+        #constraint 4
         if not (_walk[i],_walk[i+1]) in G.edges():
-            return "false edge"
+            return "Walk contains a false edge"
+    #constraint 3
+    if not _walk[-1] in G.nodes():
+        return "Walk contains a false node"
 
 
+    #constraint 1
     if not VP[_walk[0]]["is_entry"]:
-        return "doesn't start at entry"
+        return "Walk doesn't start at the entry"
+    #constraint 2
     if not VP[_walk[-1]]["is_exit"]:
-        return "doesn't end at exit"
+        return "Walk doesn't end at an exit"
 
+
+    #-------verifying supply units collected--------- 
     walk_set = set(_walk)
 
+    #constraint 5
     if _SU - set(SUP.keys()):
-        return "su doesn't exist"
+        return "A supply unit recovered doesn't exist"
     if ({SUP[s]["location"] for s in _SU} - walk_set):
-        return "su not in walk"
+        return "A supply unit recovered was not recovered by the walk"
     elif ({SUP[s]["location"] for s in SU} - {SUP[s]["location"] for s in _SU})&walk_set:
-        return "SU not in output"
+        return "Not all supply units recovered by walk were stated"
 
+
+    #-----------verifying traversal cost-------------
+
+    #constraint 6
     if (len(_walk)-1 != _out["traversal_cost"]):
-        return "traversal cost not accurate"
+        return "Traversal cost is not accurate."
 
     return "valid"
 
 
 @app.cell(hide_code=True)
-def _(algorithms, fac_Bv2, m_fac_Av2, seed_input, time, tracemalloc):
-    # RUN algorithms
-
-    def test_algorithm(algorithm, seed = None):
-        if seed == None:
-            seed = seed_input.value
-
-        G, AS, SU, VP, EP, SUP, ASP, GP = fac_Bv2(m_fac_Av2(seed))
-
-        tracemalloc.start()
-        tracemalloc.reset_peak()
-        _size1, _peak1 = tracemalloc.get_traced_memory()
-
-        _start_time = time.perf_counter()
-        out = algorithms[algorithm](G, AS, SU, VP, EP, SUP, ASP, GP)
-        time_taken = time.perf_counter() - _start_time
-        _size2, _peak2 = tracemalloc.get_traced_memory()
-
-        #print("size: "+str(_size2)+", peak:" + str(_peak2))
-        #print("size: "+str(_size2-_size1)+", peak:" + str(_peak2-_peak1))
-        tracemalloc.stop()
-        is_valid = validate_output(out, G, AS, SU, VP, EP, SUP, ASP, GP)
-        return out, _peak2 - _size1, time_taken, {"G": G, "AS": AS, "SU": SU, "VP":VP,"EP": EP,"SUP": SUP,"ASP": ASP,"GP": GP}, is_valid
-
-
-    out_v2, memory_v2, speed_v2, walk_v2, valid_v2 = {},{},{},{}, {}
-    for _algorithm in algorithms.keys():
-        out_v2[_algorithm], memory_v2[_algorithm],speed_v2[_algorithm], _, valid_v2[_algorithm] = test_algorithm(_algorithm) 
-        walk_v2[_algorithm] = out_v2[_algorithm]["walk"]
-    return memory_v2, out_v2, speed_v2, test_algorithm, valid_v2, walk_v2
-
-
-@app.cell(hide_code=True)
-def _(
-    Av2,
-    Bv2,
-    COL_PATH,
-    algorithms,
-    draw_fac_v2,
-    fac_Bv2,
-    imageio,
-    m_fac_Av2,
-    os,
-    plt,
-    seed_input,
-):
+def _(algorithms, seed_input):
     #define m_gif_v2
     def front_focus_v2(_walk):
         leading = "#FF0000"
         base_col = '#58D4D3' 
 
-        _col_dict = {Av2(v):base_col for v in _walk}
+        _col_dict = {c_Av2(v):base_col for v in _walk}
 
-        _col_dict[Av2(_walk[len(_walk)-1])] = leading
+        _col_dict[c_Av2(_walk[len(_walk)-1])] = leading
 
         return _col_dict
 
@@ -1181,7 +1192,7 @@ def _(
 
 
         _fac = m_fac_Av2(seed)
-        _G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP = fac_Bv2(_fac)
+        _G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP = c_fac_Bv2(_fac)
         _walk = algorithms[algorithm](_G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP)["walk"]
 
 
@@ -1191,19 +1202,19 @@ def _(
         _fig, _ax= draw_fac_v2(_fac, legend = False, title = title)
 
         for _i in range(len(_walk)): 
-            _highlight_path = [Av2(v) for v in _walk[0:_i+1]]
+            _highlight_path = [c_Av2(v) for v in _walk[0:_i+1]]
             _node_colors = front_focus_v2(_walk[0:_i+1])
 
 
             if _highlight_path and len(_highlight_path) > 1:
-                px = [0.5 + Bv2((w,c,r))[0] for w,c,r in _highlight_path] 
+                px = [0.5 + c_Bv2((w,c,r))[0] for w,c,r in _highlight_path] 
                 py = [0.5 + r for w,c,r in _highlight_path] 
                 path_plot, = _ax.plot(px, py, color=COL_PATH, lw=1.8, linestyle='--', alpha=0.75, zorder=4)
 
             if _node_colors:
                 rectangles = []
                 for node, color in _node_colors.items():
-                    c, r = Bv2(node)
+                    c, r = c_Bv2(node)
                     rect = plt.Rectangle((c, r), 1, 1, color=color, alpha=0.50, zorder=2)
                     rectangles.append(rect)
                     _ax.add_patch(rect)
@@ -1252,7 +1263,165 @@ def _(
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
+    #Seed Input
+    seed_input = mo.ui.number(
+        value=30012009,
+        start=0,
+        stop=99999999,
+        step=1,
+        label="Seed "
+
+    )
+    mo.vstack([
+        mo.md("### Enter your seed, then press Enter to rebuild the facility."),
+        seed_input
+    ])
+    return (seed_input,)
+
+
+@app.function(hide_code=True)
+#Define algorithms
+def m_algorithms():
+    algorithms = {}
+    algorithms["BFS+DFS"] = BFS_DFS
+    algorithms["Brute Force"] = Brute_Force
+    algorithms["Greedy"] = Greedy
+    algorithms["Divide and Conquer"] = Divide_and_Conquer
+    return algorithms
+
+
+@app.cell
+def _():
+    algorithms = m_algorithms()
+    return (algorithms,)
+
+
+@app.cell
+def _(algorithms, seed_input):
+    # RUN algorithms
+
+    def benchmark_algorithm(algorithm, seed = None):
+        if seed == None:
+            seed = seed_input.value
+
+        G, AS, SU, VP, EP, SUP, ASP, GP = c_fac_Bv2(m_fac_Av2(seed))
+
+        tracemalloc.start()
+        tracemalloc.reset_peak()
+        _size1, _peak1 = tracemalloc.get_traced_memory()
+
+        _start_time = time.perf_counter()
+        out = algorithms[algorithm](G, AS, SU, VP, EP, SUP, ASP, GP)
+        time_taken = time.perf_counter() - _start_time
+        _size2, _peak2 = tracemalloc.get_traced_memory()
+
+        #print("size: "+str(_size2)+", peak:" + str(_peak2))
+        #print("size: "+str(_size2-_size1)+", peak:" + str(_peak2-_peak1))
+        tracemalloc.stop()
+        is_valid = validate_output(out, G, AS, SU, VP, EP, SUP, ASP, GP)
+        return out, _peak2 - _size1, time_taken, {"G": G, "AS": AS, "SU": SU, "VP":VP,"EP": EP,"SUP": SUP,"ASP": ASP,"GP": GP}, is_valid
+
+    return (benchmark_algorithm,)
+
+
+@app.cell(hide_code=True)
+def _(algorithms, benchmark_algorithm):
+    out_v2, memory_v2, speed_v2, walk_v2, valid_v2 = {},{},{},{}, {}
+    for _algorithm in algorithms.keys():
+        out_v2[_algorithm], memory_v2[_algorithm],speed_v2[_algorithm], _, valid_v2[_algorithm] = benchmark_algorithm(_algorithm) 
+        walk_v2[_algorithm] = out_v2[_algorithm]["walk"]
+    return memory_v2, out_v2, speed_v2, valid_v2, walk_v2
+
+
+@app.cell
+def _(seed_input):
+    fac_Av2 = m_fac_Av2(seed_input.value)
+    return (fac_Av2,)
+
+
+@app.cell
+def _(seed_input):
+    G, AS, SU, VP, EP, SUP, ASP, GP = c_fac_Bv2(m_fac_Av2(seed_input.value))
+    return AS, ASP, EP, G, GP, SU, SUP, VP
+
+
+@app.cell(hide_code=True)
+def _():
+    mo.accordion({"<p style = 'font-size: 30px'>Just give me the code to test the algorithms on my sample set</p>":rf"""
+
+    Use main1 to test algorithms based off the facility seeds, and main2 to do it based of the the facilities themselves. Chooses which algorithm to test via the key 'algorithm'. Examples are given below all function definitions.
+
+    An example of how to use the main1 function:
+    ```python
+    #Example of how to use main1
+    #main1([1,2,3,4,5,6,7,8], algorithm = "BFS+DFS") 
+    #main1([1,2,3,4,5,6,7,8], algorithm = "Divide and Conquer") 
+    main1([1,2,3,4,5,6,7,8], algorithm = "Brute Force") 
+    #main1([1,2,3,4,5,6,7,8], algorithm = "Greedy") 
+    ```
+
+    Code:
+    ```python
+    import networkx as nx
+    import random
+    from collections import deque
+
+    WING_COLS = 10
+    WING_ROWS = 10
+    GAP = 3
+
+
+
+    def main1(seeds, algorithm = "Brute Force"):
+        algorithms = m_algorithms()
+        outputs = []
+        for seed in seeds:
+            G, AS, SU, VP, EP, SUP, ASP, GP = c_fac_Bv2(m_fac_Av2(seed))
+            out_Bv2 = algorithms[algorithm](G, AS, SU, VP, EP, SUP, ASP, GP)
+            outputs.append(c_out_Av2(out_Bv2))
+        return outputs
+
+    def main2(facilities, algorithm = "Brute Force"):
+        algorithms = m_algorithms()
+        outputs = []
+        for fac in facilities:
+            G, AS, SU, VP, EP, SUP, ASP, GP = c_fac_Bv2(fac)
+            out_Bv2 = algorithms[algorithm](G, AS, SU, VP, EP, SUP, ASP, GP)
+            outputs.append(c_out_Av2(out_Bv2))
+        return outputs
+
+
+
+  
+    {inspect.getsource(m_algorithms)}
+        
+    {inspect.getsource(m_fac_Av2)}
+
+    {inspect.getsource(c_Av2)}
+
+    {inspect.getsource(c_Bv2)}
+
+    {inspect.getsource(c_fac_Bv2)}
+
+    {inspect.getsource(c_out_Av2)}
+
+    {inspect.getsource(BFS_DFS)}
+
+    {inspect.getsource(Brute_Force)}
+
+    {inspect.getsource(Greedy)}
+
+    {inspect.getsource(Divide_and_Conquer)}
+
+    ```
+
+    """})
+    return
+
+
+@app.cell(hide_code=True)
+def _():
     mo.md(r"""
     ### Amendments to memo 1
 
@@ -1286,7 +1455,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     # Problem Outline (memo  <span class = "r">1</span> <span class = "g">A1</span> ): <!-- #TODO change from memo 1 to 2 -->
 
@@ -1306,14 +1475,14 @@ def _(mo):
 
 
 @app.cell
-def _(default_title, draw_fac_v2, fac_v2):
+def _(default_title, fac_Av2):
     #draw_facility
-    _fig, _ax = draw_fac_v2(fac_v2, title = default_title(n_wing=2))
+    draw_fac_v2(fac_Av2, title = default_title(n_wing=2))
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     <mark>Facility Changed.</mark>
     """)
@@ -1321,7 +1490,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     This notebook explores the development of a design strategy to complete this task, including
     1. deciding how the facility and mission should be represented computationally;
@@ -1337,7 +1506,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     ## Definitions:
     Spaces:
@@ -1379,7 +1548,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     # Part A - Problem Specification:
     """)
@@ -1387,7 +1556,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     ## A1 - Algorithmic problem statement:
     """)
@@ -1395,7 +1564,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     ### Inputs:
 
@@ -1446,7 +1615,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md("""
     #### Maps
 
@@ -1456,7 +1625,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     ##### Map 1 - Edge Properties (EP):
 
@@ -1600,6 +1769,11 @@ def _(mo):
     4. $\forall i [i \in \mathbb{N} \land i \in [1,n-1] \implies e_i \in E \land e_i = (v_i,v_{i+1})]$
     - meaning all edges in the walk must be edges of graph G and that the edge $e_i$ must be from $v_i$ to $v_{i+1}$.
 
+    <div class = "g">
+    5. Supply units collected must match the sectors with supply units traversed by the walk<br>
+    6. Traversal cost must match the traversal cost of the walk.
+    </div>
+
     *3 and 4 are simply ensuring the walk is indeed a walk on graph G.
 
     ### Objectives
@@ -1614,7 +1788,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     ## A2 - Salient Features:
     """)
@@ -1622,7 +1796,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     Position
     <div class = "r">1. The position of an object is defined as a vertex of the graph G, with edges describing its position relative to other vertices.</div>
@@ -1677,7 +1851,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     ## A3 - ADTs for Modelling
     """)
@@ -1685,7 +1859,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     ### ADTs
     **1. Graph (Nielsen, 2026)**<br>
@@ -1806,7 +1980,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     # Part B - Algorithm Design:
     """)
@@ -1814,7 +1988,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     ## Problem properties
     """)
@@ -1822,7 +1996,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     Known properties of the memo 1 problem:
 
@@ -1843,7 +2017,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     ## Options
     """)
@@ -1851,7 +2025,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     <div class = "r">
 
@@ -1951,7 +2125,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     #DFS returns best walk for a tree proof
     mo.accordion({"**DFS returns best walk for a tree proof**": """
     Scope: undirected trees. (can be weighted)
@@ -2000,7 +2174,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     <div class = "g">
 
@@ -2013,8 +2187,7 @@ def _(mo):
     - Simplifies the problem significantly to a much smaller graph.<br>
     - divides the simplified graph into smaller sub problems.<br>
     Cons: <br>
-    - very difficult to program - prone to lots of human error.<br>
-    - may have a bit of overhead, meaning performance for smaller graphs will likely worse than that of brute force.<br>
+    - Difficult to program - prone to human error.<br>
 
     <h4>Algorithm</h4>
 
@@ -2023,7 +2196,7 @@ def _(mo):
 
     1. Break up graph into sub graphs by articulation points - nodes where, if removed cause the graph to be broken in two.<br>
     2. Utilise Brute force on sub graphs to find optimal walk (refer to brute force, option 2.)<br>
-    3. Piece the walk back together and return.
+    3. Stitch the whole walk back together
 
     </div>
     """)
@@ -2031,7 +2204,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     ## Discussion
     """)
@@ -2039,7 +2212,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     <div class = "r">
     Every option above has its merits and its drawbacks, but option 3 seems to be the most optimal for the memo 1 problem as it balances speed with finding the optimal solution. Its time complexity is O(#Exits(V+E)), which is only always beaten by the DFS algorithm in terms of speed.<br>
@@ -2065,7 +2238,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     # Part C - Pseudocode
     """)
@@ -2073,16 +2246,16 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(algorithms, mo):
+def _(algorithms):
     #Choose Algorithm
-    algorithm_input = mo.ui.tabs({_algo:"" for _algo in algorithms.keys()})
+    algorithm_input = mo.ui.tabs({_algo:"" for _algo in algorithms.keys()}, value = "Divide and Conquer")
 
     mo.callout(mo.vstack([ algorithm_input],align = "center"),kind = "success")
     return (algorithm_input,)
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     <span class = "y">The dropdown to select different algorithms is new. All algorithm implementations are new, except for BFS+DFS.</span>
     """)
@@ -2090,7 +2263,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(algorithm_input, mo):
+def _(algorithm_input):
     mo.md(rf"""
     ## C1 - Algorithm in pseudocode - {algorithm_input.value}
     """)
@@ -2098,7 +2271,7 @@ def _(algorithm_input, mo):
 
 
 @app.cell(hide_code=True)
-def _(algorithm_input, mo):
+def _(algorithm_input):
     #Pseudocode
     BFS_DFS_pseudocode = r"""
     <div class = "y">
@@ -2482,7 +2655,7 @@ def _(algorithm_input, mo):
 
 
 @app.cell(hide_code=True)
-def _(algorithm_input, mo):
+def _(algorithm_input):
     mo.md(rf"""
     ## C2 - Algorithm in python - {algorithm_input.value}
     """)
@@ -2490,9 +2663,9 @@ def _(algorithm_input, mo):
 
 
 @app.cell(hide_code=True)
-def _(algorithm_input, mo):
+def _(algorithm_input, algorithms):
     #Python Code
-    BFS_DFS_python = r"""
+    BFS_DFS_python = rf"""
     <div class = "y">
     <h4>Changes to python code:</h4>
     &#x2022; move() function have been changed to take x,y as the vector v in the direction it needs to go.
@@ -2503,592 +2676,16 @@ def _(algorithm_input, mo):
     import networkx as nx
     from collections import deque
 
-    def BFS_DFS(G, AS, SU, VP, EP, SUP, ASP, GP):
-        #--------------------------------------------------
-        #------------Initialise data structures------------
-        #--------------------------------------------------
-
-        CRUDY_1 = list(AS)[0]
-        entry = ASP[CRUDY_1]["location"]
-        V = G.nodes()
-
-        #--------------------------------------------------
-        # ------------------Main loop----------------------
-        #--------------------------------------------------
-
-        #1. BFS
-
-        parent, child_count, leaf_nodes = _BFS(G, entry)
-
-        #2. Backtrace Tree 
-
-        exit_count, sub_exit = _make_sub_exits(G, VP)
-        sub_SU = {v: not (VP[v]["supply_unit"] == None) for v in V}
-        sub_exit, sub_SU = _backtrace_tree(parent, child_count, leaf_nodes, sub_exit, sub_SU)
-
-        #3. DFS for all exits
-
-        walks = []
-        for i in range(exit_count):
-            walks.append(_DFS(G, VP, entry, parent, sub_exit, sub_SU, i))
-
-        #4. Calculating traversal_cost
-
-        walk = _shortest_walk(walks)
-        length = len(walk) - 1
-
-        #--------------------------------------------------
-        #-----------------return the output----------------
-        #--------------------------------------------------
-
-        #Outputing to the physical environment the instructions for the AS
-
-        for i in range(length):
-            dif_vec = (walk[i+1][0]-walk[i][0],walk[i+1][1]-walk[i][1])
-            _move(dif_vec[0], dif_vec[1])
-        _exit()
-
-        return {"walk": walk, "traversal_cost": length, "supply_units_recovered": SU}
-
-    def _move(x,y):
-        #move at x distance in x direction and y distance in y direction.
-        return
-    def _exit():
-        #exit
-        return
-
-    def _BFS(G, s):
-        #s is first vertex
-        V = G.nodes()
-        BFS_Queue = deque()
-        BFS_Queue.append(s)
-        visited = {v: False for v in V} #map
-        visited[s] = True
-
-        parent = {v: None for v in V} #map
-        child_count = {v: 0 for v in V} #map
-        leaf_nodes = set(V).copy()
-
-        while BFS_Queue:
-            u = BFS_Queue.popleft()
-            for v in G[u]:
-                if not visited[v]:
-
-                    visited[v] = True
-                    BFS_Queue.append(v)
-
-                    parent[v] = u
-                    child_count[u] = child_count[u] + 1
-                    leaf_nodes.discard(u)
-
-        return parent, child_count, leaf_nodes
-
-
-    def _make_sub_exits(G, VP):
-        V = G.nodes()
-        exit_map: dict[set] = {v: set() for v in V} #Map of empty sets
-        exit_count = 0
-        for v in V:
-            if VP[v]["is_exit"]:
-                exit_map[v].add(exit_count)
-                exit_count = exit_count + 1
-        return exit_count, exit_map
-
-
-    def _backtrace_tree(parent, child_count, leaf_nodes, sub_exit, sub_SU):
-        while leaf_nodes: 
-            u = leaf_nodes.pop()
-            if parent[u] == None:
-                continue
-
-            sub_exit[parent[u]] = sub_exit[parent[u]] | sub_exit[u] #Union
-            sub_SU[parent[u]] = sub_SU[parent[u]] or sub_SU[u]
-            child_count[parent[u]] = child_count[parent[u]] - 1
-            if child_count[parent[u]] == 0:
-                leaf_nodes.add(parent[u])
-
-        return sub_exit, sub_SU
-
-    def _DFS(G, VP, s, parent, sub_exit, sub_SU, i):
-        V = G.nodes()
-        DFS_Stack = []
-        DFS_Stack.append(s)
-
-        visited = {v: False for v in V}
-        visited[s] = True
-
-        walk = []
-        previous_u = None
-
-        #DFS
-        while DFS_Stack:
-
-            u = DFS_Stack.pop()
-            Q = deque()
-
-            #Building the walk
-            if not (previous_u == parent[u]):
-                while not parent[u] == walk[len(walk)-1]:
-                    walk.append(parent[walk[len(walk)-1]])
-            walk.append(u)
-
-            #makes sure that vertices with exits below them are appended first.
-            for v in G[u]:
-                #CHANGED THIS by adding parent[v] == u to ensure that it stays on the tree found by BFS.
-                if (not visited[v]) and (i in sub_exit[v]) and parent[v] == u: 
-                    visited[v] = True
-                    DFS_Stack.append(v)
-                elif (not visited[v]) and sub_SU[v] and parent[v] == u:
-                    Q.append(v) # ignores all vertices not in sub_exit or sub_SU
-
-            #the nodes with just supply units below them are then appended ontop.
-            while Q: 
-                v = Q.popleft()
-                visited[v] = True
-                DFS_Stack.append(v)
-
-
-            previous_u = u
-
-        while not VP[walk[len(walk)-1]]["is_exit"]:
-            walk.append(parent[walk[len(walk)-1]])
-
-
-        return walk
-
-    def _shortest_walk(walks):
-        min_index = 0
-        min = len(walks[0])
-        for i in range(len(walks)):
-            if len(walks[i]) < min:
-                min = len(walks[i])
-                min_index = i
-
-        return walks[min_index]
+    {inspect.getsource(BFS_DFS)}
     ```
     """
 
-    Brute_Force_python = r"""
-    <span class = "y">This is a newly implimented algorithm</span>
+
+    Generic_new_python = rf"""
+    <span class = "y">'{algorithm_input.value}' is a newly implimented algorithm</span>
 
     ```python
-    import networkx as nx
-    from collections import deque
-
-    def Brute_Force(G, AS, SU, VP, EP, SUP, ASP, GP):
-        CRUDY_1 = list(AS)[0]
-        entry = ASP[CRUDY_1]["location"]
-        V = G.nodes()
-
-        exits: set = set()
-        for v in V:
-            if VP[v]["is_exit"] == True: 
-                exits.add(v)
-
-        SU_locations = {SUP[su]["location"] for su in SU} # a set of SU locations
-
-        POI = exits.copy()
-        POI = POI.union(SU_locations)
-        POI.add(entry)
-
-        dm = {v:{u:None for u in POI} for v in POI} # Distance Matrix
-        pm = {v:{u:None for u in POI} for v in POI} #Path Matrix
-
-
-
-        #Getting distance and path between exits, the entry and SUs.
-        for v in POI:
-            parent = _BFS(G,v)
-            for u in POI:
-                w = u
-                path = []
-                while parent[w] != None:
-                    path.insert(0, w) #leaves out the first node
-                    w = parent[w]
-                pm[v][u] = path
-                dm[v][u] = len(path)
-
-
-        #Finding shortest walk.
-
-        min_perm = []
-        min_dist = None
-
-        su_perm = [i for i in range(len(SU_locations))]
-        original_perm = su_perm.copy()
-        su_loc = [v for v in SU_locations]
-        while True: 
-            for exit in exits: # su_perm is a list.
-                dist = 0
-                perm = [entry]
-                for i in range(len(su_perm)):
-                    perm.append(su_loc[su_perm[i]])
-                perm.append(exit)
-                for i in range(len(perm)-1):
-                    dist = dist + dm[perm[i]][perm[i+1]]
-                if min_dist == None:
-                    min_perm = perm
-                    min_dist = dist
-                elif dist < min_dist:
-                    min_perm = perm
-                    min_dist = dist
-            su_perm = _next_perm(su_perm)
-            back_to_original = True
-            for i in range(len(su_perm)):
-                if su_perm[i] != original_perm[i]:
-                    back_to_original = False
-                    break
-            if back_to_original:
-                break
-
-        walk = [entry]
-        for i in range(len(min_perm)-1):
-            walk += pm[min_perm[i]][min_perm[i+1]]
-
-        for i in range(len(walk)-1):
-            dif_vec = (VP[walk[i+1]]["location"][0]-VP[walk[i]]["location"][0],VP[walk[i+1]]["location"][1]-VP[walk[i]]["location"][1]) 
-            # a tuple
-            _move(dif_vec[0], dif_vec[1])
-        _exit()
-
-        return {"walk": walk, "traversal_cost": len(walk)-1, "supply_units_recovered": SU}
-
-    def _move(x,y):
-        #move
-        return
-
-    def _exit():
-        #exit
-        return
-
-    def _next_perm(perm):
-        layer = -1
-        max_index = -1
-
-        #Finds the layer and max_index
-        for i in range(len(perm)-1):
-            if perm[i] < perm[i+1]:
-                layer = i+1
-                for j in range(i+1):
-                    if perm[j] < perm[i+1]:
-                        if max_index == -1:
-                            max_index = j
-                break
-
-        #swaps layer and max_index
-        if(layer != -1):  
-            z = perm[layer]
-            perm[layer] = perm[max_index]
-            perm[max_index] = z
-        else:
-            layer = len(perm)
-
-        #swaps the subpermuation up to layer around
-        for i in range((layer+(layer%2))//2):
-            z = perm[i]
-            perm[i] = perm[layer-i-1]
-            perm[layer-i-1] = z
-
-        return perm
-
-
-    def _BFS(G, s):
-        #s is first vertex
-        V = G.nodes()
-        BFS_Queue = deque()
-        BFS_Queue.append(s)
-        visited = {v: False for v in V} #map
-        visited[s] = True
-
-        parent = {v: None for v in V} #map
-
-        while BFS_Queue:
-            u = BFS_Queue.popleft()
-            for v in G[u]:
-                if not visited[v]:
-
-                    visited[v] = True
-                    BFS_Queue.append(v)
-                    parent[v] = u
-
-        return parent
-    ```
-    """
-
-    Greedy_python = r"""
-    <span class = "y">This is a newly implimented algorithm</span>
-
-    ```python
-    import networkx as nx
-    from collections import deque
-
-    def Greedy(G, AS, SU, VP, EP, SUP, ASP, GP):
-        CRUDY_1 = list(AS)[0]
-        entry = ASP[CRUDY_1]["location"]
-        V = G.nodes()
-
-        exits: set = set()
-        for v in V:
-            if VP[v]["is_exit"] == True: 
-                exits.add(v)
-
-        SU_locations = {SUP[su]["location"] for su in SU} # a set of SU locations
-
-        POI = exits.copy()
-        POI = POI.union(SU_locations)
-        POI.add(entry)
-
-        dm = {v:{u:None for u in POI} for v in POI} # Distance Matrix
-        pm = {v:{u:None for u in POI} for v in POI} #Path Matrix
-
-
-
-        #Getting distance and path between exits, the entry and SUs.
-        for v in POI:
-            parent = _BFS(G,v)
-            for u in POI:
-                w = u
-                path = []
-                while parent[w] != None:
-                    path.insert(0, w) #leaves out the first node
-                    w = parent[w]
-                pm[v][u] = path
-                dm[v][u] = len(path)
-
-
-
-        got_su = {v:False for v in SU_locations}
-        perm = [entry]
-
-        #Go to closest SU
-        for i in range(len(SU_locations)):
-            closest_su = None
-            u = perm[len(perm)-1]
-            for v in POI:
-                if v in SU_locations:
-                    if not got_su[v] and closest_su == None:
-                        closest_su = v
-                    elif not got_su[v] and dm[u][v] < dm[u][closest_su]:
-                        closest_su = v
-            if closest_su == None:
-                break
-            perm.append(closest_su)
-            got_su[closest_su] = True
-
-
-        #Go to closest exit
-        closest_exit = None
-        u = perm[len(perm)-1]
-        for v in POI:
-            if v in exits:
-                if  closest_exit == None:
-                    closest_exit = v
-                elif dm[u][v] < dm[u][closest_exit]:
-                    closest_exit = v
-        perm.append(closest_exit)  
-
-        walk = [entry]
-        for i in range(len(perm)-1):
-            walk += pm[perm[i]][perm[i+1]]
-
-        for i in range(len(walk)-1):
-            dif_vec = (VP[walk[i+1]]["location"][0]-VP[walk[i]]["location"][0],VP[walk[i+1]]["location"][1]-VP[walk[i]]["location"][1]) 
-            # a tuple
-            _move(dif_vec[0], dif_vec[1])
-        _exit()
-
-        return {"walk": walk, "traversal_cost": len(walk)-1, "supply_units_recovered": SU}
-
-    def _move(x,y):
-        #move
-        return
-
-    def _exit():
-        #exit
-        return
-
-
-
-    def _BFS(G, s):
-        #s is first vertex
-        V = G.nodes()
-        BFS_Queue = deque()
-        BFS_Queue.append(s)
-        visited = {v: False for v in V} #map
-        visited[s] = True
-
-        parent = {v: None for v in V} #map
-
-        while BFS_Queue:
-            u = BFS_Queue.popleft()
-            for v in G[u]:
-                if not visited[v]:
-
-                    visited[v] = True
-                    BFS_Queue.append(v)
-                    parent[v] = u
-
-        return parent
-    ```
-
-    """
-
-    Divide_and_Conquer_python = r"""
-    <span class = "y">Divide and Conquer is a newly added algorithm</span>
-
-    ```python
-    def Divide_and_Conquer(G, AS, SU, VP, EP, SUP, ASP, GP):
-    
-        CRUDY_1 = list(AS)[0]
-        V = G.nodes()
-
-        exits = set()
-        for v in V:
-            if VP[v]["is_exit"] == True:
-                exits.add(v)
-
-        SU_locations = {SUP[su]["location"] for su in SU}
-        entry = ASP[CRUDY_1]["location"]
-        POI = exits.copy()
-
-        walks = []
-
-        VPbrute = {v: VP[v].copy() for v in G.nodes()}
-        VPbrute[entry]["is_entry"] = False
-        for exit in exits:
-            VPbrute[exit]["is_exit"] = False
-
-        SUPbrute = {su:{"location":su} for su in SU_locations}
-
-        ap = set(nx.articulation_points(G.to_undirected(as_view = True)))
-    
-        for exit in exits:
-
-            sub_graphs, pivots = _break_graph(G, ap, exit, entry)
-
-            pivots.insert(0,entry)
-            pivots.append(exit)
-        
-            walk = [entry]
-            for i in range(len(sub_graphs)):
-                sub_graph = G.subgraph(sub_graphs[i])
-
-                SU_sub_graph = sub_graphs[i]&SU_locations
-
-                VPbrute[pivots[i]]["is_entry"] = True
-                VPbrute[pivots[i+1]]["is_exit"] = True
-                walk += _Brute_Force(sub_graph, SU_sub_graph, VPbrute, SUPbrute, pivots[i+1], pivots[i])
-                VPbrute[pivots[i]]["is_entry"] = False
-                VPbrute[pivots[i+1]]["is_exit"] = False
-            
-            walks.append(walk)
-
-        best_walk = None
-        for check_walk in walks:
-            if best_walk == None:
-                best_walk = check_walk
-            elif len(check_walk) < len(best_walk):
-                best_walk = check_walk
-
-        return {"walk": best_walk, "traversal_cost": len(best_walk)-1, "supply_units_recovered": SU}
-
-
-
-    # 1. Break up graph into sub graphs by articulation points 
-    def _break_graph(G, ap, exit, entry):
-
-        path = _BFS(G, exit, entry)
-
-    
-        pivots = []
-        in_sub_graphs = []
-
-
-        for i in range(1,len(path)-1):
-            if path[i] in ap and G.degree(path[i]) == 4: #there are more spaces to split the graph, but its a bit complicated so I'm not gonna go there. (i.e. when the other degrees of the path are trees.)
-                pivots.append(path[i])
-                in_sub_graphs.append(path[i+1])
-    
-        sub_graphs = []
-        sub_graphs.append(_find_local_group(G, entry, pivots))
-
-        for u in in_sub_graphs:
-            if u in pivots:
-                sub_graphs.append({u,pivots[pivots.index(u)-1]})
-            else:
-                sub_graphs.append(_find_local_group(G, u, pivots))
-
-        missed_nodes = set(G.nodes())
-        for sub_graph in sub_graphs:
-            missed_nodes -= sub_graph
-
-        while missed_nodes:
-            u = missed_nodes.pop()
-            local_group = _find_local_group(G, u, pivots)
-            for sub_graph in sub_graphs:
-                if local_group&sub_graph:
-                    sub_graph |= local_group
-                    break
-            missed_nodes -= local_group
-        
-
-        return sub_graphs, pivots
-
-    def _BFS(G, exit, entry): #to find path, any will do.
-        #s is first vertex
-        V = G.nodes()
-        BFS_Queue = deque()
-        BFS_Queue.append(entry)
-        visited = {v: False for v in V} #map
-        visited[entry] = True
-
-        parent = {v: None for v in V} #map
-
-        while BFS_Queue:
-            u = BFS_Queue.popleft()
-            for v in G[u]:
-                if not visited[v]:
-
-                    visited[v] = True
-                    BFS_Queue.append(v)
-
-                    parent[v] = u
-
-        path = [exit]
-        while path[-1] != entry:
-            path.append(parent[path[-1]])
-        path.reverse()
-
-        return path
-
-    def _find_local_group(G, entry, pivots):
-        if entry in pivots:
-            raise Exception()
-
-        V = G.nodes()
-        BFS_Queue = deque()
-        BFS_Queue.append(entry)
-        visited = {v: False for v in V} #map
-        visited[entry] = True
-        local_group = {entry}
-
-        while BFS_Queue:
-            u = BFS_Queue.popleft()
-            for v in G[u]:
-                if not visited[v] and not v in pivots:
-                    local_group.add(v)
-                    visited[v] = True
-                    BFS_Queue.append(v)
-                elif v in pivots:
-                    local_group.add(v)
-
-        return local_group
-
-
-    # 2. Utilise Brute force on sub problem
-    def _Brute_Force(G, SU, VP, SUP, exit, entry):
-
-        return Brute_Force(G, {0}, SU, VP, {}, SUP, {0:{"location":entry}}, {})["walk"][1:]
+    {inspect.getsource(algorithms[algorithm_input.value])}
     ```
     """
 
@@ -3096,12 +2693,9 @@ def _(algorithm_input, mo):
 
     if(algorithm_input.value == "BFS+DFS"):
         _out = BFS_DFS_python
-    elif(algorithm_input.value == "Brute Force"):
-        _out = Brute_Force_python
-    elif(algorithm_input.value == "Greedy"):
-        _out = Greedy_python
-    elif(algorithm_input.value == "Divide and Conquer"):
-        _out = Divide_and_Conquer_python
+    else:
+        _out = Generic_new_python
+
 
     mo.stop(_out == "")
     mo.md(_out)
@@ -3109,7 +2703,7 @@ def _(algorithm_input, mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     ## C3 - Displaying the Process
     """)
@@ -3117,7 +2711,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     ### Inputs
     """)
@@ -3125,7 +2719,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     #What are the inputs again?
     mo.accordion({"What are the inputs again?":mo.md("""
     the inputs are: G, AS, SU, VP, EP, SUP, ASP and GP.
@@ -3140,8 +2734,30 @@ def _(mo):
     return
 
 
-@app.cell
-def _(AS, ASP, EP, G, GP, SU, SUP, VP, mo):
+@app.cell(hide_code=True)
+def _():
+    mo.accordion({"How is the generated facility converted into G, AS, SU, VP, EP, SUP, ASP and GP?":rf"""
+    The following function c_fac_Bv2 is used to convert the generated facility (fac_Av2) into the representation disscussed in part A1 - Algorithmic Problem Statement.<br>
+    It has two helper functions, c_Av2 and c_Bv2 to help convert singular nodes.
+
+    ```python
+    import networkx as nx
+
+    WING_COLS = {WING_COLS}
+    GAP = {GAP}
+
+    {inspect.getsource(c_Av2)}
+
+    {inspect.getsource(c_Bv2)}
+
+    {inspect.getsource(c_fac_Bv2)}
+    ```
+    """})
+    return
+
+
+@app.cell(hide_code=True)
+def _(AS, ASP, EP, G, GP, SU, SUP, VP):
     #Display Inputs
     _G = f"""
     ```python
@@ -3199,7 +2815,7 @@ def _(AS, ASP, EP, G, GP, SU, SUP, VP, mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     ### Outputs
     """)
@@ -3207,14 +2823,14 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(algorithm_input, mo, seed_input):
+def _(algorithm_input, seed_input):
     # Choose Algorithm and Seed 
     mo.callout(mo.hstack([algorithm_input, seed_input],align = "center"),kind = "success")
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     ####<span class = "g">Environmental Outputs:</span><br>
 
@@ -3224,7 +2840,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     #Choose between Image and Animation displays
     im_gif = mo.ui.tabs({"Image":"","Animation":""})
     im_gif
@@ -3232,7 +2848,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(algorithm_input, im_gif, m_gif_v2, mo, seed_input, time):
+def _(algorithm_input, im_gif, m_gif_v2, seed_input):
     #Display Gif
     mo.stop(im_gif.value != "Animation")
     _out = m_gif_v2(algorithm = algorithm_input.value)
@@ -3245,19 +2861,16 @@ def _(algorithm_input, im_gif, m_gif_v2, mo, seed_input, time):
 
 @app.cell(hide_code=True)
 def _(
-    Av2,
     algorithm_input,
     default_title,
-    draw_fac_v2,
-    fac_v2,
+    fac_Av2,
     front_focus_v2,
     im_gif,
-    mo,
     walk_v2,
 ):
     #Display Image
     mo.stop(im_gif.value != "Image")
-    draw_fac_v2(fac_v2, node_colors = front_focus_v2(walk_v2[algorithm_input.value]), highlight_path = [Av2(v) for v in walk_v2[algorithm_input.value]], legend = False, title = default_title(has_walk = True, algorithm=algorithm_input.value))
+    draw_fac_v2(fac_Av2, node_colors = front_focus_v2(walk_v2[algorithm_input.value]), highlight_path = [c_Av2(v) for v in walk_v2[algorithm_input.value]], legend = False, title = default_title(has_walk = True, algorithm=algorithm_input.value))
     return
 
 
@@ -3273,7 +2886,6 @@ def _(
     VP,
     algorithm_input,
     memory_v2,
-    mo,
     out_v2,
     speed_v2,
 ):
@@ -3282,13 +2894,13 @@ def _(
             mo.stat(label="Time to Compute",    value=str((int)(speed_v2[algorithm_input.value]*1000))+" ms"),
             mo.stat(label="Memory to Compute",    value=str(round(memory_v2[algorithm_input.value]/1000))+" KB"),
             mo.stat(label="Supply Units Recovered",  value=str(len(out_v2[algorithm_input.value]["supply_units_recovered"]))+"/" + str(len(SU))),
-            mo.stat(label="Is Valid",  value=str(validate_output(out_v2[algorithm_input.value],G, AS, SU, VP, EP, SUP, ASP, GP)) ),
+            mo.stat(label="Output is Valid",  value=str(validate_output(out_v2[algorithm_input.value],G, AS, SU, VP, EP, SUP, ASP, GP)) ),
         ], gap=0, wrap=True),kind = "info")
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     <div class = "g">
     <h4>Computational Outputs:</h4>
@@ -3303,7 +2915,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(algorithm_input, mo, out_v2):
+def _(algorithm_input, out_v2):
     mo.callout(mo.md(rf"""
     **raw output:**
     ```python
@@ -3314,7 +2926,26 @@ def _(algorithm_input, mo, out_v2):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
+    mo.accordion({"How can I convert this output to a generated facility's (facility A) output?":rf"""
+    Please use the c_out_Av2 function to convert from facility B's output (out_Bv2) to a walk in facility A.
+
+    ```python
+    WING_COLS = {WING_COLS}
+    GAP = {GAP}
+
+    {inspect.getsource(c_out_Av2)}
+
+    {inspect.getsource(c_Av2)}
+    ```
+
+
+    """})
+    return
+
+
+@app.cell(hide_code=True)
+def _():
     mo.md(r"""
     ## <span class = "g">C4 - Comparisons</span>
     """)
@@ -3322,8 +2953,8 @@ def _(mo):
 
 
 @app.cell
-def _(mo):
-    sample_set_size = mo.ui.slider(start = 10, stop = 500, step = 10, value = 30, full_width= True)
+def _():
+    sample_set_size = mo.ui.slider(start = 5, stop = 500, step = 5, value = 100, full_width= True)
     table_options = mo.ui.tabs({"Current Seed": "", "Sample Set":sample_set_size})
     return sample_set_size, table_options
 
@@ -3332,15 +2963,13 @@ def _(mo):
 def _(
     SU,
     algorithms,
+    benchmark_algorithm,
     memory_v2,
-    mo,
     out_v2,
-    random,
     sample_set_size,
     seed_input,
     speed_v2,
     table_options,
-    test_algorithm,
     valid_v2,
 ):
     # make table
@@ -3357,7 +2986,7 @@ def _(
                 _seed = random.randint(0,99999999)
 
                 for alg in algorithms.keys():
-                    _out_v2, _memory_v2, _speed_v2, _input, _is_valid = test_algorithm(alg, seed = _seed)
+                    _out_v2, _memory_v2, _speed_v2, _input, _is_valid = benchmark_algorithm(alg, seed = _seed)
                     _tc[alg] += _out_v2["traversal_cost"]
                     _s[alg] += _speed_v2
                     _m[alg] += _memory_v2
@@ -3392,7 +3021,7 @@ def _(
         d2 = {corner:"Speed (ms)"} | {algorithm:(int)(round(_s[algorithm]*1000)) for algorithm in algorithms}
         d3 = {corner:"RAM Used (KB)"} | {algorithm:round(_m[algorithm]/1000) for algorithm in algorithms}
         d4 = {corner:f"SUs recovered (%)"} | {algorithm:round(_su[algorithm]) for algorithm in algorithms}
-        d5 = {corner:"Is valid"} | {algorithm:_valid[algorithm] for algorithm in algorithms}
+        d5 = {corner:"Valid Output"} | {algorithm:_valid[algorithm] for algorithm in algorithms}
 
         best1 = [list(algorithms.keys())[0]]
         best2 = best1.copy()
@@ -3452,13 +3081,30 @@ def _(
 
 
 @app.cell
-def _(mo, table, table_options):
+def _():
+    validity_checker_info = mo.accordion({"How is the validity of an algorithm's output checked?": rf"""
+    The output is run through the "validate_ouput" automated checker to make sure the walk matches the constraints specified in part A1.
+    ```python
+    {inspect.getsource(validate_output)}
+    ```
+    """})
+    return (validity_checker_info,)
+
+
+@app.cell
+def _(table, table_options):
     mo.callout(mo.vstack([table_options,table]), kind = "success")
     return
 
 
+@app.cell
+def _(validity_checker_info):
+    validity_checker_info
+    return
+
+
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     # Part D - Justification
     """)
@@ -3466,29 +3112,44 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
     <div class = "g">
-    <h2>Choosing an algorithm</h2>
+    <h3>Choosing an algorithm</h3>
     <p>
     Please take a moment to engage with the table in part C4. If you select the 'Sample Set' option, you will be able to see the averaging of many random seeds with the best algorithm(s) shown on the right and the validity of the algorithms output down the bottom.</p>
 
     <p>
-    As you can see from the outputs, it can be seen that all algorithms recover all supply units, although with only Brute Force and Divide and Conquer consistantly returning optimal traversal costs. Taking into account speed, some credit has to be given to BFS+DFS for being orders of magnitude faster than the other algorithms while only sacrifising traversal cost a minimal amount. Although Divide and Conquer is meant to be a more efficient version of Brute Force, it is significantly slower, likely due to overhead
+    As you can see from the outputs, it can be seen that all algorithms recover all supply units, although with only Brute Force and Divide and Conquer consistantly returning optimal traversal costs. Taking into account speed, some credit has to be given to BFS+DFS for being orders of magnitude faster than the other algorithms while only sacrifising traversal cost a minimal amount. Although Divide and Conquer is meant to be a more efficient version of Brute Force, it is significantly slower, likely due to overhead.
     </p>
 
     <p>
     As minamising traversal cost is rather important, and the difference in speed and memory use between the algorithms  is negligible, it seems like Brute Force is the best algorithm for the job for its speed, simplicity and optimality.
     </p>
+
+    <h3>Suitablility:</h3>
+    <p>The facility is a fully connected undirected unweighted graph with cycles. The current 'Brute Force' implimentation can handle undirected and fully connected graphs. Therefore the facility fits into the scope of what the 'Brute Force' is designed to solve, showing the suitablility of Brute force for this problem.</p>
+
+
+    <p>
+    For a sample set of a resonable size (100 or more seeds, refer to table and slider) it can be seen that 'Brute Force' is cutting edge in 3 of the four benchmarks, only beaten in speed by several milliseconds. Despite not being specifically designed for this problem to account for the few cycles, like 'Divide and Conquer', it has almost no overhead allowing it to run lightning fast.
+    </p>
+
+
+    <h3>Coherence:</h3>
+    The 'Brute Force' implimentation natively utilises the inputs specified in part A1, taking G, AS, SU, VP, EP, SUP, ASP and GP as inputs. It then returns the output map specified in part A1.
+
+
+    <h3>Constraints:</h3>
     </div>
     """)
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def _():
     mo.md(r"""
-    <div class = r>
+    <!--<div class = r>-->
     ### Suitability:
 
     The ESRC is a **undirected, unweighted tree** meaning that my BFS+DFS algorithm--which requires an unweighted and undirected graph and returns an optimal solution for a tree--is a perfect match. It is also rather efficient (O((V+E)#Exits)), so for this particular problem (as #exits = 2 and it is sparse with ||E|| =143), it outperforms more general solutions, such as brute force and greedy.
@@ -3517,16 +3178,6 @@ def _(mo):
        - As there are only 5 supply units, this isn't an issue.
 
     Therefore, all constraints are met!
-    </div>
-    ### Suitability:
-
-    ### Coherence:
-
-    ### Constraints:
-    <div class = "g>
-
-
-    </div>
     """)
     return
 
