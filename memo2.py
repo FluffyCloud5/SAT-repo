@@ -57,8 +57,8 @@ def comments():
     #This marimo notebook is Kieran's response to the SAT notebooks
 
 
-    #Some coding naming conventions:
-        #This notebook is a large project so the will likely be some unconventional or badly named objects.
+    #Some coding name conventions:
+        #This notebook is a large project so there will likely be some unconventional or badly named objects.
 
         #v1 - memo 1
         #v2 - memo A1
@@ -541,7 +541,7 @@ def BFS_DFS(G, AS, SU, VP, EP, SUP, ASP, GP):
                 elif (not visited[v]) and sub_SU[v] and parent[v] == u:
                     Q.append(v) # ignores all vertices not in sub_exit or sub_SU
 
-            #the nodes with just supply units below them are then appended ontop.
+            #the nodes with just supply units below them are then appended on top.
             while Q: 
                 v = Q.popleft()
                 visited[v] = True
@@ -1350,7 +1350,9 @@ def _(seed_input):
 def _():
     mo.callout(mo.accordion({"<p style = 'font-size: 25px'>Code to test algorithms</p>":rf"""
 
-    Use main1 to test algorithms based off the facility seeds, and main2 to do it based of the the facilities themselves. Chooses which algorithm to test via the key 'algorithm'. Examples are given below all function definitions.
+    Below is the copy-paste code to quickly test the algorithms.
+
+    Use main1 to test algorithms based off the facility seeds, and main2 to do it based of the the facilities themselves. Choose which algorithm to test via the key 'algorithm', however note that 'Brute Force' is the algorithm selected in part D.
 
     An example of how to use the main1 function:
     ```python
@@ -1425,62 +1427,50 @@ def _():
     mo.md(r"""
     ### Amendments to memo 1
 
-
     Assumptions:
-    - Add assumption that the inter-wing corridors are of length 4 in physical space (to match the representation provided).
+    - Added an assumption that the inter-wing corridors are of length 4 in physical space (to match the representation provided).
 
-    Problem Outline: change to match new problem scope.
+    Problem Outline:
+    - Changed to match new problem scope of memo A1.
 
-    Definitions: change the definition of a corridor.
+    Definitions:
+    - Changed the definition of a corridor.
 
-    A1:
-    - Inputs:
-        - add location property to VP giving a tuple as a location
-        - add wing property to VP
-        - remove cardinal angle from EP
-    - Outputs:
-        - change move(a: angle, l: length) functions to move(x: East, y: North)
-        - change output to have location of vertices not vertex names as the location of vertices.
+    A:
+    - A1:
+        - Inputs:
+            - Added location property to VP giving a tuple as a location
+            - Added wing property to VP
+            - Removed cardinal angle from EP
+        - Outputs:
+            - Changed move(a: angle, l: length) functions to move(x: East, y: North)
+            - Changed v in V from G = (V,E) to be named by coordinate location.
 
-    A2 - Salient Features:
-    - Location and direction are stored differently and abstracted differently.
+    - A2 - Salient Features:
+        - Changed Location and direction in the salient features as they are stored differently and abstracted differently than in memo 1.
 
-    A3:
-     - Add tuple and pairing data type.
-    - ADTs used in the algorithm
+    - A3:
+        - Added tuple ADT.
+        - Updated the ADTs used in the algorithm
+        - The ADT was updated for arrays as they are immutable in length.
 
     B - Algorithmic Design:
-    - Remove the DFS option as it is quite bad.==
-    - Add a new **<u>brute force</u>** option that divides and conquers (ish).
-    - change the discussion around the new algorithm
+    - Removed the DFS option as it is suboptimal
+    - Added a Divide and Conquer algorithm
+    - Changed the discussion around the new algorithm, and moved it to after the C section.
 
     C - Code:
     - To BFS code and pseudocode:
     	- change move and exit calls
-    - change based of algo, make it to accommodate for different algorithms.
-    - Change the representation to accommodate for new facility
-    - Change the output to only give raw output
-    - Add a comparison section
-    - Changes to Pseudocode conventions
+    - Accommodated for all algorithms, including at least python code for all of the different algorithms.
+    - Changed the representation of the facility to accommodate for multi-wings.
+    - Changed the output section to only give the raw output.
+    - Added a comparison section to compare algorithms.
+    - Changes to pseudocode conventions including removing all END... statements.
 
 
     D - Justification:
-    - make the justification for the new algorithm.
-
-    Read Memo A1 to make sure all requirements have been met
-    """)
-    return
-
-
-@app.cell(hide_code=True)
-def _():
-    mo.md(r"""
-    ### Memo 1 to Memo A1 Changes
-    - <span class = "y">Yellow text describes changes made.</span>
-    - <span class = "g">Green text is newly added content.</span>
-    - <span class = "r">Red text is removed content.</span>
-
-    Although an effort was made to highlight all changes, some changes involved complex structures that can't be highlighted and others were too small to mention (like spelling). In the case of a complex structure being added, deleted or changed, yellow text should be present to describe the changes made.
+    - Modified the justification to accommodate for the new chosen algorithm (Brute Force).
     """)
     return
 
@@ -1491,34 +1481,84 @@ def _():
     ### Action 1 Revision -- Data Model Redesign
 
     #### Part 1 -- Identify limitations of the Memo 1 model
-    The inputs and outputs described in memo one part A1 are sufficient to accomodate for the memo A1 problem. However they were a bit clunky and some unrelated changes were made, including:
+    The inputs and outputs described in memo 1 part A1 are sufficient to accommodate for the memo A1 problem. However they were a bit clunky and some unrelated changes were made, including:
 
     - Inputs:
         - Added location property to VP giving a tuple as a location
         - Added wing property to VP
         - Removed cardinal angle from EP
     - Outputs:
-        - change move(a: angle, l: length) functions to move(x: East, y: North)
-        - change output to have location of vertices not vertex names as the location of vertices.
+        - Changed move(a: angle, l: length) functions to move(x: East, y: North)
+        - Changed output to have location of vertices not vertex names as the location of vertices.
 
     #### Part 2 -- Evaluate two design approaches
     - Flat Graph:
         - The current algorithmic problem statement handles this perfectly.
         - Pro: It allows for easy traversal between the wings as they are abstracted away.
-        - Con: Might be worse for a heuristic algorithm approach, as traversing through each wing sequencially is an efficient solution.
-    - Hierachical Graph:
-        - This would involve changing the algorithmic problem statement by adding another overaching graph.
+        - Con: Might be worse for a heuristic algorithm approach, as traversing through each wing sequentially is an efficient solution.
+    - Hierarchical Graph:
+        - This would involve changing the algorithmic problem statement by adding another overarching graph.
         - Pro: It would allow for clear segmentation between the wings.
-        - Con: It causes the input to become incredibly complicated and makes algorithms to find optimal solutions harder to impliment.
+        - Con: It causes the input to become incredibly complicated and makes algorithms to find optimal solutions harder to implement.
     #### Part 3 -- Select, specify, and justify
-    - The tuple ADT was added to allow for cooridinate positions to be represented in the graph. A tuple was selected as it is an immutable data type, allowing for constants to be easily conveyed.
+    - The tuple ADT was added to allow for coordinate positions to be represented in the graph. A tuple was selected as it is an immutable data type, allowing for constants to be easily conveyed.
 
 
     ### Action 2 Revision -- Algorithm Redesign
 
     #### Part 1 -- Identify the new sub-problems
+    Some new challenges brought by the addition of additional wing(s) are:
+    - Introduces cycles into the graph, meaning it is no longer a tree.
+    - Introduces additional nodes into the graph, and different types of edges.
+
+    These were addressed by:
+    - Flattening the graph to abstract the wings away.
+    - The multiple inter-wing corridors (cycles) were addressed by each algorithm differently:
+        - BFS+DFS: This creates a minimum spanning tree of the graph, so it always ignores the cycle.
+        - Greedy: Doesn't care about cycles so it treats it as a normal edge.
+        - Brute Force: Tries each potential route to find the best one.
+        - Divide and Conquer: Tries each potential route (in a more efficient way) to find the best one.
+
     #### Part 2 -- Evaluate two wing-traversal strategies
+    Exhaustive (moves through the wings one by one):
+    - Although seems like a smart way to minimise backtracking, there are sometimes more optimal routes that involve looping around through the inter-wing corridors.
+
+    Interleaved (treating the wings together as one big graph):
+    - This was the approach my algorithms took, where they took the whole graph in together, not just parts of it. Although more computationally expensive, it allows for a more thorough solution. And when the speeds are in the milliseconds, there is no need to worry about speed.
+
     #### Part 3 -- Describe your revised algorithm in full
+    As has been stated before, the facility is treated as one big connected graph, not multiple different graphs. Therefore all my algorithms function fundamentally the same as before, although 'Brute Force' was chosen in part D over 'BFS+DFS' (the previous algorithm) as justified by the introduction of cycles.
+
+    A description of the implementation 'Brute Force' can be found in part B.
+
+    ### Action 3 Revision -- Pseudocode Update
+    As all the wings are flattened onto the graph G, there is no special 'intra-wing traversal logic' separate from 'inter-wing traversal logic'. This allows for a streamlined and more straightforward solution. Therefore, no special wings affect the solution (like wings without supply units) as the algorithms simply traverse straight through them.
+
+    To see the updated pseudocode, refer to part C1. 'Brute Force' is the one utilised for reasons specified in part D.
+
+
+    ### Action 3b Revision -- Revised Algorithm Implementation -- Multi-wing.
+
+    All revised algorithms can be seen in part C2. Use part C3 and C4 to run, test and compare the algorithms. 'Brute Force' is the one utilised for reasons specified in part D.
+
+    ### Action 4 Revision -- Justification Update.
+
+    Please refer to part D to see the updated justification.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _():
+    mo.md(r"""
+    ### Memo 1 to Memo A1 Changes
+
+    This colour coding system conveys how changes were made to the rest of the document.
+    - <span class = "y">Yellow text describes changes made.</span>
+    - <span class = "g">Green text is newly added content.</span>
+    - <span class = "r">Red text is removed content.</span>
+
+    Although an effort was made to highlight all changes, some changes involved complex structures that can't be highlighted and others were too small to mention (like spelling). In the case of a complex structure being added, deleted or changed, yellow text should be present to describe the changes made.
     """)
     return
 
@@ -1591,7 +1631,7 @@ def _():
 
 
     Movement Options:
-    - <span class = "r">Corridor: Connects two adjacent sectors in the same sector grid that don't have a wall in-between them. Can be bidirectional or one-way.</span>
+    - <span class = "r">Corridor: Connects two adjacent sectors in the same sector grid that do not have a wall in-between them. Can be bidirectional or one-way.</span>
     - <span class = "g">Inter-wing Corridor: This is shown as the red dotted line connecting two sectors from two different sector grids, which allows for direct movement between those two sectors.</span>
     - <span class = "g">Intra-wing Corridor: an intra-wing corridor is the absence of a wall between two adjacent sectors in the same sector grid</span>
     - <span class = "g">Corridor: A corridor is an intra-wing corridor or an inter-wing corridor.</span>
@@ -1623,7 +1663,7 @@ def _():
 
     ## Assumptions:
     1.  An Autonomous System (AS) knows the layout of the ESRC sector grid before it navigates it (e.g. it has the blueprints).
-    2.  The ASs can navigate in all directions without turning, and the AS knows its original orientation.
+    2.  ASs can navigate in all directions without turning, and ASs know their original orientation.
     3.  <span class = "g">inter-wing corridors have a length of 4 and intra-wing corridors have a length of 1, to match the facility representation. this is not correlated to traversal cost.</span>
     """)
     return
@@ -1750,7 +1790,7 @@ def _():
     In memo  <span class = "r">1</span> <span class = "g">A1</span>, a possible implementation of this is:
 
     VP = {v : {
-        "supply_unit": nullable string (name of supply unit within the sector, null if it doesn't contain a supply unit),<br>
+        "supply_unit": nullable string (name of supply unit within the sector, null if it does not contain a supply unit),<br>
         "is_entry": Boolean (true if the sector is an entry, false otherwise), <br>
         "is_exit": Boolean (true if the sector is an extraction point, false otherwise),<br>
         <span class = "g">"wing": String (name of the wing v is in), </span><br>
@@ -1864,7 +1904,7 @@ def _():
     2. Minimise energy cost. In memo  <span class = "r">1</span> <span class = "g">A1</span><!--TODO in memo A2, change this as not proportional to no edges traversed in the walk-->, this is proportional to the number of edges traversed in the walk, so ||walk|| should be minimised. This is a lower priority compared to the first objective.
     3. Minimise computational time of the algorithm
 
-    These three objectives mean that in the memo  <span class = "r">1</span> <span class = "g">A1</span> problem, the objective is to compute the shortest walk collecting all supply units and making it to the exit with a minimal computational time. This is as the memo  <span class = "r">1</span> <span class = "g">A1</span> problem is quite small and therefore even a bruteforce approach is relatively fast.
+    These three objectives mean that in the memo  <span class = "r">1</span> <span class = "g">A1</span> problem, the objective is to compute the shortest walk collecting all supply units and making it to the exit with a minimal computational time. This is as the memo  <span class = "r">1</span> <span class = "g">A1</span> problem is quite small and therefore even a brute force approach is relatively fast.
     """)
     return
 
@@ -2049,7 +2089,7 @@ def _():
 
     - A Graph of the Sector Grid,
     - Maps of properties of the graph, vertices, edges, autonomous systems ASs and supply units SUs.
-    - Sets of the ASs and the SUs.
+    - Sets of ASs and SUs.
 
     The graph is ideal to model a 2d space with discrete points where one can be, as graphs are well suited to finding paths and walks in space.<br>
     The sets are ideal to convey what is in the environment as order doesn't matter and it can store many items effectively.
@@ -2200,7 +2240,7 @@ def _():
 
     <span class = "r">- Returns the optimal walk.</span>
     - Works well for graphs with few cycles.
-    - Good time compexity with O(#Exits(V+E)).
+    - Good time complexity with O(#Exits(V+E)).
 
     Cons:
 
@@ -2241,7 +2281,7 @@ def _():
     6. This means DFS produces an optimal walk for its length is the shortest it could be.
 
     Lemma 2: DFS can produce a walk with length 2sum(E) - dist(source,v), if it has to visit all nodes from a source and end at v.
-    1. Consider if DFS stacks the node with v as a decendant or v itself first at each iteration. Then DFS will explore all other branches before it pops v, and at that point it will explore the desendants of v. once it has explored all nodes, DFS will start returning to the source, and v has to be on that route as it (or a desendant of v) was explored last.
+    1. Consider if DFS stacks the node with v as a descendant or v itself first at each iteration. Then DFS will explore all other branches before it pops v, and at that point it will explore the desendants of v. once it has explored all nodes, DFS will start returning to the source, and v has to be on that route as it (or a desendant of v) was explored last.
     2. Therefore as it will end at v having explored all nodes and on a direct path to the source with distance dist(source,v) and we know that a full DFS takes 2sum(E), the length of this walk must be 2sum(E) - dist(source,v).
 
     Lemma 3 There is no walk shorter than 2sum(E) - dist(source,v), if it has to visit all nodes from a source and end at v.
@@ -2312,25 +2352,20 @@ def _():
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
+    <span class = "g">The discussion for part B will take place after part C once we are able to directly compare the algorithms.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _():
+    mo.md(r"""
     <div class = "r">
     Every option above has its merits and its drawbacks, but option 3 seems to be the most optimal for the memo 1 problem as it balances speed with finding the optimal solution. Its time complexity is O(#Exits(V+E)), which is only always beaten by the DFS algorithm in terms of speed.<br>
 
     Compared to the Brute force option, with time complexity O((V+E)S+S!) where S is #of supply units, the BFS + DFS solution is significantly faster for large values of S.<br>
 
-    A significant drawback of the BFS + DFS algorithm is that it relies on the graph being a tree which might not be the case in memos beyond memo 1, leading to a potentially suboptimal solution for graphs with cycles.</div><br>
-
-    <div class = "g">
-    Every option above has its merits and its drawbacks, with some being simpler, while others being perfect solutions and some being very efficient. All solutions collect all supply units. Out of all the options given, 3 stand out for distinct reasons.<br>
-
-    1. Brute Force. Brute forcing this problem is straightforward and efficient as there are only 4-5 supply units and the time taken only grows at factorial speeds relative to the supply unit count. Brute force here as a simple, optimal and efficient solution.<br>
-
-    2. BFS+DFS. Although originally designed to traverse only trees, BFS+DFS performs well in this environment, with unmatched computational speed and relatively good traversal cost, being a good heuristic for this problem.<br>
-
-    3. Divide and Conquer. As an algorithm returning an optimal solution by breaking down the problem into small and easy to deal with chunks, this algorithm is great for an efficient solution when optimality is key and speed is crucial and should outperform Brute Force.<br>
-
-    The chosen algorithm will be discussed and justified further in part D.
-
-    </div>
+    A significant drawback of the BFS + DFS algorithm is that it relies on the graph being a tree which might not be the case in memos beyond memo 1, leading to a potentially suboptimal solution for graphs with cycles.</div>
     """)
     return
 
@@ -2365,6 +2400,20 @@ def _(algorithm_input):
     mo.md(rf"""
     ## C1 - Algorithm in pseudocode - {algorithm_input.value}
     """)
+    return
+
+
+@app.cell(hide_code=True)
+def _():
+    mo.callout(mo.accordion({"Pseudocode Conventions Used":"""
+    1. Start a 'function', 'for loop', 'while', 'if', 'else if' and 'else' with FUNCTION, FOR...DO, WHILE, IF...THEN, ELSE IF...THEN, ELSE 
+    2. Do not end a flow control parameter with END ... (e.g. END FUNCTION), simply use indentation to convey the end of the flow control.
+    3. Use '//' for comments
+    4. Use '←' for assignment
+    5. Use object.ADT_signature_name() for to utilise an ADT's signature.
+    6. {} mean dictionaries or sets.
+    7. [] mean lists, or accessing indexes.
+    """}))
     return
 
 
@@ -2517,7 +2566,7 @@ def _(algorithm_input):
     				Q.push(v)
                 // ignores all vertices not in sub_exit or sub_SU
 
-    		//the nodes with just supply units below them are then pushed ontop.
+    		//the nodes with just supply units below them are then pushed on top.
     		WHILE not Q.is_empty() DO
     			v ← Q.pop()
     			visited[v] ← true
@@ -3051,7 +3100,7 @@ def _():
 @app.cell(hide_code=True)
 def _():
     sample_set_size = mo.ui.slider(start = 5, stop = 500, step = 5, value = 100, full_width= True)
-    table_options = mo.ui.tabs({"Current Seed": "", "Sample Set":sample_set_size})
+    table_options = mo.ui.tabs({"Current Seed": "", "Sample Set":sample_set_size}, value = "Sample Set")
     return sample_set_size, table_options
 
 
@@ -3196,6 +3245,35 @@ def _():
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
+    <div class = "g">
+    <h1>Part B2 - Discussion</h1>
+
+    <p>Please refer to the table in part C4, which was used to decide on an algorithm.</p>
+
+    Every option above has its merits and its drawbacks, with simpler algorithms, perfect solutions or efficient computations. The four options are considered:<br>
+
+    1. Brute Force: Brute forcing this problem is straightforward and efficient as there are only 4-5 supply units (which the time complexity depends on). Brute force is therefore a simple, optimal and efficient solution.<br>
+
+    2. BFS+DFS: BFS+DFS has unmatched computational speed and relatively good traversal cost here, being a good heuristic for this problem.<br>
+
+    3. Divide and Conquer: Divide and Conquer should be a more efficient version of Brute Force by breaking the problem into smaller parts, but likely due to overhead is outperformed by Brute Force in all benchmarks, making it obsolete. <br>
+
+
+    4. Greedy: Unfortunately this doesn't perform well in this environment, returning a significantly more expensive walk.<br>
+
+
+    <p>
+    As minimising traversal cost is rather important, and the difference in speed and memory use between the algorithms is negligible, Brute Force is the best algorithm for the job for its speed, simplicity and optimality.
+    </p>
+
+    </div>
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _():
+    mo.md(r"""
     # Part D - Justification
     """)
     return
@@ -3205,18 +3283,6 @@ def _():
 def _():
     mo.md(r"""
     <div class = "g">
-    <h3>Choosing an algorithm</h3>
-    <p>
-    Please take a moment to engage with the table in part C4. When the 'Sample Set' option is selected, the average benchmarks of many random seeds will be visible. The best algorithm(s) for the benchmark are shown on the right and the validity of the algorithm's output is displayed down the bottom.</p>
-
-    <p>
-    From the table it can be seen that all algorithms recover all supply units, although only 'Brute Force' and 'Divide and Conquer' consistently return optimal traversal costs. Taking into account speed, some credit has to be given to BFS+DFS for being orders of magnitude faster than the other algorithms while only sacrificing traversal cost a minimal amount. On another note, although 'Divide and Conquer' is meant to be a more efficient version of 'Brute Force', it is significantly slower, likely due to overhead.
-    </p>
-
-    <p>
-    As minimising traversal cost is rather important, and the difference in speed and memory use between the algorithms  is negligible, it seems like Brute Force is the best algorithm for the job for its speed, simplicity and optimality.
-    </p>
-
     <h3>Suitability:</h3>
     <p>The facility is a fully connected undirected unweighted graph with cycles. The current 'Brute Force' implementation can handle undirected and fully connected graphs. Therefore the facility fits into the scope of what the 'Brute Force' is designed to solve, showing the suitability of Brute force for this problem.</p>
 
@@ -3236,6 +3302,10 @@ def _():
     ```python
     fac_B = {"G":G, "AS":AS, "SU":SU, "VP":VP, "EP":EP, "SUP":SUP, "ASP":ASP, "GP": GP}
     ```
+
+    <h3>Fitness for purpose -- stress test:</h3>
+    If one inter-wing corridor was blocked, Brute Force would handle the situation effectively as it utilises BFS to find paths, which ensures that it will always find a walk if one exists.<br>
+    However, unlike Divide and Conquer, it will not utilse the removal of a cycle to optimise its computational efficiency.
     </div>
     """)
     return
@@ -3243,15 +3313,21 @@ def _():
 
 @app.cell(hide_code=True)
 def _():
-    mo.md(r"""
-    ### <span class = "g"> Constraints</span>
-    """)
-    return
+    mo.callout(mo.accordion({"### Constraints":"""
+    1. Does Brute Force's walk start at an entry? 
+    When Brute Force constructs the walk, it defines it as  'walk = [entry]', and only appends to the list, meaning that the walk does start at an entry.
+    2. Is the last vertex of the walk an exit?
+    In the Brute Force code, an exit is always appended to the end of the walk permutation as in 'perm.append(exit)', meaning the last node visited will always be an exit.
+    3. Are all nodes in the walk nodes in G?
+    The only nodes added to the walk list are the entry and nodes from the pm. As these are all nodes of G, all nodes of the walk must be in G.
+    4. Are all edges of the walk edges of G?
+    Each edge of the walk is found in the pm by BFS. As BFS only traverses between nodes by edges of the graph G, all edges of the walk must be in G.
+    5. Is the "supply_units_recovered" set consistent with the supply units traversed by the walk?
+    As the 'Brute Force' algorithm visits all supply units, and it returns that it recovered all supply units, the "supply_units_recovered" output is consistent with reality.
+    6. Does 'traversal_cost' match the traversal cost of the walk?
+    Since the 'traversal_cost' returned is the number of nodes (repetitions counted) in the walk minus 1, this is consistent with the traversal cost of the walk, as an unweighted length of a walk is just the number of edges in the walk, = |V| - 1
 
-
-@app.cell(hide_code=True)
-def _():
-    mo.callout(mo.accordion({"What are the constraints again?":mo.md(r"""
+    Therefore all constraints are met. This can be verified for a sample set of seeds automatically by utilising the table in part C4.""", "What are the constraints again?":mo.md(r"""
     ### Constraints as defined in part A1 - Algorithmic Problem Statement
 
     1. The first vertex of the walk AS makes must be an entry.
@@ -3265,32 +3341,7 @@ def _():
 
     *3 and 4 are simply ensuring the walk is indeed a walk on graph G.
 
-    """)}))
-    return
-
-
-@app.cell(hide_code=True)
-def _():
-    mo.md(r"""
-    <div class = "g">
-    1. Does Brute Force's walk start at an entry? <br>
-    When Brute Force contructs the walk, it defines it as  'walk = [entry]', and only appends to the list, meaning that the walk does start at an entry.<br>
-    2. Is the last vertex of the walk an exit?<br>
-    In the Brute Force code, an exit is always appended to the end of the walk permutation as in 'perm.append(exit)', meaning the last node visited will always be an exit.<br>
-    3. Are all nodes in the walk nodes in G?<br>
-    The only nodes added to the walk list are the entry and nodes from the pm. As these are all nodes of G, all nodes of the walk must be in G.<br>
-    4. Are all edges of the walk edges of G?<br>
-    Each edge of the walk is found in the pm by BFS. As BFS only traverses between nodes by edges of the graph G, all edges of the walk must be in G.<br>
-    5. Is the "supply_units_recovered" set consistent with the supply units traversed by the walk?<br>
-    As the 'Brute Force' algorithm visits all supply units, and it returns that it recovered all supply units, the "supply_units_recovered" output is consistent with reality.<br>
-    6. Does 'traversal_cost' match the traversal cost of the walk?<br>
-    Since the 'traversal_cost' returned is the number of nodes (repetitions counted) in the walk minus 1, this is consistent with the traversal cost of the walk, as an unweighted length of a walk is just the number of edges in the walk, = |V| - 1<br>
-
-    <p>Therefore all constraints are met. This can be verified for a sample set of seeds automatically by utilising the table in part C4.</p>
-
-
-    </div>
-    """)
+    """)}),kind = "success")
     return
 
 
