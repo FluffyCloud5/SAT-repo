@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.9"
+__generated_with = "0.23.14"
 app = marimo.App(
     width="medium",
     css_file="/usr/local/_marimo/custom.css",
@@ -14,6 +14,7 @@ with app.setup(hide_code=True):
     import networkx as nx
     import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
+    import matplotlib.colors as mcolors
     from collections import deque
     import json
     import os
@@ -25,6 +26,7 @@ with app.setup(hide_code=True):
     import tracemalloc
     import math
     import inspect
+    import copy
 
 
     #Some constants
@@ -45,6 +47,13 @@ with app.setup(hide_code=True):
     COL_FRONTIER = '#F4C97A'
     COL_CURRENT  = '#E8603C'
     COL_JUNCTION = '#7A1E2C'
+    COL_BORDER  = '#2C3E50'
+    COL_JUNC    = '#7A1E2C'
+
+    # Weight colour scale: 1=lightest, 5=darkest
+    WEIGHT_CMAP = mcolors.LinearSegmentedColormap.from_list(
+        'wcost', ['#B8E0DE', '#F4C97A', '#E88A4A', '#C84A30', '#7A1E2C']
+    )
 
 
 @app.cell
@@ -219,6 +228,71 @@ def m_fac_Av2(seed): #make facility version 2
 
 
 @app.function(hide_code=True)
+#Define make the A2 facility (m_fac_Av3)
+#Apply per-wing cost models to the facility edges.
+
+#Wing 0 (Alpha) : uniform  -- cost = 1
+#Wing 1 (Beta)  : depth    -- cost = 1 + floor(max(c1,c2) / 3)
+#Wing 2+ (Gamma+): seeded  -- cost = randint(1, 5) per corridor
+#Inter-wing junctions: cost = 1
+
+def m_fac_Av3(seed):
+
+    fac_Av2 = m_fac_Av2(seed)
+    
+    def _alpha_cost(c1, r1, c2, r2):
+        return 1
+    
+    def _beta_cost(c1, r1, c2, r2):
+        return 1 + max(c1, c2) // 3
+    
+    def _seeded_rng(wing_idx):
+        return random.Random(int_seed * 41 + wing_idx * 3331)
+
+    
+    int_seed = int(seed)
+    
+    # Deep-copy wings so we don't mutate the base facility
+    weighted_wings = [g.copy() for g in fac_Av2['wings']]
+    
+    cost_models = []
+    for w, wg in enumerate(weighted_wings):
+        if w == 0:
+            cost_fn = _alpha_cost
+            model_name = "Uniform (cost = 1)"
+            rng = None
+        elif w == 1:
+            cost_fn = _beta_cost
+            model_name = "Depth-based (cost = 1 + floor(col / 3))"
+            rng = None
+        else:
+            rng = _seeded_rng(w)
+            edge_list = list(wg.edges())
+            edge_costs = {tuple(sorted(e)): rng.randint(1, 5) for e in edge_list}
+            cost_fn = None
+            model_name = f"Seed-randomised (cost ∈ {{1..5}})"
+    
+        cost_models.append(model_name)
+    
+        for (c1, r1), (c2, r2) in wg.edges():
+            if cost_fn is not None:
+                w_cost = cost_fn(c1, r1, c2, r2)
+            else:
+                key = tuple(sorted([(c1, r1), (c2, r2)]))
+                w_cost = edge_costs[key]
+            wg[(c1, r1)][(c2, r2)]['weight'] = w_cost
+    
+    # Junction costs = 1
+    junction_costs = {(n1, n2): 1 for n1, n2 in fac_Av2['junctions']}
+    
+    weighted_fac = dict(fac_Av2)
+    weighted_fac['wings'] = weighted_wings
+    weighted_fac['junction_costs'] = junction_costs
+    weighted_fac['cost_models'] = cost_models
+    return weighted_fac
+
+
+@app.function(hide_code=True)
 #Define draw the facility for memo A1 (draw_fac_v2)
 def draw_fac_v2(fac_Av2, highlight_path=None, node_colors=None,
                     supply_collected=None, title="Multi-Wing Facility", legend = True, grid = True):
@@ -362,67 +436,224 @@ def draw_fac_v2(fac_Av2, highlight_path=None, node_colors=None,
 
 
 @app.function(hide_code=True)
-#Define c_Av2
-def c_Av2(node, fac_Av2 = {"wing_cols":WING_COLS, "gap": GAP}):
-    #maps node from facility B to facility A
-    return (int((node[0]-(node[0]%(fac_Av2["wing_cols"] + fac_Av2["gap"])))/(fac_Av2["wing_cols"] + fac_Av2["gap"])),node[0]%(fac_Av2["wing_cols"] + fac_Av2["gap"]),node[1])
+#Define Draw Fac v3
+
+def draw_fac_v3(wfac, highlight_path=None, title="Weighted Multi-Wing Facility", legend = True):
+
+    def _weight_colour(w, wmin=1, wmax=5):
+        t = (w - wmin) / max(wmax - wmin, 1)
+        return WEIGHT_CMAP(t)
+    
+    nw = wfac['n_wings']
+    wc = wfac['wing_cols']
+    wr = wfac['wing_rows']
+    total_w = nw * wc + (nw - 1) * GAP
+
+    fig, ax = plt.subplots(figsize=(min(3.8 * nw, 14), 5))
+    ax.set_xlim(-0.5, total_w + 0.5)
+    ax.set_ylim(-0.8, wr + 0.6)
+    ax.set_aspect('equal')
+    ax.axis('off')
+    ax.set_facecolor(COL_BG)
+    fig.patch.set_facecolor(COL_BG)
+
+    def wing_x(w):
+        return w * (wc + GAP)
+
+    for w, wg in enumerate(wfac['wings']):
+        ox = wing_x(w)
+
+        # Background
+        ax.add_patch(plt.Rectangle((ox, 0), wc, wr,
+            facecolor=COL_BG, edgecolor='none', zorder=0))
+
+        # Draw each corridor coloured by weight
+        for (c1, r1), (c2, r2) in wg.edges():
+            cost = wg[(c1, r1)][(c2, r2)].get('weight', 1)
+            col = _weight_colour(cost)
+            x1, y1 = ox + c1 + 0.5, r1 + 0.5
+            x2, y2 = ox + c2 + 0.5, r2 + 0.5
+            ax.plot([x1, x2], [y1, y2], color=col, lw=3.5,
+                    solid_capstyle='round', zorder=1, alpha=0.85)
+
+        # Draw walls (cell boundary segments where no edge exists)
+        for c in range(wc):
+            for r in range(wr):
+                # right neighbour
+                if c + 1 < wc and not wg.has_edge((c, r), (c + 1, r)):
+                    ax.plot([ox + c + 1, ox + c + 1], [r, r + 1],
+                            color=COL_WALL, lw=1.3, zorder=2)
+                # top neighbour
+                if r + 1 < wr and not wg.has_edge((c, r), (c, r + 1)):
+                    ax.plot([ox + c, ox + c + 1], [r + 1, r + 1],
+                            color=COL_WALL, lw=1.3, zorder=2)
+
+        # Outer border
+        ax.add_patch(plt.Rectangle((ox, 0), wc, wr,
+            fill=False, edgecolor=COL_BORDER, lw=2.0, zorder=3))
+
+        # Wing label
+        ax.text(ox + wc / 2, wr + 0.3,
+                f"Wing {wfac['wing_names'][w]}",
+                ha='center', va='bottom', fontsize=9,
+                fontweight='bold', color='#0B1F3B', zorder=8)
+
+        # Cost model label
+        ax.text(ox + wc / 2, -0.55,
+                wfac['cost_models'][w],
+                ha='center', va='top', fontsize=6,
+                color='#44546A', style='italic', zorder=8)
+
+    # Inter-wing corridors + junctions
+    for (w1, c1, r1), (w2, c2, r2) in wfac['junctions']:
+        x1 = wing_x(w1) + c1 + 0.5
+        x2 = wing_x(w2) + c2 + 0.5
+        y1, y2 = r1 + 0.5, r2 + 0.5
+        ax.plot([x1, x2], [y1, y2], color=COL_JUNC, lw=1.6,
+                linestyle='--', zorder=4, alpha=0.8)
+        ax.plot(x1, y1, 'o', ms=6, color=COL_JUNC, zorder=5)
+        ax.plot(x2, y2, 'o', ms=6, color=COL_JUNC, zorder=5)
+
+    # Supply units
+    for (ws, cs, rs) in wfac['supplies']:
+        ox = wing_x(ws)
+        ax.plot(ox + cs + 0.5, rs + 0.5, marker='*', ms=11,
+                color=COL_SUPPLY, markeredgecolor=COL_ENTRY, lw=0.8, zorder=6)
+
+    # Entry
+    we, ce, re = wfac['entry']
+    ox = wing_x(we)
+    ax.add_patch(plt.Circle((ox + ce + 0.5, re + 0.5), 0.38,
+        color=COL_ENTRY, zorder=6))
+    ax.text(ox + ce + 0.5, re + 0.5, 'E', ha='center', va='center',
+            fontsize=6, color='white', fontweight='bold', zorder=7)
+
+    # Exits
+    for lbl, (wx, cx, rx) in [('A', wfac['exit_a']), ('B', wfac['exit_b'])]:
+        ox = wing_x(wx)
+        ax.add_patch(plt.Circle((ox + cx + 0.5, rx + 0.5), 0.38,
+            color=COL_EXIT, zorder=6))
+        ax.text(ox + cx + 0.5, rx + 0.5, lbl, ha='center', va='center',
+                fontsize=6, color='white', fontweight='bold', zorder=7)
+
+    # Highlight path if provided
+    if highlight_path and len(highlight_path) > 1:
+        for i in range(len(highlight_path) - 1):
+            n1, n2 = highlight_path[i], highlight_path[i + 1]
+            w1, c1, r1 = n1
+            w2, c2, r2 = n2
+            x1 = wing_x(w1) + c1 + 0.5
+            x2 = wing_x(w2) + c2 + 0.5
+            ax.plot([x1, x2], [r1 + 0.5, r2 + 0.5],
+                    color='#FFD700', lw=2.8, alpha=0.9,
+                    solid_capstyle='round', zorder=9)
+
+    # Colour bar legend for weights
+    sm = plt.cm.ScalarMappable(
+        cmap=WEIGHT_CMAP,
+        norm=mcolors.Normalize(vmin=1, vmax=5)
+    )
+    sm.set_array([])
+    cbar = fig.colorbar(sm, ax=ax, orientation='horizontal',
+                        fraction=0.03, pad=0.14, aspect=40)
+    cbar.set_label('Corridor cost (weight)', fontsize=7, color='#44546A')
+    cbar.set_ticks([1, 2, 3, 4, 5])
+    cbar.ax.tick_params(labelsize=6, colors='#44546A')
+
+    if legend:
+        # Patch legend
+        legend_elements = [
+            mpatches.Patch(color=COL_ENTRY, label='Entry'),
+            mpatches.Patch(color=COL_EXIT, label='Exit A / B'),
+            mpatches.Patch(color=COL_SUPPLY, label='Supply unit'),
+            mpatches.Patch(color=COL_JUNC, label='Inter-wing junction'),
+        ]
+        if highlight_path:
+            legend_elements.append(
+                mpatches.Patch(color='#FFD700', label='Optimal route'))
+        ax.legend(handles=legend_elements, loc='upper right',
+                  fontsize=6.5, framealpha=0.9,
+                  bbox_to_anchor=(1.0, 1.0))
+
+    ax.set_title(title, fontsize=10, color='#0B1F3B', pad=8)
+    plt.tight_layout()
+    return fig, ax
 
 
 @app.function(hide_code=True)
-#Define c_Bv2
-def c_Bv2(node, fac_Av2 = {"wing_cols":WING_COLS, "gap": GAP}):
+#Define c_Av3
+def c_Av3(node, fac_Av3 = {"wing_cols":WING_COLS, "gap": GAP}):
     #maps node from facility B to facility A
-    return (node[1] + (fac_Av2["wing_cols"]+fac_Av2["gap"])*node[0], node[2])
+    return (int((node[0]-(node[0]%(fac_Av3["wing_cols"] + fac_Av3["gap"])))/(fac_Av3["wing_cols"] + fac_Av3["gap"])),node[0]%(fac_Av3["wing_cols"] + fac_Av3["gap"]),node[1])
 
 
 @app.function(hide_code=True)
-#Define convert facility A to facility B memo A1 (c_fac_Bv2)
-def c_fac_Bv2(fac_Av2):
+#Define c_Bv3
+def c_Bv3(node, fac_Av3 = {"wing_cols":WING_COLS, "gap": GAP}):
+    #maps node from facility B to facility A
+    return (node[1] + (fac_Av3["wing_cols"]+fac_Av3["gap"])*node[0], node[2])
+
+
+@app.function(hide_code=True)
+#Define convert facility A to facility B memo A2 (c_fac_Bv3)
+def c_fac_Bv3(fac_Av3):
     # turn Mr Nielsen's implementation (A) into the implementation specified in part A1 (B)
 
 
     vertices = []
     G = nx.DiGraph()
 
-    n_nodes = fac_Av2["n_wings"]*fac_Av2["wing_cols"]*fac_Av2["wing_rows"] #number of nodes
+    n_nodes = fac_Av3["n_wings"]*fac_Av3["wing_cols"]*fac_Av3["wing_rows"] #number of nodes
 
-    #adds all sectors of fac_Av2 to G
+    #adds all sectors of fac_Av3 to G
     #Nodes are of the form (c,r)
-    graph = [c_Bv2((i,c,r),fac_Av2) for c in range(fac_Av2["wing_cols"]) for r in range(fac_Av2["wing_rows"]) for i in range(fac_Av2["n_wings"])]
+    graph = [c_Bv3((i,c,r),fac_Av3) for c in range(fac_Av3["wing_cols"]) for r in range(fac_Av3["wing_rows"]) for i in range(fac_Av3["n_wings"])]
     G.add_nodes_from(graph)
 
 
 
     #Edges are of the form ((c1,r1),(c2,r2))
-    for i in range(fac_Av2["n_wings"]):
-        for edge in fac_Av2["wings"][i].edges(): #for each edge of the ith wing, edge a tuple of two nodes.
-            G.add_edge(c_Bv2((i,edge[0][0],edge[0][1]),fac_Av2), c_Bv2((i,edge[1][0],edge[1][1]),fac_Av2))
-            G.add_edge(c_Bv2((i,edge[1][0],edge[1][1]),fac_Av2), c_Bv2((i,edge[0][0],edge[0][1]),fac_Av2))
+    for i in range(fac_Av3["n_wings"]):
+        for edge in fac_Av3["wings"][i].edges(): #for each edge of the ith wing, edge a tuple of two nodes.
+            G.add_edge(c_Bv3((i,edge[0][0],edge[0][1]),fac_Av3), c_Bv3((i,edge[1][0],edge[1][1]),fac_Av3))
+            G.add_edge(c_Bv3((i,edge[1][0],edge[1][1]),fac_Av3), c_Bv3((i,edge[0][0],edge[0][1]),fac_Av3))
 
-    for junc in fac_Av2["junctions"]:
-        G.add_edge(c_Bv2(junc[0],fac_Av2),c_Bv2(junc[1],fac_Av2))
-        G.add_edge(c_Bv2(junc[1],fac_Av2),c_Bv2(junc[0],fac_Av2))
+    for junc in fac_Av3["junctions"]:
+        G.add_edge(c_Bv3(junc[0],fac_Av3),c_Bv3(junc[1],fac_Av3))
+        G.add_edge(c_Bv3(junc[1],fac_Av3),c_Bv3(junc[0],fac_Av3))
 
-    SU = {i for i in range(len(fac_Av2["supplies"]))}
+    SU = {i for i in range(len(fac_Av3["supplies"]))}
 
     AS = {0}
 
 
-    VP = {i:{"is_entry":False, "is_exit": False, "supply_unit": None, "wing": fac_Av2["wing_names"][c_Av2(i)[0]],"location": i} for i in G.nodes()}
-    VP[c_Bv2(fac_Av2["entry"],fac_Av2)]["is_entry"] = True
-    VP[c_Bv2(fac_Av2["exit_a"],fac_Av2)]["is_exit"] = True
-    VP[c_Bv2(fac_Av2["exit_b"],fac_Av2)]["is_exit"] = True
-    for i in range(len(fac_Av2["supplies"])):
-        VP[c_Bv2(fac_Av2["supplies"][i],fac_Av2)]["supply_unit"] = i
+    VP = {i:{"is_entry":False, "is_exit": False, "supply_unit": None, "wing": fac_Av3["wing_names"][c_Av3(i)[0]],"location": i} for i in G.nodes()}
+    VP[c_Bv3(fac_Av3["entry"],fac_Av3)]["is_entry"] = True
+    VP[c_Bv3(fac_Av3["exit_a"],fac_Av3)]["is_exit"] = True
+    VP[c_Bv3(fac_Av3["exit_b"],fac_Av3)]["is_exit"] = True
+    for i in range(len(fac_Av3["supplies"])):
+        VP[c_Bv3(fac_Av3["supplies"][i],fac_Av3)]["supply_unit"] = i
 
 
 
-    EP = {edge: {}  for edge in G.edges}
+    EP = {edge: {'w': -1}  for edge in G.edges}
 
+    for i in range(fac_Av3["n_wings"]):
+        for edge in fac_Av3["wings"][i].edges():
+            EP[(c_Bv3((i,edge[0][0],edge[0][1])),c_Bv3((i,edge[1][0],edge[1][1])))]['w'] = fac_Av3["wings"][i][edge[0]][edge[1]]['weight']
+            EP[(c_Bv3((i,edge[1][0],edge[1][1])),c_Bv3((i,edge[0][0],edge[0][1])))]['w'] = fac_Av3["wings"][i][edge[0]][edge[1]]['weight']
 
-    SUP = {i:{"location": c_Bv2(fac_Av2["supplies"][i],fac_Av2)} for i in range(len(fac_Av2["supplies"]))}
+    for edge in fac_Av3["junctions"]:
+        EP[(c_Bv3((edge[1][0],edge[1][1],edge[1][2])),c_Bv3((edge[0][0],edge[0][1],edge[0][2])))]['w'] = fac_Av3["junction_costs"][edge]
+        EP[(c_Bv3((edge[0][0],edge[0][1],edge[0][2])),c_Bv3((edge[1][0],edge[1][1],edge[1][2])))]['w'] = fac_Av3["junction_costs"][edge]
 
-    ASP = {0:{"location":  c_Bv2(fac_Av2["entry"],fac_Av2)}}
+    for edge in G.edges():
+        if EP[edge]['w'] == -1:
+            raise Exception("Something went wrong when converting edge weights")
+
+    SUP = {i:{"location": c_Bv3(fac_Av3["supplies"][i],fac_Av3)} for i in range(len(fac_Av3["supplies"]))}
+
+    ASP = {0:{"location":  c_Bv3(fac_Av3["entry"],fac_Av3)}}
 
     GP = {}
     return G, AS, SU, VP, EP, SUP, ASP, GP
@@ -430,9 +661,9 @@ def c_fac_Bv2(fac_Av2):
 
 @app.function(hide_code=True)
 #Define convert output B to a walk in A.
-def c_out_Av2(out_Bv2): 
+def c_out_Av3(out_Bv3): 
     #converts output from any of the algorithms to a walk in B
-    return [c_Av2(v) for v in out_Bv2["walk"]]
+    return [c_Av3(v) for v in out_Bv3["walk"]]
 
 
 @app.function(hide_code=True)
@@ -1125,7 +1356,10 @@ def validate_output(_out, G, AS, SU, VP, EP, SUP, ASP, GP):
     #-----------verifying traversal cost-------------
 
     #constraint 6
-    if (len(_walk)-1 != _out["traversal_cost"]):
+    actual_length = 0
+    for i in range(len(_walk)-1):
+        actual_length += EP[(_walk[i],_walk[i+1])]['w']
+    if (actual_length != _out["traversal_cost"]):
         return "Traversal cost is not accurate."
 
     return "valid"
@@ -1149,9 +1383,9 @@ def _(algorithms, seed_input):
         leading = "#FF0000"
         base_col = '#58D4D3' 
 
-        _col_dict = {c_Av2(v):base_col for v in _walk}
+        _col_dict = {c_Av3(v):base_col for v in _walk}
 
-        _col_dict[c_Av2(_walk[len(_walk)-1])] = leading
+        _col_dict[c_Av3(_walk[len(_walk)-1])] = leading
 
         return _col_dict
 
@@ -1203,7 +1437,7 @@ def _(algorithms, seed_input):
 
 
         _fac = m_fac_Av2(seed)
-        _G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP = c_fac_Bv2(_fac)
+        _G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP = c_fac_Bv3(_fac)
         _walk = algorithms[algorithm](_G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP)["walk"]
 
 
@@ -1213,19 +1447,19 @@ def _(algorithms, seed_input):
         _fig, _ax= draw_fac_v2(_fac, legend = False, title = title)
 
         for _i in range(len(_walk)): 
-            _highlight_path = [c_Av2(v) for v in _walk[0:_i+1]]
+            _highlight_path = [c_Av3(v) for v in _walk[0:_i+1]]
             _node_colors = front_focus_v2(_walk[0:_i+1])
 
 
             if _highlight_path and len(_highlight_path) > 1:
-                px = [0.5 + c_Bv2((w,c,r))[0] for w,c,r in _highlight_path] 
+                px = [0.5 + c_Bv3((w,c,r))[0] for w,c,r in _highlight_path] 
                 py = [0.5 + r for w,c,r in _highlight_path] 
                 path_plot, = _ax.plot(px, py, color=COL_PATH, lw=1.8, linestyle='--', alpha=0.75, zorder=4)
 
             if _node_colors:
                 rectangles = []
                 for node, color in _node_colors.items():
-                    c, r = c_Bv2(node)
+                    c, r = c_Bv3(node)
                     rect = plt.Rectangle((c, r), 1, 1, color=color, alpha=0.50, zorder=2)
                     rectangles.append(rect)
                     _ax.add_patch(rect)
@@ -1305,7 +1539,7 @@ def _(algorithms, seed_input):
         if seed == None:
             seed = seed_input.value
 
-        G, AS, SU, VP, EP, SUP, ASP, GP = c_fac_Bv2(m_fac_Av2(seed))
+        G, AS, SU, VP, EP, SUP, ASP, GP = c_fac_Bv3(m_fac_Av3(seed))
 
         tracemalloc.start()
         tracemalloc.reset_peak()
@@ -1336,13 +1570,13 @@ def _(algorithms, benchmark_algorithm):
 
 @app.cell
 def _(seed_input):
-    fac_Av2 = m_fac_Av2(seed_input.value)
-    return (fac_Av2,)
+    fac_Av3 = m_fac_Av3(seed_input.value)
+    return (fac_Av3,)
 
 
 @app.cell
 def _(seed_input):
-    G, AS, SU, VP, EP, SUP, ASP, GP = c_fac_Bv2(m_fac_Av2(seed_input.value))
+    G, AS, SU, VP, EP, SUP, ASP, GP = c_fac_Bv3(m_fac_Av3(seed_input.value))
     return AS, ASP, EP, G, GP, SU, SUP, VP
 
 
@@ -1379,18 +1613,18 @@ def _():
         algorithms = m_algorithms()
         outputs = []
         for seed in seeds:
-            G, AS, SU, VP, EP, SUP, ASP, GP = c_fac_Bv2(m_fac_Av2(seed))
-            out_Bv2 = algorithms[algorithm](G, AS, SU, VP, EP, SUP, ASP, GP)
-            outputs.append(c_out_Av2(out_Bv2))
+            G, AS, SU, VP, EP, SUP, ASP, GP = c_fac_Bv3(m_fac_Av3(seed))
+            out_Bv3 = algorithms[algorithm](G, AS, SU, VP, EP, SUP, ASP, GP)
+            outputs.append(c_out_Av3(out_Bv3))
         return outputs
 
     def main2(facilities, algorithm = "Brute Force"): #same as main1, except tests bases off facilities
         algorithms = m_algorithms()
         outputs = []
         for fac in facilities:
-            G, AS, SU, VP, EP, SUP, ASP, GP = c_fac_Bv2(fac)
-            out_Bv2 = algorithms[algorithm](G, AS, SU, VP, EP, SUP, ASP, GP)
-            outputs.append(c_out_Av2(out_Bv2))
+            G, AS, SU, VP, EP, SUP, ASP, GP = c_fac_Bv3(fac)
+            out_Bv3 = algorithms[algorithm](G, AS, SU, VP, EP, SUP, ASP, GP)
+            outputs.append(c_out_Av3(out_Bv3))
         return outputs
 
 
@@ -1400,13 +1634,13 @@ def _():
 
     {inspect.getsource(m_fac_Av2)}
 
-    {inspect.getsource(c_Av2)}
+    {inspect.getsource(c_Av3)}
 
-    {inspect.getsource(c_Bv2)}
+    {inspect.getsource(c_Bv3)}
 
-    {inspect.getsource(c_fac_Bv2)}
+    {inspect.getsource(c_fac_Bv3)}
 
-    {inspect.getsource(c_out_Av2)}
+    {inspect.getsource(c_out_Av3)}
 
     {inspect.getsource(BFS_DFS)}
 
@@ -1426,51 +1660,6 @@ def _():
 def _():
     mo.md(r"""
     ### Amendments to memo 1
-
-    Assumptions:
-    - Added an assumption that the inter-wing corridors are of length 4 in physical space (to match the representation provided).
-
-    Problem Outline:
-    - Changed to match new problem scope of memo A1.
-
-    Definitions:
-    - Changed the definition of a corridor.
-
-    A:
-    - A1:
-        - Inputs:
-            - Added location property to VP giving a tuple as a location
-            - Added wing property to VP
-            - Removed cardinal angle from EP
-        - Outputs:
-            - Changed move(a: angle, l: length) functions to move(x: East, y: North)
-            - Changed v in V from G = (V,E) to be named by coordinate location.
-
-    - A2 - Salient Features:
-        - Changed Location and direction in the salient features as they are stored differently and abstracted differently than in memo 1.
-
-    - A3:
-        - Added tuple ADT.
-        - Updated the ADTs used in the algorithm
-        - The ADT was updated for arrays as they are immutable in length.
-
-    B - Algorithmic Design:
-    - Removed the DFS option as it is suboptimal
-    - Added a Divide and Conquer algorithm
-    - Changed the discussion around the new algorithm, and moved it to after the C section.
-
-    C - Code:
-    - To BFS code and pseudocode:
-    	- change move and exit calls
-    - Accommodated for all algorithms, including at least python code for all of the different algorithms.
-    - Changed the representation of the facility to accommodate for multi-wings.
-    - Changed the output section to only give the raw output.
-    - Added a comparison section to compare algorithms.
-    - Changes to pseudocode conventions including removing all END... statements.
-
-
-    D - Justification:
-    - Modified the justification to accommodate for the new chosen algorithm (Brute Force).
     """)
     return
 
@@ -1478,72 +1667,7 @@ def _():
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
-    ### Action 1 Revision -- Data Model Redesign
-
-    #### Part 1 -- Identify limitations of the Memo 1 model
-    The inputs and outputs described in memo 1 part A1 are sufficient to accommodate for the memo A1 problem. However they were a bit clunky and some unrelated changes were made, including:
-
-    - Inputs:
-        - Added location property to VP giving a tuple as a location
-        - Added wing property to VP
-        - Removed cardinal angle from EP
-    - Outputs:
-        - Changed move(a: angle, l: length) functions to move(x: East, y: North)
-        - Changed output to have location of vertices not vertex names as the location of vertices.
-
-    #### Part 2 -- Evaluate two design approaches
-    - Flat Graph:
-        - The current algorithmic problem statement handles this perfectly.
-        - Pro: It allows for easy traversal between the wings as they are abstracted away.
-        - Con: Might be worse for a heuristic algorithm approach, as traversing through each wing sequentially is an efficient solution.
-    - Hierarchical Graph:
-        - This would involve changing the algorithmic problem statement by adding another overarching graph.
-        - Pro: It would allow for clear segmentation between the wings.
-        - Con: It causes the input to become incredibly complicated and makes algorithms to find optimal solutions harder to implement.
-    #### Part 3 -- Select, specify, and justify
-    - The tuple ADT was added to allow for coordinate positions to be represented in the graph. A tuple was selected as it is an immutable data type, allowing for constants to be easily conveyed.
-
-
-    ### Action 2 Revision -- Algorithm Redesign
-
-    #### Part 1 -- Identify the new sub-problems
-    Some new challenges brought by the addition of additional wing(s) are:
-    - Introduces cycles into the graph, meaning it is no longer a tree.
-    - Introduces additional nodes into the graph, and different types of edges.
-
-    These were addressed by:
-    - Flattening the graph to abstract the wings away.
-    - The multiple inter-wing corridors (cycles) were addressed by each algorithm differently:
-        - BFS+DFS: This creates a minimum spanning tree of the graph, so it always ignores the cycle.
-        - Greedy: Doesn't care about cycles so it treats it as a normal edge.
-        - Brute Force: Tries each potential route to find the best one.
-        - Divide and Conquer: Tries each potential route (in a more efficient way) to find the best one.
-
-    #### Part 2 -- Evaluate two wing-traversal strategies
-    Exhaustive (moves through the wings one by one):
-    - Although seems like a smart way to minimise backtracking, there are sometimes more optimal routes that involve looping around through the inter-wing corridors.
-
-    Interleaved (treating the wings together as one big graph):
-    - This was the approach my algorithms took, where they took the whole graph in together, not just parts of it. Although more computationally expensive, it allows for a more thorough solution. And when the speeds are in the milliseconds, there is no need to worry about speed.
-
-    #### Part 3 -- Describe your revised algorithm in full
-    As has been stated before, the facility is treated as one big connected graph, not multiple different graphs. Therefore all my algorithms function fundamentally the same as before, although 'Brute Force' was chosen in part D over 'BFS+DFS' (the previous algorithm) as justified by the introduction of cycles.
-
-    A description of the implementation 'Brute Force' can be found in part B.
-
-    ### Action 3 Revision -- Pseudocode Update
-    As all the wings are flattened onto the graph G, there is no special 'intra-wing traversal logic' separate from 'inter-wing traversal logic'. This allows for a streamlined and more straightforward solution. Therefore, no special wings affect the solution (like wings without supply units) as the algorithms simply traverse straight through them.
-
-    To see the updated pseudocode, refer to part C1. 'Brute Force' is the one utilised for reasons specified in part D.
-
-
-    ### Action 3b Revision -- Revised Algorithm Implementation -- Multi-wing.
-
-    All revised algorithms can be seen in part C2. Use part C3 and C4 to run, test and compare the algorithms. 'Brute Force' is the one utilised for reasons specified in part D.
-
-    ### Action 4 Revision -- Justification Update.
-
-    Please refer to part D to see the updated justification.
+    ### Action Revisions
     """)
     return
 
@@ -1568,9 +1692,17 @@ def _():
 
 
 @app.cell
-def _(default_title, fac_Av2):
+def _(default_title, fac_Av3):
     #draw_facility
-    draw_fac_v2(fac_Av2, title = default_title(n_wing=2))
+    draw_fac_v3(fac_Av3, title = default_title(n_wing=2))
+    return
+
+
+@app.cell(hide_code=True)
+def _():
+    mo.md(r"""
+    <span class = "y">Facility drawing changed to accomodate for weighted edges.</span>
+    """)
     return
 
 
@@ -2748,8 +2880,8 @@ def _():
     - GP: (Graph Properties)""")})
 
     _info2 = mo.accordion({"How is the generated facility converted into G, AS, SU, VP, EP, SUP, ASP and GP?":rf"""
-    The following function c_fac_Bv2 is used to convert the generated facility (fac_Av2) into the representation discussed in part A1 - Algorithmic Problem Statement.<br>
-    It has two helper functions, c_Av2 and c_Bv2 to help convert singular nodes.
+    The following function c_fac_Bv3 is used to convert the generated facility (fac_Av2) into the representation discussed in part A1 - Algorithmic Problem Statement.<br>
+    It has two helper functions, c_Av3 and c_Bv3 to help convert singular nodes.
 
     ```python
     import networkx as nx
@@ -2757,11 +2889,11 @@ def _():
     WING_COLS = {WING_COLS}
     GAP = {GAP}
 
-    {inspect.getsource(c_Av2)}
+    {inspect.getsource(c_Av3)}
 
-    {inspect.getsource(c_Bv2)}
+    {inspect.getsource(c_Bv3)}
 
-    {inspect.getsource(c_fac_Bv2)}
+    {inspect.getsource(c_fac_Bv3)}
     ```
     """})
 
@@ -2876,14 +3008,14 @@ def _(algorithm_input, im_gif, m_gif_v2, seed_input):
 def _(
     algorithm_input,
     default_title,
-    fac_Av2,
+    fac_Av3,
     front_focus_v2,
     im_gif,
     walk_v2,
 ):
     #Display Image
     mo.stop(im_gif.value != "Image")
-    draw_fac_v2(fac_Av2, node_colors = front_focus_v2(walk_v2[algorithm_input.value]), highlight_path = [c_Av2(v) for v in walk_v2[algorithm_input.value]], legend = False, title = default_title(has_walk = True, algorithm=algorithm_input.value))
+    draw_fac_v2(fac_Av3, node_colors = front_focus_v2(walk_v2[algorithm_input.value]), highlight_path = [c_Av3(v) for v in walk_v2[algorithm_input.value]], legend = False, title = default_title(has_walk = True, algorithm=algorithm_input.value))
     return
 
 
@@ -2934,15 +3066,15 @@ def _(algorithm_input, out_v2):
 @app.cell(hide_code=True)
 def _():
     mo.callout(mo.accordion({"How can this output be converted to a walk traversing generated facility (facility A)?":rf"""
-    Please use the c_out_Av2 function to convert from facility B's output (out_Bv2) to a walk in facility A.
+    Please use the c_out_Av3 function to convert from facility B's output (out_Bv3) to a walk in facility A.
 
     ```python
     WING_COLS = {WING_COLS}
     GAP = {GAP}
 
-    {inspect.getsource(c_out_Av2)}
+    {inspect.getsource(c_out_Av3)}
 
-    {inspect.getsource(c_Av2)}
+    {inspect.getsource(c_Av3)}
     ```
 
 
