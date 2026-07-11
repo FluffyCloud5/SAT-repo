@@ -575,10 +575,10 @@ def _(
 
 
     def make_gif_v1():
-        if not os.path.exists("figs\\"):
-           os.mkdir("figs\\")
+        if not os.path.exists("figs/"):
+           os.mkdir("figs/")
 
-        if (os.path.exists("figs\\"+ str(seed) + ".gif")):
+        if (os.path.exists("figs/"+ str(seed) + ".gif")):
             return False
 
         _fig, _ax= draw_facility_v1(fac_graph_v1, fac_entry_v1, fac_exit_a_v1, fac_exit_b_v1, fac_supplies_v1, legend = False)
@@ -602,7 +602,7 @@ def _(
                     _ax.add_patch(rect)
 
 
-            name = "figs\\"
+            name = "figs/"
             name += str(seed) + "_"
             name += str(_i)
             name += ".png"
@@ -618,17 +618,17 @@ def _(
 
         list_of_im_paths = []
         for _i in range(len(walk_v1)): 
-            _name = "figs\\"
+            _name = "figs/"
             _name += str(seed) + "_"
             _name += str(_i)
             _name += ".png"
             list_of_im_paths.append(_name)
 
-        path_to_save_gif = "figs\\"+ str(seed) + ".gif" 
-        ims = [imageio.imread(f) for f in list_of_im_paths]
+        path_to_save_gif = "figs/"+ str(seed) + ".gif" 
+        ims = [imageio.v2.imread(f) for f in list_of_im_paths]
         dur = [0.1 for f in list_of_im_paths]
         dur[len(dur)-1] = 1.5
-        imageio.mimsave(path_to_save_gif, ims, loop = 10000)
+        imageio.v2.mimsave(path_to_save_gif, ims, loop = 10000)
 
         for _i in range(len(list_of_im_paths)):
             if os.path.exists(list_of_im_paths[_i]):
@@ -1839,7 +1839,7 @@ def _(mo):
     mo.md(r"""
     Here is an animation showing the walk taken by the AS. The red node is the one currently occupied by the AS.
 
-    Note: Creating the animation (stored at figs\\\\) often takes 1-2 minutes.
+    Note: Creating the animation (stored at figs/) often takes 1-2 minutes.
     """)
     return
 
@@ -1850,7 +1850,7 @@ def _(make_gif_v1, mo, seed, time):
 
     if(make_gif_v1()):
         time.sleep(10)
-    mo.image("figs\\"+ str(seed) + ".gif")
+    mo.image("figs/"+ str(seed) + ".gif")
     return
 
 

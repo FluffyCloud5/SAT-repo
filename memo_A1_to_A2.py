@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.14"
+__generated_with = "0.23.9"
 app = marimo.App(
     width="medium",
     css_file="/usr/local/_marimo/custom.css",
@@ -78,6 +78,7 @@ def comments():
         #facility B - representation of the facility in Kieran's defined in part A1 - Algorithmic problem statement
         #'m_' before something - to make that something
         #'c_' before something - to convert into that something
+        #'draw_' before something - to draw or make the matplotlib of that something.
 
 
     #functions are defined inside one another for the reusability feature and being able to print them easily with inspect.getsource()
@@ -240,22 +241,22 @@ def m_fac_Av2(seed): #make facility version 2
 def m_fac_Av3(seed):
 
     fac_Av2 = m_fac_Av2(seed)
-    
+
     def _alpha_cost(c1, r1, c2, r2):
         return 1
-    
+
     def _beta_cost(c1, r1, c2, r2):
         return 1 + max(c1, c2) // 3
-    
+
     def _seeded_rng(wing_idx):
         return random.Random(int_seed * 41 + wing_idx * 3331)
 
-    
+
     int_seed = int(seed)
-    
+
     # Deep-copy wings so we don't mutate the base facility
     weighted_wings = [g.copy() for g in fac_Av2['wings']]
-    
+
     cost_models = []
     for w, wg in enumerate(weighted_wings):
         if w == 0:
@@ -272,9 +273,9 @@ def m_fac_Av3(seed):
             edge_costs = {tuple(sorted(e)): rng.randint(1, 5) for e in edge_list}
             cost_fn = None
             model_name = f"Seed-randomised (cost ∈ {{1..5}})"
-    
+
         cost_models.append(model_name)
-    
+
         for (c1, r1), (c2, r2) in wg.edges():
             if cost_fn is not None:
                 w_cost = cost_fn(c1, r1, c2, r2)
@@ -282,10 +283,10 @@ def m_fac_Av3(seed):
                 key = tuple(sorted([(c1, r1), (c2, r2)]))
                 w_cost = edge_costs[key]
             wg[(c1, r1)][(c2, r2)]['weight'] = w_cost
-    
+
     # Junction costs = 1
     junction_costs = {(n1, n2): 1 for n1, n2 in fac_Av2['junctions']}
-    
+
     weighted_fac = dict(fac_Av2)
     weighted_fac['wings'] = weighted_wings
     weighted_fac['junction_costs'] = junction_costs
@@ -439,20 +440,24 @@ def draw_fac_v2(fac_Av2, highlight_path=None, node_colors=None,
 @app.function(hide_code=True)
 #Define Draw Fac v3
 
-def draw_fac_v3(wfac, highlight_path=None, title="Weighted Multi-Wing Facility", legend = True):
+def draw_fac_v3(wfac, highlight_path=None, title="Weighted Multi-Wing Facility", legend = True, node_colors = None):
 
     def _weight_colour(w, wmin=1, wmax=5):
         t = (w - wmin) / max(wmax - wmin, 1)
         return WEIGHT_CMAP(t)
-    
+
     nw = wfac['n_wings']
     wc = wfac['wing_cols']
     wr = wfac['wing_rows']
     total_w = nw * wc + (nw - 1) * GAP
 
-    fig, ax = plt.subplots(figsize=(min(3.8 * nw, 14), 5))
-    ax.set_xlim(-0.5, total_w + 0.5)
-    ax.set_ylim(-0.8, wr + 0.6)
+    fig_w = max(10, total_w * 0.58)
+    fig_h = max(5, wr * 0.58 + 1.2)
+    fig, ax = plt.subplots(figsize=(fig_w, fig_h))
+
+    #fig, ax = plt.subplots(figsize=(min(3.8 * nw, 14), 5))
+    #ax.set_xlim(-0.5, total_w + 0.5)
+    #ax.set_ylim(-0.8, wr + 0.6)
     ax.set_aspect('equal')
     ax.axis('off')
     ax.set_facecolor(COL_BG)
@@ -505,6 +510,13 @@ def draw_fac_v3(wfac, highlight_path=None, title="Weighted Multi-Wing Facility",
                 ha='center', va='top', fontsize=6,
                 color='#44546A', style='italic', zorder=8)
 
+        if node_colors:
+            for (ww, c, r), color in node_colors.items():
+                if ww == w:
+                    ax.add_patch(plt.Rectangle(
+                        (ox + c, r), 1, 1,
+                        color=color, alpha=0.5, zorder=2))
+
     # Inter-wing corridors + junctions
     for (w1, c1, r1), (w2, c2, r2) in wfac['junctions']:
         x1 = wing_x(w1) + c1 + 0.5
@@ -537,6 +549,7 @@ def draw_fac_v3(wfac, highlight_path=None, title="Weighted Multi-Wing Facility",
         ax.text(ox + cx + 0.5, rx + 0.5, lbl, ha='center', va='center',
                 fontsize=6, color='white', fontweight='bold', zorder=7)
 
+    """
     # Highlight path if provided
     if highlight_path and len(highlight_path) > 1:
         for i in range(len(highlight_path) - 1):
@@ -548,6 +561,18 @@ def draw_fac_v3(wfac, highlight_path=None, title="Weighted Multi-Wing Facility",
             ax.plot([x1, x2], [r1 + 0.5, r2 + 0.5],
                     color='#FFD700', lw=2.8, alpha=0.9,
                     solid_capstyle='round', zorder=9)
+                    """
+
+    # Highlight path
+    if highlight_path and len(highlight_path) > 1:
+        for i in range(len(highlight_path) - 1):
+            w1, c1, r1 = highlight_path[i]
+            w2, c2, r2 = highlight_path[i + 1]
+            ax.plot(
+                [wing_x(w1) + c1 + 0.5, wing_x(w2) + c2 + 0.5],
+                [r1 + 0.5, r2 + 0.5],
+                color=COL_PATH, lw=1, linestyle='--',
+                alpha=0.75, zorder=5)
 
     # Colour bar legend for weights
     sm = plt.cm.ScalarMappable(
@@ -678,6 +703,8 @@ def BFS_DFS(G, AS, SU, VP, EP, SUP, ASP, GP):
 
     import networkx as nx
     from collections import deque
+    import heapq
+    import math
 
     #--------------------------------------------------
     #------------Initialise Helper Functions-----------
@@ -716,6 +743,39 @@ def BFS_DFS(G, AS, SU, VP, EP, SUP, ASP, GP):
                     leaf_nodes.discard(u)
 
         return parent, child_count, leaf_nodes
+
+    #currently redundant.
+    def _Dijkstras(G, EP, s):
+        visited = {v: False for v in G.nodes()}
+        dist = {v: None for v in G.nodes()}
+        dist[s] = 0
+        pq = [(0,s)] 
+
+        parent = {v: None for v in G.nodes()}
+        child_count = {v: 0 for v in V} #map
+        leaf_nodes = set()
+
+        while pq: 
+            _,u = heapq.heappop(pq)
+            if(visited[u] == True):
+                continue
+            visited[u] = True
+            for v in G[u]:
+                w = EP[(u,v)]['w']
+                if visited[v]:
+                    continue
+                if(dist[v] == None or dist[v] > dist[u] + w ):
+                    if parent[v]:
+                        child_count[parent[v]] -= 1
+                    parent[v] = u
+                    child_count[u] += 1
+                    dist[v] = dist[u] + w
+                    heapq.heappush(pq, (dist[v],v))
+
+        for v in G.nodes():
+            if child_count[v] == 0:
+                leaf_nodes.add(v)
+        return parent, child_count,leaf_nodes
 
     def _make_sub_exits(G, VP):
         V = G.nodes()
@@ -818,8 +878,9 @@ def BFS_DFS(G, AS, SU, VP, EP, SUP, ASP, GP):
     # ------------------Main loop----------------------
     #--------------------------------------------------
 
-    #1. BFS
+    #1. BFS+DFS
 
+    #parent, child_count, leaf_nodes = _Dijkstras(G, EP, entry) -- not more helpful
     parent, child_count, leaf_nodes = _BFS(G, entry)
 
     #2. Backtrace Tree 
@@ -1004,7 +1065,7 @@ def Brute_Force(G, AS, SU, VP, EP, SUP, ASP, GP):
         walk += pm[min_perm[i]][min_perm[i+1]]
         traversal_cost += dm[min_perm[i]][min_perm[i+1]]
 
-    
+
 
     for i in range(len(walk)-1):
         dif_vec = (VP[walk[i+1]]["location"][0]-VP[walk[i]]["location"][0],VP[walk[i+1]]["location"][1]-VP[walk[i]]["location"][1]) 
@@ -1025,6 +1086,8 @@ def Greedy(G, AS, SU, VP, EP, SUP, ASP, GP):
 
     import networkx as nx
     from collections import deque
+    import math
+    import heapq
 
     #--------------------------------------------------
     #------------Initialise Helper Functions-----------
@@ -1399,7 +1462,7 @@ def m_algorithms():
 
 @app.cell(hide_code=True)
 def _(algorithms, seed_input):
-    #define m_gif_v2
+    #define m_gif_v3
     def front_focus_v2(_walk):
         leading = "#FF0000"
         base_col = '#58D4D3' 
@@ -1410,7 +1473,7 @@ def _(algorithms, seed_input):
 
         return _col_dict
 
-    def default_title(mini = "Multi-Wing Facility",seed = None, has_walk = False, walk_length = -1, algorithm = None, memo = None,n_wing = -1,animated = False):
+    def default_title(mini = "Weighted Multi-Wing Facility",seed = None, has_walk = False, walk_length = -1, algorithm = None, memo = None,n_wing = -1,animated = False):
         if seed == None:
             seed = seed_input.value
 
@@ -1444,20 +1507,20 @@ def _(algorithms, seed_input):
         return title
 
 
-    def m_gif_v2(custom_seed = None, algorithm = "BFS+DFS", title = None):
+    def m_gif_v3(custom_seed = None, algorithm = "Brute Force", title = None):
         seed = seed_input.value
 
         if(custom_seed != None):
             seed = custom_seed
 
-        if not os.path.exists("figs\\"):
-           os.mkdir("figs\\")
+        if not os.path.exists("figs/"):
+           os.mkdir("figs/")
 
-        if (os.path.exists("figs\\"+ str(seed)+ f"_{algorithm}_v2" + ".gif")):
+        if (os.path.exists("figs/"+ str(seed)+ f"_{algorithm}_v3" + ".gif")):
             return "exists already"
 
 
-        _fac = m_fac_Av2(seed)
+        _fac = m_fac_Av3(seed)
         _G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP = c_fac_Bv3(_fac)
         _walk = algorithms[algorithm](_G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP)["walk"]
 
@@ -1465,7 +1528,7 @@ def _(algorithms, seed_input):
         if(title == None):
             title = default_title(mini = "", seed = seed, has_walk = True, algorithm = algorithm,animated = True)
 
-        _fig, _ax= draw_fac_v2(_fac, legend = False, title = title)
+        _fig, _ax= draw_fac_v3(_fac, legend = False, title = title)
 
         for _i in range(len(_walk)): 
             _highlight_path = [c_Av3(v) for v in _walk[0:_i+1]]
@@ -1475,7 +1538,7 @@ def _(algorithms, seed_input):
             if _highlight_path and len(_highlight_path) > 1:
                 px = [0.5 + c_Bv3((w,c,r))[0] for w,c,r in _highlight_path] 
                 py = [0.5 + r for w,c,r in _highlight_path] 
-                path_plot, = _ax.plot(px, py, color=COL_PATH, lw=1.8, linestyle='--', alpha=0.75, zorder=4)
+                path_plot, = _ax.plot(px, py, color=COL_PATH, lw=1, linestyle='--', alpha=0.75, zorder=5)
 
             if _node_colors:
                 rectangles = []
@@ -1486,10 +1549,10 @@ def _(algorithms, seed_input):
                     _ax.add_patch(rect)
 
 
-            name = "figs\\"
+            name = "figs/"
             name += str(seed) + "_"
             name += f"{algorithm}_"
-            name += "v2_"
+            name += "v3_"
             name += str(_i)
             name += ".png"
 
@@ -1504,19 +1567,19 @@ def _(algorithms, seed_input):
 
         list_of_im_paths = []
         for _i in range(len(_walk)): 
-            _name = "figs\\"
+            _name = "figs/"
             _name += str(seed) + "_"
             _name += f"{algorithm}_"
-            _name += "v2_"
+            _name += "v3_"
             _name += str(_i)
             _name += ".png"
             list_of_im_paths.append(_name)
 
-        path_to_save_gif = "figs\\"+ str(seed)+ f"_{algorithm}_v2" + ".gif" 
-        ims = [imageio.imread(f) for f in list_of_im_paths]
+        path_to_save_gif = "figs/"+ str(seed)+ f"_{algorithm}_v3" + ".gif" 
+        ims = [imageio.v2.imread(f) for f in list_of_im_paths]
         dur = [0.05 for f in list_of_im_paths]
         dur[len(dur)-1] = 2
-        imageio.mimsave(path_to_save_gif, ims, duration = dur, loop = 10000)
+        imageio.v2.mimsave(path_to_save_gif, ims, duration = dur, loop = 10000)
 
         for _i in range(len(list_of_im_paths)):
             if os.path.exists(list_of_im_paths[_i]):
@@ -1525,7 +1588,7 @@ def _(algorithms, seed_input):
         return "ran successfully"
 
 
-    return default_title, front_focus_v2, m_gif_v2
+    return default_title, front_focus_v2, m_gif_v3
 
 
 @app.cell(hide_code=True)
@@ -1680,7 +1743,7 @@ def _():
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
-    ### Amendments to memo A1 ✅
+    ### Amendments to memo A1
 
     A:
     - A1:
@@ -1690,12 +1753,12 @@ def _():
         - Modify the salient features to account for traversal cost.
 
     B:
-    - Changed 'Greedy' and 'Brute Force' to use dijkstras instead of BFS. <!--Include 'BFS+DFS' to 'Dijkstras+DFS'??-->
+    - Changed 'Greedy' and 'Brute Force' to use dijkstras instead of BFS.
     - Modified all algorithms to count traversal cost properly.
 
     C:
     - Modified pseudocode accordingly to B's changes
-    - Modified python code accordingly to B's changes (half ✅)
+    - Modified python code accordingly to B's changes ✅
 
     D:
     - Should remain the same
@@ -1733,7 +1796,7 @@ def _():
 @app.cell
 def _(default_title, fac_Av3):
     #draw_facility
-    draw_fac_v3(fac_Av3, title = default_title(n_wing=2))
+    draw_fac_v3(fac_Av3, title = default_title(n_wing=fac_Av3["n_wings"]), legend = False)
     return
 
 
@@ -2272,7 +2335,7 @@ def _():
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
-    ### Option 1: Greedy (with BFS)
+    ### Option 1: Greedy (with Dijkstra's Algorithm)
 
     #### Pros and Cons:
 
@@ -2289,9 +2352,9 @@ def _():
 
     #### Algorithm:
 
-    Uses BFS to compute the distance and path between all POI (the exit, entry and supply units). Then starting from the entry, always going to the closest unvisited supply unit, traverse all supply units. Then it traverses to the nearest exit.
+    Uses Dijkstra's algorithm to compute the distance and path between all POI (the exit, entry and supply units). Then starting from the entry, always going to the closest unvisited supply unit, traverse all supply units. Then it traverses to the nearest exit.
 
-    ### Option 2: Brute Force (with BFS)
+    ### Option 2: Brute Force (with Dijkstra's Algorithm)
 
     #### Pros and Cons
 
@@ -2327,6 +2390,7 @@ def _():
     	- the graph is a tree.
     	- the AS has to collect all supply units.
     - Complicated, and prone to human error
+    - <span class = "g">Doesn't account for weighted edges in making the spanning tree, uses BFS.</span>
 
     #### Algorithm:
 
@@ -2860,9 +2924,6 @@ def _(algorithm_input, algorithms):
     BFS_DFS_python = rf"""
 
     ```python
-    import networkx as nx
-    from collections import deque
-
     {inspect.getsource(BFS_DFS)}
     ```
     """
@@ -3032,14 +3093,14 @@ def _():
 
 
 @app.cell(hide_code=True)
-def _(algorithm_input, im_gif, m_gif_v2, seed_input):
+def _(algorithm_input, im_gif, m_gif_v3, seed_input):
     #Display Gif
     mo.stop(im_gif.value != "Animation")
-    _out = m_gif_v2(algorithm = algorithm_input.value)
+    _out = m_gif_v3(algorithm = algorithm_input.value)
     if(_out == "ran successfully"):
         time.sleep(10)
     mo.stop(_out == "error")
-    mo.image("figs\\"+ str(seed_input.value) +f"_{algorithm_input.value}_v2"+ ".gif")
+    mo.image("figs/"+ str(seed_input.value) +f"_{algorithm_input.value}_v3"+ ".gif")
     return
 
 
@@ -3054,7 +3115,7 @@ def _(
 ):
     #Display Image
     mo.stop(im_gif.value != "Image")
-    draw_fac_v2(fac_Av3, node_colors = front_focus_v2(walk_v2[algorithm_input.value]), highlight_path = [c_Av3(v) for v in walk_v2[algorithm_input.value]], legend = False, title = default_title(has_walk = True, algorithm=algorithm_input.value))
+    draw_fac_v3(fac_Av3, node_colors = front_focus_v2(walk_v2[algorithm_input.value]), highlight_path = [c_Av3(v) for v in walk_v2[algorithm_input.value]], legend = False, title = default_title(has_walk = True, algorithm=algorithm_input.value))
     return
 
 
@@ -3131,8 +3192,8 @@ def _():
 
 @app.cell(hide_code=True)
 def _():
-    sample_set_size = mo.ui.slider(start = 5, stop = 500, step = 5, value = 100, full_width= True)
-    table_options = mo.ui.tabs({"Current Seed": "", "Sample Set":sample_set_size}, value = "Sample Set")
+    sample_set_size = mo.ui.slider(start = 5, stop = 500, step = 5, value = 100, full_width= True) 
+    table_options = mo.ui.tabs({"Current Seed": "", "Sample Set":sample_set_size}, value = "Current Seed")
     return sample_set_size, table_options
 
 

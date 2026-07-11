@@ -1195,10 +1195,10 @@ def _(algorithms, seed_input):
         if(custom_seed != None):
             seed = custom_seed
 
-        if not os.path.exists("figs\\"):
-           os.mkdir("figs\\")
+        if not os.path.exists("figs/"):
+           os.mkdir("figs/")
 
-        if (os.path.exists("figs\\"+ str(seed)+ f"_{algorithm}_v2" + ".gif")):
+        if (os.path.exists("figs/"+ str(seed)+ f"_{algorithm}_v2" + ".gif")):
             return "exists already"
 
 
@@ -1231,7 +1231,7 @@ def _(algorithms, seed_input):
                     _ax.add_patch(rect)
 
 
-            name = "figs\\"
+            name = "figs/"
             name += str(seed) + "_"
             name += f"{algorithm}_"
             name += "v2_"
@@ -1249,7 +1249,7 @@ def _(algorithms, seed_input):
 
         list_of_im_paths = []
         for _i in range(len(_walk)): 
-            _name = "figs\\"
+            _name = "figs/"
             _name += str(seed) + "_"
             _name += f"{algorithm}_"
             _name += "v2_"
@@ -1257,11 +1257,11 @@ def _(algorithms, seed_input):
             _name += ".png"
             list_of_im_paths.append(_name)
 
-        path_to_save_gif = "figs\\"+ str(seed)+ f"_{algorithm}_v2" + ".gif" 
-        ims = [imageio.imread(f) for f in list_of_im_paths]
+        path_to_save_gif = "figs/"+ str(seed)+ f"_{algorithm}_v2" + ".gif" 
+        ims = [imageio.v2.imread(f) for f in list_of_im_paths]
         dur = [0.05 for f in list_of_im_paths]
         dur[len(dur)-1] = 2
-        imageio.mimsave(path_to_save_gif, ims, duration = dur, loop = 10000)
+        imageio.v2.mimsave(path_to_save_gif, ims, duration = dur, loop = 10000)
 
         for _i in range(len(list_of_im_paths)):
             if os.path.exists(list_of_im_paths[_i]):
@@ -2868,7 +2868,7 @@ def _(algorithm_input, im_gif, m_gif_v2, seed_input):
     if(_out == "ran successfully"):
         time.sleep(10)
     mo.stop(_out == "error")
-    mo.image("figs\\"+ str(seed_input.value) +f"_{algorithm_input.value}_v2"+ ".gif")
+    mo.image("figs/"+ str(seed_input.value) +f"_{algorithm_input.value}_v2"+ ".gif")
     return
 
 
