@@ -27,6 +27,7 @@ with app.setup(hide_code=True):
     import math
     import inspect
     import copy
+    import heapq
 
 
     #Some constants
@@ -640,12 +641,12 @@ def c_fac_Bv3(fac_Av3):
 
     for i in range(fac_Av3["n_wings"]):
         for edge in fac_Av3["wings"][i].edges():
-            EP[(c_Bv3((i,edge[0][0],edge[0][1])),c_Bv3((i,edge[1][0],edge[1][1])))]['w'] = fac_Av3["wings"][i][edge[0]][edge[1]]['weight']
-            EP[(c_Bv3((i,edge[1][0],edge[1][1])),c_Bv3((i,edge[0][0],edge[0][1])))]['w'] = fac_Av3["wings"][i][edge[0]][edge[1]]['weight']
+            EP[(c_Bv3((i,edge[0][0],edge[0][1]), fac_Av3),c_Bv3((i,edge[1][0],edge[1][1]),fac_Av3))]['w'] = fac_Av3["wings"][i][edge[0]][edge[1]]['weight']
+            EP[(c_Bv3((i,edge[1][0],edge[1][1]),fac_Av3),c_Bv3((i,edge[0][0],edge[0][1]),fac_Av3))]['w'] = fac_Av3["wings"][i][edge[0]][edge[1]]['weight']
 
     for edge in fac_Av3["junctions"]:
-        EP[(c_Bv3((edge[1][0],edge[1][1],edge[1][2])),c_Bv3((edge[0][0],edge[0][1],edge[0][2])))]['w'] = fac_Av3["junction_costs"][edge]
-        EP[(c_Bv3((edge[0][0],edge[0][1],edge[0][2])),c_Bv3((edge[1][0],edge[1][1],edge[1][2])))]['w'] = fac_Av3["junction_costs"][edge]
+        EP[(c_Bv3(edge[1],fac_Av3),c_Bv3(edge[0],fac_Av3))]['w'] = fac_Av3["junction_costs"][edge]
+        EP[(c_Bv3(edge[0],fac_Av3),c_Bv3(edge[1],fac_Av3))]['w'] = fac_Av3["junction_costs"][edge]
 
     for edge in G.edges():
         if EP[edge]['w'] == -1:
@@ -791,13 +792,19 @@ def BFS_DFS(G, AS, SU, VP, EP, SUP, ASP, GP):
 
     def _shortest_walk(walks):
         min_index = 0
-        min = len(walks[0])
+        min_traversal_cost = None
         for i in range(len(walks)):
-            if len(walks[i]) < min:
-                min = len(walks[i])
+            traversal_cost = 0
+            for j in range(len(walks[i])-1):
+                traversal_cost += EP[(walks[i][j], walks[i][j+1])]['w']
+            if min_traversal_cost == None:
+                min_traversal_cost = traversal_cost
+                min_index = i
+            elif  traversal_cost < min_traversal_cost:
+                min_traversal_cost = traversal_cost
                 min_index = i
 
-        return walks[min_index]
+        return walks[min_index], min_traversal_cost
 
     #--------------------------------------------------
     #------------Initialise data structures------------
@@ -829,8 +836,7 @@ def BFS_DFS(G, AS, SU, VP, EP, SUP, ASP, GP):
 
     #4. Calculating traversal_cost
 
-    walk = _shortest_walk(walks)
-    length = len(walk) - 1
+    walk, traversal_cost = _shortest_walk(walks)
 
     #--------------------------------------------------
     #-----------------return the output----------------
@@ -838,12 +844,12 @@ def BFS_DFS(G, AS, SU, VP, EP, SUP, ASP, GP):
 
     #Outputing to the physical environment the instructions for the AS
 
-    for i in range(length):
+    for i in range(len(walk)-1):
         dif_vec = (walk[i+1][0]-walk[i][0],walk[i+1][1]-walk[i][1])
         _move(dif_vec[0], dif_vec[1])
     _exit()
 
-    return {"walk": walk, "traversal_cost": length, "supply_units_recovered": SU}
+    return {"walk": walk, "traversal_cost": traversal_cost, "supply_units_recovered": SU}
 
 
 @app.function(hide_code=True)
@@ -856,6 +862,8 @@ def Brute_Force(G, AS, SU, VP, EP, SUP, ASP, GP):
 
     import networkx as nx
     from collections import deque
+    import heapq
+    import math
 
     #--------------------------------------------------
     #------------Initialise Helper Functions-----------
@@ -899,26 +907,27 @@ def Brute_Force(G, AS, SU, VP, EP, SUP, ASP, GP):
         return perm
 
 
-    def _BFS(G, s):
-        #s is first vertex
-        V = G.nodes()
-        BFS_Queue = deque()
-        BFS_Queue.append(s)
-        visited = {v: False for v in V} #map
-        visited[s] = True
 
-        parent = {v: None for v in V} #map
-
-        while BFS_Queue:
-            u = BFS_Queue.popleft()
+    def _Dijkstras(G, EP, s):
+        visited = {v: False for v in G.nodes()}
+        dist = {v: None for v in G.nodes()}
+        parent = {v: None for v in G.nodes()}
+        dist[s] = 0
+        pq = [(0,s)] 
+        while pq: 
+            _,u = heapq.heappop(pq)
+            if(visited[u] == True):
+                continue
+            visited[u] = True
             for v in G[u]:
-                if not visited[v]:
-
-                    visited[v] = True
-                    BFS_Queue.append(v)
+                w = EP[(u,v)]['w']
+                if visited[v]:
+                    continue
+                if(dist[v] == None or dist[v] > dist[u] + w ):
                     parent[v] = u
-
-        return parent
+                    dist[v] = dist[u] + w
+                    heapq.heappush(pq, (dist[v],v))
+        return dist, parent
 
     #--------------------------------------------------
     #-----------------------Main-----------------------
@@ -946,7 +955,7 @@ def Brute_Force(G, AS, SU, VP, EP, SUP, ASP, GP):
 
     #Getting distance and path between exits, the entry and SUs.
     for v in POI:
-        parent = _BFS(G,v)
+        dist, parent = _Dijkstras(G, EP, v)
         for u in POI:
             w = u
             path = []
@@ -954,7 +963,7 @@ def Brute_Force(G, AS, SU, VP, EP, SUP, ASP, GP):
                 path.insert(0, w) #leaves out the first node
                 w = parent[w]
             pm[v][u] = path
-            dm[v][u] = len(path)
+            dm[v][u] = dist[u]
 
 
     #Finding shortest walk.
@@ -990,8 +999,12 @@ def Brute_Force(G, AS, SU, VP, EP, SUP, ASP, GP):
             break
 
     walk = [entry]
+    traversal_cost = 0
     for i in range(len(min_perm)-1):
         walk += pm[min_perm[i]][min_perm[i+1]]
+        traversal_cost += dm[min_perm[i]][min_perm[i+1]]
+
+    
 
     for i in range(len(walk)-1):
         dif_vec = (VP[walk[i+1]]["location"][0]-VP[walk[i]]["location"][0],VP[walk[i+1]]["location"][1]-VP[walk[i]]["location"][1]) 
@@ -999,7 +1012,7 @@ def Brute_Force(G, AS, SU, VP, EP, SUP, ASP, GP):
         _move(dif_vec[0], dif_vec[1])
     _exit()
 
-    return {"walk": walk, "traversal_cost": len(walk)-1, "supply_units_recovered": SU}
+    return {"walk": walk, "traversal_cost": traversal_cost, "supply_units_recovered": SU}
 
 
 @app.function(hide_code=True)
@@ -1025,26 +1038,26 @@ def Greedy(G, AS, SU, VP, EP, SUP, ASP, GP):
         #exit
         return
 
-    def _BFS(G, s):
-        #s is first vertex
-        V = G.nodes()
-        BFS_Queue = deque()
-        BFS_Queue.append(s)
-        visited = {v: False for v in V} #map
-        visited[s] = True
-
-        parent = {v: None for v in V} #map
-
-        while BFS_Queue:
-            u = BFS_Queue.popleft()
+    def _Dijkstras(G, EP, s):
+        visited = {v: False for v in G.nodes()}
+        dist = {v: None for v in G.nodes()}
+        parent = {v: None for v in G.nodes()}
+        dist[s] = 0
+        pq = [(0,s)] 
+        while pq: 
+            _,u = heapq.heappop(pq)
+            if(visited[u] == True):
+                continue
+            visited[u] = True
             for v in G[u]:
-                if not visited[v]:
-
-                    visited[v] = True
-                    BFS_Queue.append(v)
+                w = EP[(u,v)]['w']
+                if visited[v]:
+                    continue
+                if(dist[v] == None or dist[v] > dist[u] + w ):
                     parent[v] = u
-
-        return parent
+                    dist[v] = dist[u] + w
+                    heapq.heappush(pq, (dist[v],v))
+        return dist, parent
 
     #--------------------------------------------------
     #-----------------------Main-----------------------
@@ -1072,7 +1085,7 @@ def Greedy(G, AS, SU, VP, EP, SUP, ASP, GP):
 
     #Getting distance and path between exits, the entry and SUs.
     for v in POI:
-        parent = _BFS(G,v)
+        dist, parent = _Dijkstras(G, EP, v)
         for u in POI:
             w = u
             path = []
@@ -1080,7 +1093,7 @@ def Greedy(G, AS, SU, VP, EP, SUP, ASP, GP):
                 path.insert(0, w) #leaves out the first node
                 w = parent[w]
             pm[v][u] = path
-            dm[v][u] = len(path)
+            dm[v][u] = dist[u]
 
 
 
@@ -1115,8 +1128,10 @@ def Greedy(G, AS, SU, VP, EP, SUP, ASP, GP):
     perm.append(closest_exit)  
 
     walk = [entry]
+    traversal_cost = 0
     for i in range(len(perm)-1):
         walk += pm[perm[i]][perm[i+1]]
+        traversal_cost += dm[perm[i]][perm[i+1]]
 
     for i in range(len(walk)-1):
         dif_vec = (VP[walk[i+1]]["location"][0]-VP[walk[i]]["location"][0],VP[walk[i+1]]["location"][1]-VP[walk[i]]["location"][1]) 
@@ -1124,7 +1139,7 @@ def Greedy(G, AS, SU, VP, EP, SUP, ASP, GP):
         _move(dif_vec[0], dif_vec[1])
     _exit()
 
-    return {"walk": walk, "traversal_cost": len(walk)-1, "supply_units_recovered": SU}
+    return {"walk": walk, "traversal_cost": traversal_cost, "supply_units_recovered": SU}
 
 
 @app.function(hide_code=True)
@@ -1287,7 +1302,7 @@ def Divide_and_Conquer(G, AS, SU, VP, EP, SUP, ASP, GP):
             VPbrute[pivots[i+1]]["is_exit"] = True
 
             #Refer to the Brute Force algorithm option to see what goes on here.
-            walk += Brute_Force(sub_graph, {0}, SU_sub_graph, VPbrute, {}, SUPbrute, {0:{"location":pivots[i]}}, {})["walk"][1:]
+            walk += Brute_Force(sub_graph, {0}, SU_sub_graph, VPbrute, EP, SUPbrute, {0:{"location":pivots[i]}}, {})["walk"][1:]
 
             VPbrute[pivots[i]]["is_entry"] = False
             VPbrute[pivots[i+1]]["is_exit"] = False
@@ -1297,11 +1312,17 @@ def Divide_and_Conquer(G, AS, SU, VP, EP, SUP, ASP, GP):
 
 
     best_walk = None
+    best_walk_traversal_cost = None
     for check_walk in walks:
+        traversal_cost = 0
+        for i in range(len(check_walk)-1):
+            traversal_cost += EP[(check_walk[i], check_walk[i+1])]['w']
         if best_walk == None:
             best_walk = check_walk
-        elif len(check_walk) < len(best_walk):
+            best_walk_traversal_cost = traversal_cost
+        elif traversal_cost < best_walk_traversal_cost:
             best_walk = check_walk
+            best_walk_traversal_cost = traversal_cost
 
     for i in range(len(best_walk)-1):
         dif_vec = (VP[best_walk[i+1]]["location"][0]-VP[best_walk[i]]["location"][0],VP[best_walk[i+1]]["location"][1]-VP[best_walk[i]]["location"][1]) # a tuple
@@ -1309,7 +1330,7 @@ def Divide_and_Conquer(G, AS, SU, VP, EP, SUP, ASP, GP):
     _exit()
 
 
-    return {"walk": best_walk, "traversal_cost": len(best_walk)-1, "supply_units_recovered": SU}
+    return {"walk": best_walk, "traversal_cost": best_walk_traversal_cost, "supply_units_recovered": SU}
 
 
 @app.function(hide_code=True)
@@ -1593,7 +1614,7 @@ def _():
     #Example of how to use main1
     #main1([1,2,3,4,5,6,7,8], algorithm = "BFS+DFS") 
     #main1([1,2,3,4,5,6,7,8], algorithm = "Divide and Conquer") 
-    main1([1,2,3,4,5,6,7,8], algorithm = "Brute Force") 
+    main1([30012009], algorithm = "Brute Force") 
     #main1([1,2,3,4,5,6,7,8], algorithm = "Greedy") 
     ```
 
@@ -1659,7 +1680,25 @@ def _():
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
-    ### Amendments to memo 1
+    ### Amendments to memo A1 ✅
+
+    A:
+    - A1:
+        - Changed the EP map to include edge weights
+        - Changed the SU to be named by their location.
+    - A2: Salient Features:
+        - Modify the salient features to account for traversal cost.
+
+    B:
+    - Changed 'Greedy' and 'Brute Force' to use dijkstras instead of BFS. <!--Include 'BFS+DFS' to 'Dijkstras+DFS'??-->
+    - Modified all algorithms to count traversal cost properly.
+
+    C:
+    - Modified pseudocode accordingly to B's changes
+    - Modified python code accordingly to B's changes (half ✅)
+
+    D:
+    - Should remain the same
     """)
     return
 
