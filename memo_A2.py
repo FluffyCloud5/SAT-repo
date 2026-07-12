@@ -1833,7 +1833,7 @@ def _():
     #Example of how to use main1
     #main1([1,2,3,4,5,6,7,8], algorithm = "BFS+DFS") 
     #main1([1,2,3,4,5,6,7,8], algorithm = "Divide and Conquer") 
-    main1([30012009], algorithm = "Brute Force") 
+    main1([30012009, 31415926], algorithm = "Brute Force") 
     #main1([1,2,3,4,5,6,7,8], algorithm = "Greedy") 
     ```
 
@@ -1972,22 +1972,7 @@ def _():
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
-    ### Memo A1 to Memo A2 Changes
-
-    This colour coding system conveys how changes were made to the rest of the document.
-    - <span class = "y">Yellow text describes changes made.</span>
-    - <span class = "g">Green text is newly added content.</span>
-    - <span class = "r">Red text is removed content.</span>
-
-    Although an effort was made to highlight all changes, some changes involved complex structures that can't be highlighted and others were too small to mention (like spelling). In the case of a complex structure being added, deleted or changed, yellow text should be present to describe the changes made.
-    """)
-    return
-
-
-@app.cell(hide_code=True)
-def _():
-    mo.md(r"""
-    # Problem Outline (memo A<span class = "r">1</span><span class = "g">2</span>):
+    # Problem Outline (memo A2):
 
     Seismic activity has destabilised the Emberlight Subterranean Research Complex (ESRC). Five critical supply units — designated S1 through S5 — remain scattered throughout the structure and are to be recovered.
 
@@ -2007,14 +1992,6 @@ def _():
 def _(default_title, fac_Av3):
     #draw_facility
     draw_fac_v3(fac_Av3, title = default_title(n_wing=fac_Av3["n_wings"]), legend = False)
-    return
-
-
-@app.cell(hide_code=True)
-def _():
-    mo.md(r"""
-    <span class = "y">Facility drawing changed to accomodate for weighted edges.</span>
-    """)
     return
 
 
@@ -2101,7 +2078,7 @@ def _():
     mo.md(r"""
     ### Inputs:
 
-    The input is a <b><u>directed</u></b> unweighted graph <span class = "g">(the weights are stored in EP, not G)</span>, two sets and five maps. <br>
+    The input is a <b><u>directed</u></b> unweighted graph (the weights are stored in EP, not G), two sets and five maps. <br>
     **Note**: the five maps are just providing properties for the elements of the four sets (as a graph is just two sets) and properties of the whole environment.
 
     Graph: <br>
@@ -2164,19 +2141,17 @@ def _():
 
     The first map, EP (Edge Properties), takes the edges as keys and returns a map that contains:
 
-    - <span class = "r">nothing in memo A1 problem scope</span>
-    - <span class = "g">An integer indiction traversal cost</span>
+    - An integer indiction traversal cost
 
     Beyond the scope of memo A1:
 
-    - <span class = "r">a real number indicating the cost to traverse (as it is all the same)</span>
     - a real number indicating the stability of the corridor.
     - a real number indicating the length of the corridor.
 
-    In memo A<span class = "r">1</span><span class = "g">2</span>, a possible implementation of this is:
+    In memo A2, a possible implementation of this is:
 
-    <span class = "g">EP = {(u,v):{'w': Integer (Traversal Cost)} | (u, v) ∈ E}</span><br>
-    <span class = "r">EP = {(u,v):{}}</span>
+    EP = {(u,v):{'w': Integer (Traversal Cost)} | (u, v) ∈ E}
+
 
     ##### Map 2 - Vertex Properties (VP):
 
@@ -2189,13 +2164,13 @@ def _():
     - a tuple of real valued numbers indicating position, where 1 unit length is equal to 1 intra-wing corridor's length.
     - a string indicating which wing the vertex is located in.
 
-    Beyond the scope of memo A<span class = "r">1</span><span class = "g">2</span>:
+    Beyond the scope of memo A2:
 
     - a value indicating the stability of the sector.
     - size
     - shape
 
-    In memo A<span class = "r">1</span><span class = "g">2</span>, a possible implementation of this is:
+    In memo A2, a possible implementation of this is:
 
     VP = {v : {
         "supply_unit": nullable string (name of supply unit within the sector, null if it does not contain a supply unit),<br>
@@ -2211,15 +2186,15 @@ def _():
 
     - a sector (a vertex of graph G) indicating location (the sector on which the supply unit lies)
 
-    Beyond the scope of memo A<span class = "r">1</span><span class = "g">2</span>:<br>
-    In the memo A<span class = "r">1</span><span class = "g">2</span> problem scope, these properties of the supply units are irrelevant, so they won't be included in the map returned for each supply unit:
-    - a real number indicating the weight of the supply unit (as in the memo A<span class = "r">1</span><span class = "g">2</span> problem, all supply unit weights are the same)
+    Beyond the scope of memo A2:<br>
+    In the memo A2 problem scope, these properties of the supply units are irrelevant, so they won't be included in the map returned for each supply unit:
+    - a real number indicating the weight of the supply unit (as in the memo A2 problem, all supply unit weights are the same)
     - fragility
     - importance
     - size
     - lifespan
 
-    In memo A<span class = "r">1</span><span class = "g">2</span>, a possible implementation of this is:
+    In memo A2, a possible implementation of this is:
 
     SUP = {s:{"location": v (the sector of the SU)} | v∈V∧s∈SU}
 
@@ -2229,10 +2204,10 @@ def _():
 
     - a vertex which is the starting location (or entry) of the AS.
 
-    Beyond the scope of memo A<span class = "r">1</span><span class = "g">2</span>:
+    Beyond the scope of memo A2:
 
-    - a string indicating type (e.g. CRUDY-1) (as in memo A<span class = "r">1</span><span class = "g">2</span> there is only one type)
-    - a real number indicating the total weight the AS can carry. (as in memo A<span class = "r">1</span><span class = "g">2</span> this equals the total supply units on the map)
+    - a string indicating type (e.g. CRUDY-1) (as in memo A2 there is only one type)
+    - a real number indicating the total weight the AS can carry. (as in memo A2 this equals the total supply units on the map)
     - a real number indicating how many supply units AS can carry at once. (that is different from the weight, right now they are the same so this is not necessary)
     - a real number indicating total energy of the AS.
     - a real number indicating how much energy a corridor takes.
@@ -2240,7 +2215,7 @@ def _():
     - a vertex indicating assigned extraction point for the AS.
     - a real number indicating speed of the AS.
 
-    In memo A<span class = "r">1</span><span class = "g">2</span>, a possible implementation of this is:
+    In memo A2, a possible implementation of this is:
 
     ASP (Autonomous System Properties) = {x:{"entry": v (indicates entry for AS)}| x ∈ AS ∧ v ∈ V}
 
@@ -2251,7 +2226,7 @@ def _():
     - a Boolean value indicating whether emergency lighting is operational
     - a time limit
 
-    These are all beyond the memo A<span class = "r">1</span><span class = "g">2</span> problem scope, so:
+    These are all beyond the memo A2 problem scope, so:
 
     GP = {}
 
@@ -2300,14 +2275,12 @@ def _():
 
     ### Objectives
 
-    <span class = "g">In order of priority:</span>
+    In order of priority:
 
     1. Maximise supply unit recovery.<br>
-    2. Minimise energy cost.<div class = "r"> In memo  A1, this is proportional to the number of edges traversed in the walk, so ||walk|| should be minimised. This is a lower priority compared to the first objective.</div><br>
+    2. Minimise energy cost.<br>
     3. Minimise computational time of the algorithm.<br>
-    4. <span class = "g">Minimise memory usage (space complexity) of the algorithm.</span>
-
-    <div class = "r">These three objectives mean that in the memo  A1 problem, the objective is to compute the shortest walk collecting all supply units and making it to the exit with a minimal computational time. This is as the memo A1 problem is quite small and therefore even a brute force approach is relatively fast.</div>
+    4. Minimise memory usage (space complexity) of the algorithm.
     """)
     return
 
@@ -2334,13 +2307,13 @@ def _():
     2. The physical layout of the sector grid is abstracted away into this grid, as it only matters how to get from one sector to another sector to be able to traverse the whole grid. This can be calculated using the cardinal direction. (i.e. only relative space matters, not absolute.)
 
     Length<br>
-    1. Length in physical space in memo A<span class = "r">1</span><span class = "g">2</span> is modelled through magnitude of the displacement vector from one location tuple to another, this however is not to be confused with traversal cost.<br>
+    1. Length in physical space in memo A2 is modelled through magnitude of the displacement vector from one location tuple to another, this however is not to be confused with traversal cost.<br>
     2. Therefore, the length of an edge is the magnitude of the displacement vector from the location of the initial node to its destination. <br>
     3. The length of a walk is the sum of the lengths of the edges in the walk.
 
 
     Time
-    1. Time is not modelled in the abstraction of memo A<span class = "r">1</span><span class = "g">2</span>.
+    1. Time is not modelled in the abstraction of memo A2.
     2. This is a safe abstraction as conditions are stable.
 
     Mass
@@ -2367,15 +2340,13 @@ def _():
     Autonomous Systems (AS)
     1. These are modelled (in the environment) with a location (being a vertex on the graph) and a maximum load capacity.
         - a real number indicating how many supply units AS can carry at once. (that is different from the weight, right now they are the same so this is not necessary)
-        - total energy of the AS. (currently irrelevant in the memo A<span class = "r">1</span><span class = "g">2</span> problem scope, as the AS has more than enough energy)
+        - total energy of the AS. (currently irrelevant in the memo A2 problem scope, as the AS has more than enough energy)
         - SUs that the AS has been assigned to extract. (all of them so doesn't need to be explicitly mentioned to the AS)
         - assigned extraction point for the AS. (doesn't matter as AS can exit at any extraction point)
-        - speed of the AS. (doesn't matter as time is irrelevant in the memo A<span class = "r">1</span><span class = "g">2</span> problem scope)
+        - speed of the AS. (doesn't matter as time is irrelevant in the memo A2 problem scope)
 
-    <div class = "g">
-    Traversal Cost:<br>
+    Traversal Cost
     1. This is modelled through an integer in the edge properties (EP) map, where EP[(u,v)]['w'] returns the edge weight of (u,v) ∈ E.
-    </div>
     """)
     return
 
@@ -2510,7 +2481,7 @@ def _():
     Some key ADTs used by the 'Brute Force' algorithm are:
     - A map of maps for an traversal cost matrix.
     - A list of the walk and of the permutation.<br>
-    - <span class = "g">A Priotity Queue for Dijkstra's algorithm, which used in 'Brute Force'.</span>
+    - A Priotity Queue for Dijkstra's algorithm, which used in 'Brute Force'.
     """)
     return
 
@@ -2534,9 +2505,8 @@ def _():
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
-    Known properties of the memo A<span class = "r">1</span><span class = "g">2</span> problem:
+    Known properties of the memo A2 problem:
 
-    - <span class = "r">all edges have the same weight, so it can be treated as an unweighted graph.</span>
     - the maximum degree of any vertex is 4 as it is in a grid, meaning it is a 'sparse' graph for the sake of computation. (so an adjacency list is the way to go here).
     - There are 4-5 supply units
     - There are 2 exits.
@@ -2583,7 +2553,7 @@ def _():
 
     - Simple to understand
     - always returns optimal solution
-    - efficient for facilities with few supply units, which is the case in memo A<span class = "r">1</span><span class = "g">2</span> where there are 4 to 5 supply units.
+    - efficient for facilities with few supply units, which is the case in memo A2 where there are 4 to 5 supply units.
 
     Cons:
 
@@ -2683,7 +2653,6 @@ def _():
 
     Pros:<br>
     - Returns optimal walk<br>
-    - <span class = "r">Simplifies the problem significantly to a much smaller graph.</span><br>
     - divides the simplified graph into smaller sub problems.<br>
     Cons: <br>
     - Difficult to program - prone to human error.<br>
@@ -3441,15 +3410,7 @@ def _(EP, VP, algorithm_input, walk_v3):
         return wing_transitions
 
 
-    mo.callout(mo.accordion(get_wing_transition_traversal_costs(walk_v3[algorithm_input.value],VP,EP)),kind = "success")
-    return
-
-
-@app.cell(hide_code=True)
-def _():
-    mo.md(r"""
-    <span class = "y">Added transition accordion to convey cumulative traversal cost at each transition.</span>
-    """)
+    mo.callout(mo.accordion(get_wing_transition_traversal_costs(walk_v3[algorithm_input.value],VP,EP)),kind = "info")
     return
 
 
@@ -3664,8 +3625,7 @@ def _():
 
     3. Divide and Conquer: Divide and Conquer should be a more efficient version of Brute Force by breaking the problem into smaller parts, but likely due to overhead is outperformed by Brute Force in all benchmarks, making it obsolete. <br>
 
-    <span class = "g">4. Greedy: Greedy seems to perform relatively better in this environment, making it an equally good heuristic as BFS+DFS.</span>
-    <span class = "r">4. Greedy: Unfortunately this doesn't perform well in this environment, returning a significantly more expensive walk.</span><br>
+    4. Greedy: Greedy seems to perform relatively better in this environment, making it an equally good heuristic as BFS+DFS.
 
 
 
@@ -3686,18 +3646,15 @@ def _():
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
-    <div class = "g">
-    <h4>Optimality of 'Brute Force's walk</h4>
+    #### Optimality of 'Brute Force's walk
     As 'Brute Force' uses Dijkstra's algorithm to find the pairwise shortest paths between two Points of Interest (POI) and then tests all permutations of SU collection orderings for the two exits, it is guaranteed to find  the shortest walk collecting all supply units and adhering to the the constraints.
 
-    <h4>Wing Beta's depth-based traversal cost effect</h4>
+    #### Wing Beta's depth-based traversal cost effect
     Wing Beta's depth-based traversal cost means Brute Force's walk is more expensive, but not different as other options are less optimal. CRUDY-1 has to traverse Wing Beta directly.
 
-    <h4>Scenario where variable traversal costs cause a different path to be more optimal.</h4>
+    #### Scenario where variable traversal costs cause a different path to be more optimal
 
     Consider the scenario where exit B was instead in the fourth row and first column of Wing Beta.
-
-    </div>
     """)
     return
 
@@ -3713,7 +3670,7 @@ def _(default_title):
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
-    <span class = "g">Then, as can be seen below, the paths taken by Brute Force difer based on whether the traversal cost is uniform or variable.</span>
+    Then, as can be seen below, the paths taken by Brute Force difer based on whether the traversal cost is uniform or variable.
     """)
     return
 
@@ -3741,7 +3698,7 @@ def _(
     scenario_v,
 ):
     mo.stop(scenario_v.value != "Variable Traversal Cost")
-    draw_fac_v3(scenario_fac_v3, node_colors = front_focus_v3(scenario_brute_out_v3['walk']), highlight_path = [c_Av3(v) for v in scenario_brute_out_v3['walk']], legend = False, title = default_title(seed = 30012009, has_walk = True, algorithm="Memo A2 Brute Force"))
+    draw_fac_v3(scenario_fac_v3, node_colors = front_focus_v3(scenario_brute_out_v3['walk']), highlight_path = [c_Av3(v) for v in scenario_brute_out_v3['walk']], legend = False, title = default_title(has_walk = True, seed = 30012009, algorithm="Memo A2 Brute Force"))
     return
 
 
@@ -3754,14 +3711,14 @@ def _(
     scenario_v,
 ):
     mo.stop(scenario_v.value != "Uniform Traversal Cost")
-    draw_fac_v2(scenario_fac_v3, node_colors = front_focus_v3(scenario_brute_out_v2['walk']), highlight_path = [c_Av3(v) for v in scenario_brute_out_v2['walk']], legend = False, title = default_title(seed = 30012009, mini = "Multi-Wing Facility",has_walk = True, algorithm="Memo A1 Brute Force"))
+    draw_fac_v2(scenario_fac_v3, node_colors = front_focus_v3(scenario_brute_out_v2['walk']), highlight_path = [c_Av3(v) for v in scenario_brute_out_v2['walk']], legend = False, title = default_title(seed = 30012009,mini = "Multi-Wing Facility",has_walk = True, algorithm="Memo A1 Brute Force"))
     return
 
 
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
-    <div class = "g">The difference in the walk taken can be attributated to Wing Beta's depth-based traversal cost, encouraging the 'Brute Force' algorithm to stay to the lefthand side of Wing Beta. Therefore the AS (CRUDY-1) goes to exit B, not exit A when the traversal cost isn't uniform.</div>
+    The difference in the walk taken can be attributated to Wing Beta's depth-based traversal cost, encouraging the 'Brute Force' algorithm to stay to the lefthand side of Wing Beta. Therefore the AS (CRUDY-1) goes to exit B, not exit A when the traversal cost isn't uniform.
     """)
     return
 
@@ -3824,16 +3781,7 @@ def _():
 
     *3 and 4 are simply ensuring the walk is indeed a walk on graph G.
 
-    """)}), kind = "warn")
-    return
-
-
-@app.cell(hide_code=True)
-def _():
-    mo.md(r"""
-    <div class = "y"> Changed accordion structure to include 'Suitability', 'Coherence' and 'Fitness for Purpose -- stress test' titles, so that they are out of the way.<br>
-    Constraints were adjusted for weighted traversal costs.</div>
-    """)
+    """)}))
     return
 
 
