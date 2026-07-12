@@ -13,25 +13,41 @@ def _():
 
 @app.cell
 def _():
-    from memo1 import app as app_memo1
-    from memo1toA1 import app as app_memo1_to_A1 
-    from memoA1 import app as app_memoA1
+    from memo_1 import app as app_memo_1
+    from memo_1_to_A1 import app as app_memo_1_to_A1 
+    from memo_A1 import app as app_memo_A1
+    from memo_A1_to_A2 import app as app_memo_A1_to_A2
+    from memo_A2 import app as app_memo_A2
 
 
-    return app_memo1, app_memo1_to_A1, app_memoA1
+    return (
+        app_memo_1,
+        app_memo_1_to_A1,
+        app_memo_A1,
+        app_memo_A1_to_A2,
+        app_memo_A2,
+    )
 
 
 @app.cell
-async def _(app_memo1, app_memo1_to_A1, app_memoA1):
-    result_1 = await app_memo1.embed()
-    result_1_to_A1 = await app_memo1_to_A1.embed()
-    result_A1 = await app_memoA1.embed()
-    return result_1, result_1_to_A1, result_A1
+async def _(
+    app_memo_1,
+    app_memo_1_to_A1,
+    app_memo_A1,
+    app_memo_A1_to_A2,
+    app_memo_A2,
+):
+    result_1 = await app_memo_1.embed()
+    result_1_to_A1 = await app_memo_1_to_A1.embed()
+    result_A1 = await app_memo_A1.embed()
+    result_A1_to_A2 = await app_memo_A1_to_A2.embed()
+    result_A2 = await app_memo_A2.embed()
+    return result_1, result_1_to_A1, result_A1, result_A1_to_A2, result_A2
 
 
 @app.cell
 def _(mo):
-    choose_version = mo.ui.tabs({"Memo 1": "", "Memo 1 to A1": "", "Memo A1": ""})
+    choose_version = mo.ui.tabs({"Memo 1": "", "Memo 1 to A1": "", "Memo A1": "", "Memo A1 to A2":"", "Memo A2":""})
     choose_version
     return (choose_version,)
 
@@ -57,6 +73,22 @@ def _(choose_version, mo, result_A1):
     mo.stop(choose_version.value != "Memo A1")
 
     result_A1.output
+    return
+
+
+@app.cell
+def _(choose_version, mo, result_A1_to_A2):
+    mo.stop(choose_version.value != "Memo A1 to A2")
+
+    result_A1_to_A2.output
+    return
+
+
+@app.cell
+def _(choose_version, mo, result_A2):
+    mo.stop(choose_version.value != "Memo A2")
+
+    result_A2.output
     return
 
 
