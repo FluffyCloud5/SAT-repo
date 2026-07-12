@@ -1951,7 +1951,7 @@ def _():
 
     Corridors
     1. These are modelled as two edges between the sectors it is between, representing the two ways that one can pass through a corridor. The direction of the corridor is modelled as an cardinal angle.
-    2. The shape of the corridor and the roughness of it is abstracted away as it is assumed that all corridors are traversable by the AS. This may or may not be a safe abstraction. The length of these corridors are abstracted away as they have the same length<!--TODO change in memo A2--> and the stability is abstracted away as it is assumed that conditions are stable in memo  <span class = "r">1</span> <span class = "g">A1</span>.
+    2. The shape of the corridor and the roughness of it is abstracted away as it is assumed that all corridors are traversable by the AS. This may or may not be a safe abstraction.<span class = "r"> The length of these corridors are abstracted away as they have the same length and the stability is abstracted away as it is assumed that conditions are stable in memo 1.</span>
 
     Sectors
     1. These are modelled as vertices on the graph G.
@@ -3049,12 +3049,7 @@ def _():
     mo.md(r"""
     <div class = "g">
     <h4>Computational Outputs:</h4>
-
-
     </div>
-
-
-    <span class = "y">Removed "Walk list printed out in tuple form: [code block]"</span>
     """)
     return
 
@@ -3065,6 +3060,11 @@ def _(algorithm_input, out_v2):
     **raw output:**
     ```python
     {out_v2[algorithm_input.value]}
+    ```
+
+    **Facility A walk:**
+    ```python
+    {c_out_Av2(out_v2[algorithm_input.value])}
     ```
     """), kind = "info")
     return
@@ -3100,7 +3100,7 @@ def _():
 @app.cell(hide_code=True)
 def _():
     sample_set_size = mo.ui.slider(start = 5, stop = 500, step = 5, value = 100, full_width= True)
-    table_options = mo.ui.tabs({"Current Seed": "", "Sample Set":sample_set_size}, value = "Sample Set")
+    table_options = mo.ui.tabs({"Current Seed": "", "Sample Set":sample_set_size})
     return sample_set_size, table_options
 
 

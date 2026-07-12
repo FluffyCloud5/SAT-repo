@@ -1901,7 +1901,7 @@ def _():
 
     Corridors
     1. These are modelled as two edges between the sectors it is between, representing the two ways that one can pass through a corridor. The direction of the corridor is modelled as an cardinal angle.
-    2. The shape of the corridor and the roughness of it is abstracted away as it is assumed that all corridors are traversable by the AS. This may or may not be a safe abstraction. The length of these corridors are abstracted away as they have the same length<!--TODO change in memo A2--> and the stability is abstracted away as it is assumed that conditions are stable in memo  A1.
+    2. The shape of the corridor and the roughness of it is abstracted away as it is assumed that all corridors are traversable by the AS. This may or may not be a safe abstraction.
 
     Sectors
     1. These are modelled as vertices on the graph G.
@@ -2923,9 +2923,14 @@ def _():
 @app.cell(hide_code=True)
 def _(algorithm_input, out_v2):
     mo.callout(mo.md(rf"""
-    **raw output:**
+    **Raw Output:**
     ```python
     {out_v2[algorithm_input.value]}
+    ```
+
+    **Facility-A Walk:**
+    ```python
+    {c_out_Av2(out_v2[algorithm_input.value])}
     ```
     """), kind = "info")
     return
@@ -2961,7 +2966,7 @@ def _():
 @app.cell(hide_code=True)
 def _():
     sample_set_size = mo.ui.slider(start = 5, stop = 500, step = 5, value = 100, full_width= True)
-    table_options = mo.ui.tabs({"Current Seed": "", "Sample Set":sample_set_size}, value = "Sample Set")
+    table_options = mo.ui.tabs({"Current Seed": "", "Sample Set":sample_set_size})
     return sample_set_size, table_options
 
 

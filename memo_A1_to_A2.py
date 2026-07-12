@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.9"
+__generated_with = "0.23.14"
 app = marimo.App(
     width="medium",
     css_file="/usr/local/_marimo/custom.css",
@@ -58,7 +58,7 @@ with app.setup(hide_code=True):
 
 
 @app.cell
-def comments():
+def overview():
     #--------------------------------------------------------------
     #---------------------------OVERVIEW---------------------------
     #--------------------------------------------------------------
@@ -75,7 +75,7 @@ def comments():
         #v3 - memo A2
         #fac - facility
         #facility A - representation of the facility in Kodie Nielsen's way
-        #facility B - representation of the facility in Kieran's defined in part A1 - Algorithmic problem statement
+        #facility B - representation of the facility in Kieran's defined in section A1 - Algorithmic problem statement
         #'m_' before something - to make that something
         #'c_' before something - to convert into that something
         #'draw_' before something - to draw or make the matplotlib of that something.
@@ -129,7 +129,7 @@ def style():
 
 
 @app.function(hide_code=True)
-#Define make the A1 facility (m_fac_Av2)
+#Define make the memo A1 facility (m_fac_Av2)
 def m_fac_Av2(seed): #make facility version 2
 
     def _neighbours(cols, rows, c, r):
@@ -454,7 +454,7 @@ def draw_fac_v3(wfac, highlight_path=None, title="Weighted Multi-Wing Facility",
     fig_w = max(10, total_w * 0.58)
     fig_h = max(5, wr * 0.58 + 1.2)
     fig, ax = plt.subplots(figsize=(fig_w, fig_h))
-
+    
     #fig, ax = plt.subplots(figsize=(min(3.8 * nw, 14), 5))
     #ax.set_xlim(-0.5, total_w + 0.5)
     #ax.set_ylim(-0.8, wr + 0.6)
@@ -623,7 +623,7 @@ def c_Bv3(node, fac_Av3 = {"wing_cols":WING_COLS, "gap": GAP}):
 @app.function(hide_code=True)
 #Define convert facility A to facility B memo A2 (c_fac_Bv3)
 def c_fac_Bv3(fac_Av3):
-    # turn Mr Nielsen's implementation (A) into the implementation specified in part A1 (B)
+    # turn Mr Nielsen's implementation (A) into the implementation specified in section A1 (B)
 
 
     vertices = []
@@ -879,7 +879,7 @@ def BFS_DFS(G, AS, SU, VP, EP, SUP, ASP, GP):
     #--------------------------------------------------
 
     #1. BFS+DFS
-
+    
     #parent, child_count, leaf_nodes = _Dijkstras(G, EP, entry) -- not more helpful
     parent, child_count, leaf_nodes = _BFS(G, entry)
 
@@ -1074,6 +1074,162 @@ def Brute_Force(G, AS, SU, VP, EP, SUP, ASP, GP):
     _exit()
 
     return {"walk": walk, "traversal_cost": traversal_cost, "supply_units_recovered": SU}
+
+
+@app.function(hide_code=True)
+#Define Brute Force
+def Brute_Force_v2(G, AS, SU, VP, EP, SUP, ASP, GP):
+
+    #--------------------------------------------------
+    #---------------------Imports----------------------
+    #--------------------------------------------------
+
+    import networkx as nx
+    from collections import deque
+
+    #--------------------------------------------------
+    #------------Initialise Helper Functions-----------
+    #--------------------------------------------------
+    def _move(x,y):
+        #move
+        return
+
+    def _exit():
+        #exit
+        return
+
+    def _next_perm(perm):
+        layer = -1
+        max_index = -1
+
+        #Finds the layer and max_index
+        for i in range(len(perm)-1):
+            if perm[i] < perm[i+1]:
+                layer = i+1
+                for j in range(i+1):
+                    if perm[j] < perm[i+1]:
+                        if max_index == -1:
+                            max_index = j
+                break
+
+        #swaps layer and max_index
+        if(layer != -1):  
+            z = perm[layer]
+            perm[layer] = perm[max_index]
+            perm[max_index] = z
+        else:
+            layer = len(perm)
+
+        #swaps the subpermuation up to layer around
+        for i in range((layer+(layer%2))//2):
+            z = perm[i]
+            perm[i] = perm[layer-i-1]
+            perm[layer-i-1] = z
+
+        return perm
+
+
+    def _BFS(G, s):
+        #s is first vertex
+        V = G.nodes()
+        BFS_Queue = deque()
+        BFS_Queue.append(s)
+        visited = {v: False for v in V} #map
+        visited[s] = True
+
+        parent = {v: None for v in V} #map
+
+        while BFS_Queue:
+            u = BFS_Queue.popleft()
+            for v in G[u]:
+                if not visited[v]:
+
+                    visited[v] = True
+                    BFS_Queue.append(v)
+                    parent[v] = u
+
+        return parent
+
+    #--------------------------------------------------
+    #-----------------------Main-----------------------
+    #--------------------------------------------------
+
+    CRUDY_1 = list(AS)[0]
+    entry = ASP[CRUDY_1]["location"]
+    V = G.nodes()
+
+    exits: set = set()
+    for v in V:
+        if VP[v]["is_exit"] == True: 
+            exits.add(v)
+
+    SU_locations = {SUP[su]["location"] for su in SU} # a set of SU locations
+
+    POI = exits.copy()
+    POI = POI.union(SU_locations)
+    POI.add(entry)
+
+    dm = {v:{u:None for u in POI} for v in POI} # Distance Matrix
+    pm = {v:{u:None for u in POI} for v in POI} #Path Matrix
+
+
+
+    #Getting distance and path between exits, the entry and SUs.
+    for v in POI:
+        parent = _BFS(G,v)
+        for u in POI:
+            w = u
+            path = []
+            while parent[w] != None:
+                path.insert(0, w) #leaves out the first node
+                w = parent[w]
+            pm[v][u] = path
+            dm[v][u] = len(path)
+
+
+    #Finding shortest walk.
+
+    min_perm = []
+    min_dist = None
+
+    su_perm = [i for i in range(len(SU_locations))]
+    original_perm = su_perm.copy()
+    su_loc = [v for v in SU_locations]
+    while True: 
+        for exit in exits: # su_perm is a list.
+            dist = 0
+            perm = [entry]
+            for i in range(len(su_perm)):
+                perm.append(su_loc[su_perm[i]])
+            perm.append(exit)
+            for i in range(len(perm)-1):
+                dist = dist + dm[perm[i]][perm[i+1]]
+            if min_dist == None:
+                min_perm = perm
+                min_dist = dist
+            elif dist < min_dist:
+                min_perm = perm
+                min_dist = dist
+        su_perm = _next_perm(su_perm)
+        back_to_original = True
+        for i in range(len(su_perm)):
+            if su_perm[i] != original_perm[i]:
+                back_to_original = False
+                break
+        if back_to_original:
+            break
+
+    walk = [entry]
+    for i in range(len(min_perm)-1):
+        walk += pm[min_perm[i]][min_perm[i+1]]
+
+    for i in range(len(walk)-1):
+        dif_vec = (VP[walk[i+1]]["location"][0]-VP[walk[i]]["location"][0],VP[walk[i+1]]["location"][1]-VP[walk[i]]["location"][1]) 
+        # a tuple
+        _move(dif_vec[0], dif_vec[1])
+    _exit()
+
+    return {"walk": walk, "traversal_cost": len(walk)-1, "supply_units_recovered": SU}
 
 
 @app.function(hide_code=True)
@@ -1463,7 +1619,7 @@ def m_algorithms():
 @app.cell(hide_code=True)
 def _(algorithms, seed_input):
     #define m_gif_v3
-    def front_focus_v2(_walk):
+    def front_focus_v3(_walk):
         leading = "#FF0000"
         base_col = '#58D4D3' 
 
@@ -1532,7 +1688,7 @@ def _(algorithms, seed_input):
 
         for _i in range(len(_walk)): 
             _highlight_path = [c_Av3(v) for v in _walk[0:_i+1]]
-            _node_colors = front_focus_v2(_walk[0:_i+1])
+            _node_colors = front_focus_v3(_walk[0:_i+1])
 
 
             if _highlight_path and len(_highlight_path) > 1:
@@ -1588,7 +1744,7 @@ def _(algorithms, seed_input):
         return "ran successfully"
 
 
-    return default_title, front_focus_v2, m_gif_v3
+    return default_title, front_focus_v3, m_gif_v3
 
 
 @app.cell(hide_code=True)
@@ -1645,11 +1801,11 @@ def _(algorithms, seed_input):
 
 @app.cell(hide_code=True)
 def _(algorithms, benchmark_algorithm):
-    out_v2, memory_v2, speed_v2, walk_v2, valid_v2 = {},{},{},{},{}
+    out_v3, memory_v3, speed_v3, walk_v3, valid_v3 = {},{},{},{},{}
     for _algorithm in algorithms.keys():
-        out_v2[_algorithm], memory_v2[_algorithm],speed_v2[_algorithm], _, valid_v2[_algorithm] = benchmark_algorithm(_algorithm) 
-        walk_v2[_algorithm] = out_v2[_algorithm]["walk"]
-    return memory_v2, out_v2, speed_v2, valid_v2, walk_v2
+        out_v3[_algorithm], memory_v3[_algorithm],speed_v3[_algorithm], _, valid_v3[_algorithm] = benchmark_algorithm(_algorithm) 
+        walk_v3[_algorithm] = out_v3[_algorithm]["walk"]
+    return memory_v3, out_v3, speed_v3, valid_v3, walk_v3
 
 
 @app.cell
@@ -1718,6 +1874,8 @@ def _():
 
     {inspect.getsource(m_fac_Av2)}
 
+    {inspect.getsource(m_fac_Av3)}
+
     {inspect.getsource(c_Av3)}
 
     {inspect.getsource(c_Bv3)}
@@ -1747,21 +1905,22 @@ def _():
 
     A:
     - A1:
-        - Changed the EP map to include edge weights
-        - Changed the SU to be named by their location.
-    - A2: Salient Features:
-        - Modify the salient features to account for traversal cost.
+        - Changed the EP map to include edge weights.
+    - A2 - Salient Features:
+        - Modified the salient features to account for traversal cost.
+    - A3 - ADTs:
+        - Used a priority queue instead of normal queue for Dijkstra's in Brute Force.
 
     B:
-    - Changed 'Greedy' and 'Brute Force' to use dijkstras instead of BFS.
+    - Changed 'Greedy', 'Divide and Conquer' and 'Brute Force' to use Dijkstra's algorithm instead of BFS.
     - Modified all algorithms to count traversal cost properly.
 
     C:
-    - Modified pseudocode accordingly to B's changes
-    - Modified python code accordingly to B's changes ✅
+    - Modified pseudocode accordingly to B's changes.
+    - Modified python code accordingly to B's changes.
 
     D:
-    - Should remain the same
+    - Minor wording changes.
     """)
     return
 
@@ -1769,7 +1928,43 @@ def _():
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
-    ### Action Revisions
+    ### Action Revisions -- Memo A2
+
+    #### Action A2-1 — Revise Data Model for Weighted Edges
+
+    Which ADT definitions from your A01 model need to change to support weighted edges?
+    - The 'Edge Properties' (EP) map needed to include the key 'w' to convey edge weights.
+    How are edge weights stored and retrieved? (Property of the edge? Separate lookup? Computed on demand?)
+    - Edge weights can be stored and retrieved via the EP map.
+    How is the per-wing cost model represented — does your ADT treat Wing Beta and Wing Gamma differently, or does it store all weights uniformly computed at construction time?
+    - All edge weights are stored uniformly and individually in the EP map.
+    Justify your design choice.
+    - The choice to store the edge weights uniformly and individually in the EP map was made to keep the inputs simple and straightforward. It allows for prexisting algorithms such as Dijkstra's algorithm to run on the graph with very little modification.
+
+    #### Action A2-2 — Revise Algorithm for Weighted Traversal
+
+    To account for weighted edges, the 'Brute Force' algorithm was used with minor modifications. The BFS algorithm previously used to calculate shortest paths between Points of Interest (POI) was replaced with Dijkstra's algorithm to account for variable edge weights.
+
+    The reason 'Brute Force' was used is relatively similar to the reason it was used in memo A1, as it returns an optimal walk within several milliseconds. More details can be found in part D.
+
+    One tradeoff of utilising 'Brute Force' is that it is not particularly scaleable to larger facilities with more supply units,unlike the other algorithms explored.
+
+    #### Action A2-3 — Revised Pseudocode
+
+    Refer to part C1 - Pseudocode to see changes.
+
+    #### Action A2-3b — Revised Implementation
+
+
+    The sequence of cells in the optimal route: Refer to section C3 to see animation and raw output.
+
+    The total route cost: Refer to the statistics blue box under the image/animation in section C3.
+
+    The cumulative cost at each wing transition: Refer to C3 to see all transitions.
+
+    #### Action A2-4 — Evaluate Solution Quality
+
+    Refer to section D.
     """)
     return
 
@@ -1777,7 +1972,22 @@ def _():
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
-    # Problem Outline (memo  A1):
+    ### Memo A1 to Memo A2 Changes
+
+    This colour coding system conveys how changes were made to the rest of the document.
+    - <span class = "y">Yellow text describes changes made.</span>
+    - <span class = "g">Green text is newly added content.</span>
+    - <span class = "r">Red text is removed content.</span>
+
+    Although an effort was made to highlight all changes, some changes involved complex structures that can't be highlighted and others were too small to mention (like spelling). In the case of a complex structure being added, deleted or changed, yellow text should be present to describe the changes made.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _():
+    mo.md(r"""
+    # Problem Outline (memo A<span class = "r">1</span><span class = "g">2</span>):
 
     Seismic activity has destabilised the Emberlight Subterranean Research Complex (ESRC). Five critical supply units — designated S1 through S5 — remain scattered throughout the structure and are to be recovered.
 
@@ -1860,7 +2070,7 @@ def _():
     Other:<br>
     - Facility: Another word for the ESRC, the environment containing all the sector grids.<br>
     - Facility A: The representation of the facility defined by Kodie Nielsen.<br>
-    - Facility B: The representation of the facility defined by Kieran in part A1 - Algorithmic Problem Statement.
+    - Facility B: The representation of the facility defined by Kieran in section A1 - Algorithmic Problem Statement.
 
     ## Assumptions:
     1.  An Autonomous System (AS) knows the layout of the ESRC sector grid before it navigates it (e.g. it has the blueprints).
@@ -1891,7 +2101,7 @@ def _():
     mo.md(r"""
     ### Inputs:
 
-    The input is a <b><u>directed</u></b> unweighted graph, two sets and five maps. <br>
+    The input is a <b><u>directed</u></b> unweighted graph <span class = "g">(the weights are stored in EP, not G)</span>, two sets and five maps. <br>
     **Note**: the five maps are just providing properties for the elements of the four sets (as a graph is just two sets) and properties of the whole environment.
 
     Graph: <br>
@@ -1954,17 +2164,19 @@ def _():
 
     The first map, EP (Edge Properties), takes the edges as keys and returns a map that contains:
 
-    - nothing in memo A1 problem scope
+    - <span class = "r">nothing in memo A1 problem scope</span>
+    - <span class = "g">An integer indiction traversal cost</span>
 
-    Beyond the scope of memo  A1:
+    Beyond the scope of memo A1:
 
-    - a real number indicating the cost to traverse (as it is all the same)
+    - <span class = "r">a real number indicating the cost to traverse (as it is all the same)</span>
     - a real number indicating the stability of the corridor.
     - a real number indicating the length of the corridor.
 
-    In memo  A1, a possible implementation of this is:
+    In memo A<span class = "r">1</span><span class = "g">2</span>, a possible implementation of this is:
 
-    EP = {(u,v):{}}
+    <span class = "g">EP = {(u,v):{'w': Integer (Traversal Cost)} | (u, v) ∈ E}</span><br>
+    <span class = "r">EP = {(u,v):{}}</span>
 
     ##### Map 2 - Vertex Properties (VP):
 
@@ -1977,13 +2189,13 @@ def _():
     - a tuple of real valued numbers indicating position, where 1 unit length is equal to 1 intra-wing corridor's length.
     - a string indicating which wing the vertex is located in.
 
-    Beyond the scope of memo  A1:
+    Beyond the scope of memo A<span class = "r">1</span><span class = "g">2</span>:
 
     - a value indicating the stability of the sector.
     - size
     - shape
 
-    In memo  A1, a possible implementation of this is:
+    In memo A<span class = "r">1</span><span class = "g">2</span>, a possible implementation of this is:
 
     VP = {v : {
         "supply_unit": nullable string (name of supply unit within the sector, null if it does not contain a supply unit),<br>
@@ -1999,15 +2211,15 @@ def _():
 
     - a sector (a vertex of graph G) indicating location (the sector on which the supply unit lies)
 
-    Beyond the scope of memo  A1:<br>
-    In the memo  A1 problem scope, these properties of the supply units are irrelevant, so they won't be included in the map returned for each supply unit:
-    - a real number indicating the weight of the supply unit (as in the memo  A1 problem, all supply unit weights are the same)
+    Beyond the scope of memo A<span class = "r">1</span><span class = "g">2</span>:<br>
+    In the memo A<span class = "r">1</span><span class = "g">2</span> problem scope, these properties of the supply units are irrelevant, so they won't be included in the map returned for each supply unit:
+    - a real number indicating the weight of the supply unit (as in the memo A<span class = "r">1</span><span class = "g">2</span> problem, all supply unit weights are the same)
     - fragility
     - importance
     - size
     - lifespan
 
-    In memo  A1, a possible implementation of this is:
+    In memo A<span class = "r">1</span><span class = "g">2</span>, a possible implementation of this is:
 
     SUP = {s:{"location": v (the sector of the SU)} | v∈V∧s∈SU}
 
@@ -2017,10 +2229,10 @@ def _():
 
     - a vertex which is the starting location (or entry) of the AS.
 
-    Beyond the scope of memo  A1:
+    Beyond the scope of memo A<span class = "r">1</span><span class = "g">2</span>:
 
-    - a string indicating type (e.g. CRUDY-1) (as in memo  A1 there is only one type)
-    - a real number indicating the total weight the AS can carry. (as in memo  A1 this equals the total supply units on the map)
+    - a string indicating type (e.g. CRUDY-1) (as in memo A<span class = "r">1</span><span class = "g">2</span> there is only one type)
+    - a real number indicating the total weight the AS can carry. (as in memo A<span class = "r">1</span><span class = "g">2</span> this equals the total supply units on the map)
     - a real number indicating how many supply units AS can carry at once. (that is different from the weight, right now they are the same so this is not necessary)
     - a real number indicating total energy of the AS.
     - a real number indicating how much energy a corridor takes.
@@ -2028,7 +2240,7 @@ def _():
     - a vertex indicating assigned extraction point for the AS.
     - a real number indicating speed of the AS.
 
-    In memo  A1, a possible implementation of this is:
+    In memo A<span class = "r">1</span><span class = "g">2</span>, a possible implementation of this is:
 
     ASP (Autonomous System Properties) = {x:{"entry": v (indicates entry for AS)}| x ∈ AS ∧ v ∈ V}
 
@@ -2039,7 +2251,7 @@ def _():
     - a Boolean value indicating whether emergency lighting is operational
     - a time limit
 
-    These are all beyond the memo  A1 problem scope, so:
+    These are all beyond the memo A<span class = "r">1</span><span class = "g">2</span> problem scope, so:
 
     GP = {}
 
@@ -2088,11 +2300,14 @@ def _():
 
     ### Objectives
 
-    1. Maximise supply unit recovery.
-    2. Minimise energy cost. In memo  A1<!--TODO in memo A2, change this as not proportional to no edges traversed in the walk-->, this is proportional to the number of edges traversed in the walk, so ||walk|| should be minimised. This is a lower priority compared to the first objective.
-    3. Minimise computational time of the algorithm
+    <span class = "g">In order of priority:</span>
 
-    These three objectives mean that in the memo  A1 problem, the objective is to compute the shortest walk collecting all supply units and making it to the exit with a minimal computational time. This is as the memo  A1 problem is quite small and therefore even a brute force approach is relatively fast.
+    1. Maximise supply unit recovery.<br>
+    2. Minimise energy cost.<div class = "r"> In memo  A1, this is proportional to the number of edges traversed in the walk, so ||walk|| should be minimised. This is a lower priority compared to the first objective.</div><br>
+    3. Minimise computational time of the algorithm.<br>
+    4. <span class = "g">Minimise memory usage (space complexity) of the algorithm.</span>
+
+    <div class = "r">These three objectives mean that in the memo  A1 problem, the objective is to compute the shortest walk collecting all supply units and making it to the exit with a minimal computational time. This is as the memo A1 problem is quite small and therefore even a brute force approach is relatively fast.</div>
     """)
     return
 
@@ -2119,13 +2334,13 @@ def _():
     2. The physical layout of the sector grid is abstracted away into this grid, as it only matters how to get from one sector to another sector to be able to traverse the whole grid. This can be calculated using the cardinal direction. (i.e. only relative space matters, not absolute.)
 
     Length<br>
-    1. Length in physical space in Memo A1 is modelled through magnitude of the displacement vector from one location tuple to another, this however is not to be confused with traversal cost.<br>
+    1. Length in physical space in memo A<span class = "r">1</span><span class = "g">2</span> is modelled through magnitude of the displacement vector from one location tuple to another, this however is not to be confused with traversal cost.<br>
     2. Therefore, the length of an edge is the magnitude of the displacement vector from the location of the initial node to its destination. <br>
     3. The length of a walk is the sum of the lengths of the edges in the walk.
 
 
     Time
-    1. Time is not modelled in the abstraction of memo  A1.
+    1. Time is not modelled in the abstraction of memo A<span class = "r">1</span><span class = "g">2</span>.
     2. This is a safe abstraction as conditions are stable.
 
     Mass
@@ -2135,7 +2350,7 @@ def _():
 
     Corridors
     1. These are modelled as two edges between the sectors it is between, representing the two ways that one can pass through a corridor. The direction of the corridor is modelled as an cardinal angle.
-    2. The shape of the corridor and the roughness of it is abstracted away as it is assumed that all corridors are traversable by the AS. This may or may not be a safe abstraction. The length of these corridors are abstracted away as they have the same length<!--TODO change in memo A2--> and the stability is abstracted away as it is assumed that conditions are stable in memo  A1.
+    2. The shape of the corridor and the roughness of it is abstracted away as it is assumed that all corridors are traversable by the AS. This may or may not be a safe abstraction.
 
     Sectors
     1. These are modelled as vertices on the graph G.
@@ -2152,10 +2367,15 @@ def _():
     Autonomous Systems (AS)
     1. These are modelled (in the environment) with a location (being a vertex on the graph) and a maximum load capacity.
         - a real number indicating how many supply units AS can carry at once. (that is different from the weight, right now they are the same so this is not necessary)
-        - total energy of the AS. (currently irrelevant in the memo  A1 problem scope, the AS has more than enough energy)
+        - total energy of the AS. (currently irrelevant in the memo A<span class = "r">1</span><span class = "g">2</span> problem scope, as the AS has more than enough energy)
         - SUs that the AS has been assigned to extract. (all of them so doesn't need to be explicitly mentioned to the AS)
         - assigned extraction point for the AS. (doesn't matter as AS can exit at any extraction point)
-        - speed of the AS. (doesn't matter as time is irrelevant in the memo  A1 problem scope)
+        - speed of the AS. (doesn't matter as time is irrelevant in the memo A<span class = "r">1</span><span class = "g">2</span> problem scope)
+
+    <div class = "g">
+    Traversal Cost:<br>
+    1. This is modelled through an integer in the edge properties (EP) map, where EP[(u,v)]['w'] returns the edge weight of (u,v) ∈ E.
+    </div>
     """)
     return
 
@@ -2289,7 +2509,8 @@ def _():
 
     Some key ADTs used by the 'Brute Force' algorithm are:
     - A map of maps for an traversal cost matrix.
-    - A list of the walk and of the permutation.
+    - A list of the walk and of the permutation.<br>
+    - <span class = "g">A Priotity Queue for Dijkstra's algorithm, which used in 'Brute Force'.</span>
     """)
     return
 
@@ -2313,9 +2534,9 @@ def _():
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
-    Known properties of the memo  A1 problem:
+    Known properties of the memo A<span class = "r">1</span><span class = "g">2</span> problem:
 
-    - all edges have the same weight, so it can be treated as an unweighted graph. <!--TODO change in memo A2-->
+    - <span class = "r">all edges have the same weight, so it can be treated as an unweighted graph.</span>
     - the maximum degree of any vertex is 4 as it is in a grid, meaning it is a 'sparse' graph for the sake of computation. (so an adjacency list is the way to go here).
     - There are 4-5 supply units
     - There are 2 exits.
@@ -2362,7 +2583,7 @@ def _():
 
     - Simple to understand
     - always returns optimal solution
-    - efficient for facilities with few supply units, which is the case in memo A1 where there are 4 to 5 supply units.
+    - efficient for facilities with few supply units, which is the case in memo A<span class = "r">1</span><span class = "g">2</span> where there are 4 to 5 supply units.
 
     Cons:
 
@@ -2390,7 +2611,6 @@ def _():
     	- the graph is a tree.
     	- the AS has to collect all supply units.
     - Complicated, and prone to human error
-    - <span class = "g">Doesn't account for weighted edges in making the spanning tree, uses BFS.</span>
 
     #### Algorithm:
 
@@ -2450,7 +2670,7 @@ def _():
 
     #### Proof Summary
 
-    As the BFS+DFS algorithm utilises DFS in the manner discussed in the proof, BFS+DFS returns the shortest walk for memo 1, but not necessarily memo A1."""}))
+    As the BFS+DFS algorithm utilises DFS in the manner discussed in the proof, BFS+DFS returns the shortest walk for memo 1, but not necessarily memo A2."""}))
     return
 
 
@@ -2463,7 +2683,7 @@ def _():
 
     Pros:<br>
     - Returns optimal walk<br>
-    - Simplifies the problem significantly to a much smaller graph.<br>
+    - <span class = "r">Simplifies the problem significantly to a much smaller graph.</span><br>
     - divides the simplified graph into smaller sub problems.<br>
     Cons: <br>
     - Difficult to program - prone to human error.<br>
@@ -2491,7 +2711,7 @@ def _():
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
-    The discussion for part B will take place after part C once we are able to directly compare the algorithms.
+    The discussion for part B will take place after part C and before part D.
     """)
     return
 
@@ -2524,7 +2744,7 @@ def _(algorithm_input):
 @app.cell(hide_code=True)
 def _():
     mo.callout(mo.accordion({"Pseudocode Conventions Used":"""
-    1. Start a 'function', 'for loop', 'while', 'if', 'else if' and 'else' with FUNCTION, FOR...DO, WHILE, IF...THEN, ELSE IF...THEN, ELSE 
+    1. Start a 'function', 'for loop', 'while', 'if', 'else if' and 'else' with FUNCTION, FOR...DO, WHILE, IF...THEN, ELSE IF...THEN, ELSE respectively.
     2. Do not end a flow control parameter with END ... (e.g. END FUNCTION), simply use indentation to convey the end of the flow control.
     3. Use '//' for comments
     4. Use '←' for assignment
@@ -2540,10 +2760,17 @@ def _(algorithm_input):
     #Pseudocode
     BFS_DFS_pseudocode = r"""
 
+    <div class = "y">
+    CHANGES:<br>
+
+    &#x2022; modified shortest_walk to account for edge weights, with EP[(u,v)]['w'].
+
+    </div>
+
     ```
 
     //1 indexed
-    FUNCTION BFS_DFS(G: Directed Unweighted Graph, SU: Set, AS: Set, VP: Map, EP: Map, SUP: Map, ASP: Map, GP: Map) -> Map
+    FUNCTION BFS_DFS(G: Directed Graph, SU: Set, AS: Set, VP: Map, EP: Map, SUP: Map, ASP: Map, GP: Map) -> Map
         // G = (V,E)
 
 
@@ -2577,8 +2804,7 @@ def _(algorithm_input):
 
         //4. Calculating traversal_cost
 
-        walk ← shortest_walk(walks)
-        length ← walk.length() - 1
+        walk, length ← shortest_walk(walks, EP)
 
         //--------------------------------------------------
         // ----------------RETURN the output----------------
@@ -2586,7 +2812,7 @@ def _(algorithm_input):
 
         //Outputing to the physical environment the instructions for the AS
 
-        FOR i ← 1 to length DO
+        FOR i ← 1 to walk.length() -1 DO
             dif_vec = walk[i+1]-walk[i] // a tuple
             move(dif_vec[1], dif_vec[2])
         exit()
@@ -2690,22 +2916,35 @@ def _(algorithm_input):
 
     	RETURN walk
 
-    FUNCTION shortest_walk(walks: List) -> List
+    FUNCTION shortest_walk(walks: List, EP: Map) -> List, Integer
     	min_index ← -1
-    	min ← positive infinity
+    	min ← ∞
     	FOR i ← 1 to walks.length() DO
-    		IF walks[i].length() < min THEN
-    			min ← walks[i].length()
+            walk_length ← 0
+            FOR j from 1 to walk[i].length()-1 DO
+                walk_length ← walk_length + EP[(walks[i][j],walks[i][j])]['w']
+    		IF walk_length < min THEN
+    			min ← walk_length
     			min_index ← i
 
-    	RETURN walks[min_index]
+    	RETURN walks[min_index], min
     ```
     """
 
     Greedy_pseudocode = r"""
 
+    <div class = "y">
+    CHANGES:<br>
+
+    1. Edge weights are retrieved during traversal utilising EP[(u,v)]['w']<br>
+
+    2. The algorithm now utilises Dijkstra's algorithm with a priority queue instead of BFS with a normal queue to find shortest paths.<br>
+
+    3. The algorithm terminates like in memo A1, but returns the some of the traversal costs of the edges as the traversal cost instead of the number of edges in the walk.<br>
+    </div>
+
     ```
-    FUNCTION Greedy(G: Directed Unweighted Graph, SU: Set, AS: Set, VP: Map, EP: Map, SUP: Map, ASP: Map, GP: Map) -> Map
+    FUNCTION Greedy(G: Directed Graph, SU: Set, AS: Set, VP: Map, EP: Map, SUP: Map, ASP: Map, GP: Map) -> Map
 
             CRUDY_1 ← AS.get_random()
         	entry ← ASP[CRUDY_1]["location"]
@@ -2722,12 +2961,12 @@ def _(algorithm_input):
             POI ← POI.Union(SU_locations)
             POI.add(entry)
 
-            dm ← {v:{u:∞ | u∈POI} | v∈POI} // Distance Matrix
-            pm ← {v:{u:null | u∈POI} | v∈POI} //Path Matrix
+            dm ← {v:{u:∞ | u ∈ POI} | v ∈ POI} // Distance Matrix
+            pm ← {v:{u:null | u ∈ POI} | v ∈ POI} //Path Matrix
 
             //Getting distance and path between exits, the entry and SUs.
             FOREACH v ∈ POI DO
-                parent ← BFS(G,v)
+                dist, parent ← Dijstras(G, EP, v)
                 FOREACH u ∈ POI DO
                     w ← u
                     path ←[]
@@ -2735,7 +2974,7 @@ def _(algorithm_input):
                         path.insert_at(0, w) 
                         w ← parent[w]
                     pm[v][u] ← path //without first node
-                    dm[v][u] ← path.length()
+                    dm[v][u] ← dist[u]
 
 
             //Finding shortest walk.
@@ -2771,42 +3010,57 @@ def _(algorithm_input):
 
 
             walk ← [entry]
+            min_dist ← 0
             FOR i from 1 (inclusive) to perm.length() (exclusive) DO
                 walk.concatenate(pm[perm[i]][perm[i+1]])
+                min_dist ← dm[perm[i]][perm[i+1]]
 
             FOR i ← 1 (inclusive) to walk.length() (exclusive) DO
                 dif_vec ← VP[walk[i+1]]["location"]-VP[walk[i]]["location"] // a tuple
                 move(dif_vec[1], dif_vec[2])
             exit()
 
-            RETURN {"walk": walk, "traversal_cost": walk.length()-1, "supply_units_recovered": SU}
+            RETURN {"walk": walk, "traversal_cost": min_dist, "supply_units_recovered": SU}
 
-
-    FUNCTION BFS(G: Graph, s: Vertex) -> Map
-    	//s is first vertex
-    	V ← G.vertices()
-    	BFS_Queue ← queue
-    	BFS_Queue.push(s)
-    	visited ← {v: false | v ∈ V} //map
-    	visited[s] ← true
-
-    	parent ← {v: null | v ∈ V} //map
-
-    	WHILE not BFS_Queue.is_empty() DO
-    		u ← BFS_Queue.pop()
-    		FOR v ∈ G.Neighbours(u) DO
-    			IF not visited[v] THEN
-    				visited[v] ← true
-    				BFS_Queue.push(v)
-    				parent[v] ← u
-    	RETURN parent
+    FUNCTION Dijkstras(G, EP, s) -> map X map
+            V ← G.vertices()
+            visited ← {v: False | v ∈ V}
+            dist ← {v: None | v ∈ V}
+            parent ← {v: None | v ∈ V}
+            dist[s] ← 0
+            pq ← Priority Queue
+            pq.push(s,0)
+            WHILE not pq.is_empty() DO
+                u ← pq.pop_lowest()
+                IF visited[u] THEN:
+                    skip to next iteration of WHILE
+                visited[u] ← True
+                FOR v ∈ G.neighbours(u) DO
+                    w ← EP[(u,v)]['w']
+                    IF visited[v] THEN
+                        skip to next iteration of FOR
+                    IF dist[v] = None or dist[v] > dist[u] + w THEN
+                        parent[v] ← u
+                        dist[v] ← dist[u] + w
+                        pq.push(v, dist[v])
+            return dist, parent
     ```
     """
 
     Brute_Force_pseudocode = r"""
 
+    <div class = "y">
+    CHANGES:<br>
+
+    1. Edge weights are retrieved during traversal utilising EP[(u,v)]['w']<br>
+
+    2. The algorithm now utilises Dijkstra's algorithm with a priority queue instead of BFS with a normal queue to find shortest paths.<br>
+
+    3. The algorithm terminates like in memo A1, but returns the some of the traversal costs of the edges as the traversal cost instead of the number of edges in the walk. Like before it returns the optimal route through checking each permuation of the supply units with the different exits.<br>
+    </div>
+
     ```
-    FUNCTION Brute_Force(G: Directed Unweighted Graph, SU: Set, AS: Set, VP: Map, EP: Map, SUP: Map, ASP: Map, GP: Map) -> Map
+    FUNCTION Brute_Force(G: Directed Graph, SU: Set, AS: Set, VP: Map, EP: Map, SUP: Map, ASP: Map, GP: Map) -> Map
 
             CRUDY_1 ← AS.get_random()
         	entry ← ASP[CRUDY_1]["location"]
@@ -2828,7 +3082,7 @@ def _(algorithm_input):
 
             //Getting distance and path between exits, the entry and SUs.
             FOREACH v ∈ POI DO
-                parent ← BFS(G,v)
+                dist, parent ← Dijstras(G, EP, v)
                 FOREACH u ∈ POI DO
                     w ← u
                     path ←[]
@@ -2836,7 +3090,7 @@ def _(algorithm_input):
                         path.insert_at(0, w) 
                         w ← parent[w]
                     pm[v][u] ← path //without first node
-                    dm[v][u] ← path.length()
+                    dm[v][u] ← dist[u]
 
 
             //Finding shortest walk.
@@ -2864,30 +3118,35 @@ def _(algorithm_input):
                 move(dif_vec[1], dif_vec[2])
             exit()
 
-            RETURN {"walk": walk, "traversal_cost": walk.length()-1, "supply_units_recovered": SU}
+            RETURN {"walk": walk, "traversal_cost": min_dist, "supply_units_recovered": SU}
 
 
-    FUNCTION BFS(G: Graph, s: Vertex) -> Map
-    	//s is first vertex
-    	V ← G.vertices()
-    	BFS_Queue ← queue
-    	BFS_Queue.push(s)
-    	visited ← {v: false | v ∈ V} //map
-    	visited[s] ← true
-
-    	parent ← {v: null | v ∈ V} //map
-
-    	WHILE not BFS_Queue.is_empty() DO
-    		u ← BFS_Queue.pop()
-    		FOR v ∈ G.Neighbours(u) DO
-    			IF not visited[v] THEN
-    				visited[v] ← true
-    				BFS_Queue.push(v)
-    				parent[v] ← u
-    	RETURN parent
+    FUNCTION Dijkstras(G, EP, s) -> map X map
+            V ← G.vertices()
+            visited ← {v: False | v ∈ V}
+            dist ← {v: None | v ∈ V}
+            parent ← {v: None | v ∈ V}
+            dist[s] ← 0
+            pq ← Priority Queue
+            pq.push(s,0)
+            WHILE not pq.is_empty() DO
+                u ← pq.pop_lowest()
+                IF visited[u] THEN:
+                    skip to next iteration of WHILE
+                visited[u] ← True
+                FOR v ∈ G.neighbours(u) DO
+                    w ← EP[(u,v)]['w']
+                    IF visited[v] THEN
+                        skip to next iteration of FOR
+                    IF dist[v] = None or dist[v] > dist[u] + w THEN
+                        parent[v] ← u
+                        dist[v] ← dist[u] + w
+                        pq.push(v, dist[v])
+            return dist, parent
     ```
     """
 
+    #TODO
     Divide_and_Conquer_pseudocode = rf"""
 
     <span style = "font-size: 100px">🚧🔨</span><br>
@@ -2923,13 +3182,28 @@ def _(algorithm_input, algorithms):
     #Python Code
     BFS_DFS_python = rf"""
 
+    <div class = "y">
+    CHANGES:<br>
+
+    &#x2022; modified shortest_walk to account for edge weights.
+
+    </div>
+
     ```python
     {inspect.getsource(BFS_DFS)}
     ```
     """
 
 
-    Generic_new_python = rf"""
+    Generic_python = rf"""
+
+    <div class = "y">
+    CHANGES:<br>
+
+    &#x2022; Changed BFS to Dijkstra's algorithm to account for edge weights.<br>
+    &#x2022; Counts walk traversal_cost with EP[(u,v)]['w'] for (u,v) ∈ E.
+
+    </div>
 
     ```python
     {inspect.getsource(algorithms[algorithm_input.value])}
@@ -2941,7 +3215,7 @@ def _(algorithm_input, algorithms):
     if(algorithm_input.value == "BFS+DFS"):
         _out = BFS_DFS_python
     else:
-        _out = Generic_new_python
+        _out = Generic_python
 
 
     mo.stop(_out == "")
@@ -2968,7 +3242,8 @@ def _():
 @app.cell(hide_code=True)
 def _():
     #What are the inputs again?
-    _info1 = mo.accordion({"What are the inputs again?":mo.md("""
+
+    _info = mo.accordion({"What are the inputs again?":mo.md("""
     The inputs are: G, AS, SU, VP, EP, SUP, ASP and GP.
     - G: (Graph of a Sector Grid) = (V,E)
     - AS: (Autonomous System)
@@ -2977,10 +3252,8 @@ def _():
     - VP: (Vertex Properties)
     - SUP: (Supply Unit Properties)
     - ASP: (Autonomous Systems Properties)
-    - GP: (Graph Properties)""")})
-
-    _info2 = mo.accordion({"How is the generated facility converted into G, AS, SU, VP, EP, SUP, ASP and GP?":rf"""
-    The following function c_fac_Bv3 is used to convert the generated facility (fac_Av2) into the representation discussed in part A1 - Algorithmic Problem Statement.<br>
+    - GP: (Graph Properties)"""), "How is the generated facility converted into G, AS, SU, VP, EP, SUP, ASP and GP?":rf"""
+    The following function c_fac_Bv3 is used to convert the generated facility (fac_Av2) into the representation discussed in section A1 - Algorithmic Problem Statement.<br>
     It has two helper functions, c_Av3 and c_Bv3 to help convert singular nodes.
 
     ```python
@@ -2997,7 +3270,7 @@ def _():
     ```
     """})
 
-    mo.callout(mo.vstack([_info1, _info2]))
+    mo.callout(_info)
     return
 
 
@@ -3109,13 +3382,13 @@ def _(
     algorithm_input,
     default_title,
     fac_Av3,
-    front_focus_v2,
+    front_focus_v3,
     im_gif,
-    walk_v2,
+    walk_v3,
 ):
     #Display Image
     mo.stop(im_gif.value != "Image")
-    draw_fac_v3(fac_Av3, node_colors = front_focus_v2(walk_v2[algorithm_input.value]), highlight_path = [c_Av3(v) for v in walk_v2[algorithm_input.value]], legend = False, title = default_title(has_walk = True, algorithm=algorithm_input.value))
+    draw_fac_v3(fac_Av3, node_colors = front_focus_v3(walk_v3[algorithm_input.value]), highlight_path = [c_Av3(v) for v in walk_v3[algorithm_input.value]], legend = False, title = default_title(has_walk = True, algorithm=algorithm_input.value))
     return
 
 
@@ -3130,17 +3403,53 @@ def _(
     SUP,
     VP,
     algorithm_input,
-    memory_v2,
-    out_v2,
-    speed_v2,
+    memory_v3,
+    out_v3,
+    speed_v3,
 ):
     mo.callout(mo.hstack([
-            mo.stat(label=f"Traversal Cost (minimum is {out_v2['Brute Force']['traversal_cost']})",    value=str(out_v2[algorithm_input.value]["traversal_cost"])),
-            mo.stat(label="Time to Compute",    value=str((int)(speed_v2[algorithm_input.value]*1000))+" ms"),
-            mo.stat(label="Memory to Compute",    value=str(round(memory_v2[algorithm_input.value]/1000))+" KB"),
-            mo.stat(label="Supply Units Recovered",  value=str(len(out_v2[algorithm_input.value]["supply_units_recovered"]))+"/" + str(len(SU))),
-            mo.stat(label="Output is Valid",  value=str(validate_output(out_v2[algorithm_input.value],G, AS, SU, VP, EP, SUP, ASP, GP)) ),
+            mo.stat(label=f"Traversal Cost (minimum is {out_v3['Brute Force']['traversal_cost']})",    value=str(out_v3[algorithm_input.value]["traversal_cost"])),
+            mo.stat(label="Time to Compute",    value=str((int)(speed_v3[algorithm_input.value]*1000))+" ms"),
+            mo.stat(label="Memory to Compute",    value=str(round(memory_v3[algorithm_input.value]/1000))+" KB"),
+            mo.stat(label="Supply Units Recovered",  value=str(len(out_v3[algorithm_input.value]["supply_units_recovered"]))+"/" + str(len(SU))),
+            mo.stat(label="Output is Valid",  value=str(validate_output(out_v3[algorithm_input.value],G, AS, SU, VP, EP, SUP, ASP, GP)) ),
         ], gap=0, wrap=True),kind = "info")
+    return
+
+
+@app.cell(hide_code=True)
+def _(EP, VP, algorithm_input, walk_v3):
+    def get_wing_transition_traversal_costs(walk,VP, EP):
+        wing_transitions = {}
+        transition = 0
+        for i in range(len(walk)-1):
+            if(VP[walk[i]]['wing'] != VP[walk[i+1]]['wing']):
+                transition += 1
+                dict = {}
+                dict['wing1'] = VP[walk[i]]['wing']
+                dict['wing2'] = VP[walk[i+1]]['wing']
+                dict['step'] = i+1
+                cumulative_cost = 0
+                for j in range(i+1):
+                    cumulative_cost += EP[(walk[j],walk[j+1])]['w']
+                dict['cost'] = cumulative_cost
+                wing_transitions[f"Transition {transition}"] =f"""
+                - From Wing {dict['wing1']} to Wing {dict['wing2']}.
+                - Step: {dict['step']}
+                - Cumulative cost (including junction): {dict['cost']}
+                """
+        return wing_transitions
+        
+
+    mo.callout(mo.accordion(get_wing_transition_traversal_costs(walk_v3[algorithm_input.value],VP,EP)),kind = "success")
+    return
+
+
+@app.cell(hide_code=True)
+def _():
+    mo.md(r"""
+    <span class = "y">Added transition accordion to convey cumulative traversal cost at each transition.</span>
+    """)
     return
 
 
@@ -3153,11 +3462,16 @@ def _():
 
 
 @app.cell(hide_code=True)
-def _(algorithm_input, out_v2):
+def _(algorithm_input, out_v3):
     mo.callout(mo.md(rf"""
-    **raw output:**
+    **Raw output:**
     ```python
-    {out_v2[algorithm_input.value]}
+    {out_v3[algorithm_input.value]}
+    ```
+
+    **Facility-A walk:**
+    ```python
+    {c_out_Av3(out_v3[algorithm_input.value])}
     ```
     """), kind = "info")
     return
@@ -3202,13 +3516,13 @@ def _(
     SU,
     algorithms,
     benchmark_algorithm,
-    memory_v2,
-    out_v2,
+    memory_v3,
+    out_v3,
     sample_set_size,
     seed_input,
-    speed_v2,
+    speed_v3,
     table_options,
-    valid_v2,
+    valid_v3,
 ):
     # make table
     def m_comparison_table():
@@ -3224,11 +3538,11 @@ def _(
                 _seed = random.randint(0,99999999)
 
                 for alg in algorithms.keys():
-                    _out_v2, _memory_v2, _speed_v2, _input, _is_valid = benchmark_algorithm(alg, seed = _seed)
-                    _tc[alg] += _out_v2["traversal_cost"]
-                    _s[alg] += _speed_v2
-                    _m[alg] += _memory_v2
-                    _su[alg] += 100*len((_out_v2["supply_units_recovered"]))/len(_input["SU"])
+                    _out_v3, _memory_v3, _speed_v3, _input, _is_valid = benchmark_algorithm(alg, seed = _seed)
+                    _tc[alg] += _out_v3["traversal_cost"]
+                    _s[alg] += _speed_v3
+                    _m[alg] += _memory_v3
+                    _su[alg] += 100*len((_out_v3["supply_units_recovered"]))/len(_input["SU"])
                     if _valid[alg] == "valid":
                         _valid[alg] = _is_valid
 
@@ -3241,12 +3555,12 @@ def _(
 
         else:
             for alg in algorithms.keys():
-                _tc[alg] = out_v2[alg]["traversal_cost"]
-                _s[alg] = speed_v2[alg]
-                _m[alg] = memory_v2[alg]
-                _su[alg] = 100*len((out_v2[alg]["supply_units_recovered"]))/len(SU)
+                _tc[alg] = out_v3[alg]["traversal_cost"]
+                _s[alg] = speed_v3[alg]
+                _m[alg] = memory_v3[alg]
+                _su[alg] = 100*len((out_v3[alg]["supply_units_recovered"]))/len(SU)
                 if _valid[alg] == "valid":
-                    _valid[alg] = valid_v2[alg]
+                    _valid[alg] = valid_v3[alg]
 
 
 
@@ -3327,7 +3641,7 @@ def _(table, table_options):
 @app.cell(hide_code=True)
 def _():
     mo.callout(mo.accordion({"How is the validity of an algorithm's output checked?": rf"""
-    The output is run through the "validate_ouput" automated checker to make sure the walk matches the constraints specified in part A1.
+    The output is run through the "validate_ouput" automated checker to make sure the walk matches the constraints specified in section A1.
     ```python
     {inspect.getsource(validate_output)}
     ```
@@ -3350,8 +3664,9 @@ def _():
 
     3. Divide and Conquer: Divide and Conquer should be a more efficient version of Brute Force by breaking the problem into smaller parts, but likely due to overhead is outperformed by Brute Force in all benchmarks, making it obsolete. <br>
 
+    <span class = "g">4. Greedy: Greedy seems to perform relatively better in this environment, making it an equally good heuristic as BFS+DFS.</span>
+    <span class = "r">4. Greedy: Unfortunately this doesn't perform well in this environment, returning a significantly more expensive walk.</span><br>
 
-    4. Greedy: Unfortunately this doesn't perform well in this environment, returning a significantly more expensive walk.<br>
 
 
 
@@ -3371,16 +3686,97 @@ def _():
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
-    ### Suitability:
-    The facility is a fully connected undirected unweighted graph with cycles. The current 'Brute Force' implementation can handle undirected and fully connected graphs. Therefore the facility fits into the scope of what the 'Brute Force' is designed to solve, showing the suitability of Brute force for this problem.
+    <div class = "g">
+    <h4>Optimality of 'Brute Force's walk</h4>
+    As 'Brute Force' uses Dijkstra's algorithm to find the pairwise shortest paths between two Points of Interest (POI) and then tests all permutations of SU collection orderings for the two exits, it is guaranteed to find  the shortest walk collecting all supply units and adhering to the the constraints.
+
+    <h4>Wing Beta's depth-based traversal cost effect</h4>
+    Wing Beta's depth-based traversal cost means Brute Force's walk is more expensive, but not different as other options are less optimal. CRUDY-1 has to traverse Wing Beta directly.
+
+    <h4>Scenario where variable traversal costs cause a different path to be more optimal.</h4>
+
+    Consider the scenario where exit B was instead in the fourth row and first column of Wing Beta.
+
+    </div>
+    """)
+    return
 
 
-    For a sample set of a reasonable size (100 or more seeds, refer to table and slider) it can be seen that 'Brute Force' performs optimally (compared to the other algorithms) for 3 of the 4 benchmarks, only beaten in speed by several milliseconds. Despite not being specifically designed for this problem to account for the few cycles, like 'Divide and Conquer', it has almost no overhead allowing it to run lightning fast.
+@app.cell(hide_code=True)
+def _(default_title, seed_input):
+    scenario_fac_v3 = m_fac_Av3(seed_input.value)
+    scenario_fac_v3['exit_b'] = (1,0,3)
+    draw_fac_v3(scenario_fac_v3, title = default_title(), legend = False)
+    return (scenario_fac_v3,)
 
 
+@app.cell(hide_code=True)
+def _():
+    mo.md(r"""
+    <span class = "g">Then, as can be seen below, the paths taken by Brute Force difer based on whether the traversal cost is uniform or variable.</span>
+    """)
+    return
 
-    ### Coherence:
-    The 'Brute Force' implementation natively utilises the inputs specified in part A1, taking G, AS, SU, VP, EP, SUP, ASP and GP as inputs. It then returns the output map specified in part A1, meaning it is well integrated and coherent with the problem specification in part A.
+
+@app.cell(hide_code=True)
+def _(scenario_fac_v3):
+    _G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP = c_fac_Bv3(scenario_fac_v3)
+
+    scenario_brute_out_v3 = Brute_Force(_G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP)
+
+    scenario_brute_out_v2 = Brute_Force_v2(_G, _AS, _SU, _VP, _EP, _SUP, _ASP, _GP)
+
+
+    scenario_v = mo.ui.tabs({"Variable Traversal Cost":"", "Uniform Traversal Cost":""})
+    scenario_v
+    return scenario_brute_out_v2, scenario_brute_out_v3, scenario_v
+
+
+@app.cell(hide_code=True)
+def _(
+    default_title,
+    front_focus_v3,
+    scenario_brute_out_v3,
+    scenario_fac_v3,
+    scenario_v,
+):
+    mo.stop(scenario_v.value != "Variable Traversal Cost")
+    draw_fac_v3(scenario_fac_v3, node_colors = front_focus_v3(scenario_brute_out_v3['walk']), highlight_path = [c_Av3(v) for v in scenario_brute_out_v3['walk']], legend = False, title = default_title(has_walk = True, algorithm="Memo A2 Brute Force"))
+    return
+
+
+@app.cell(hide_code=True)
+def _(
+    default_title,
+    front_focus_v3,
+    scenario_brute_out_v2,
+    scenario_fac_v3,
+    scenario_v,
+):
+    mo.stop(scenario_v.value != "Uniform Traversal Cost")
+    draw_fac_v2(scenario_fac_v3, node_colors = front_focus_v3(scenario_brute_out_v2['walk']), highlight_path = [c_Av3(v) for v in scenario_brute_out_v2['walk']], legend = False, title = default_title(mini = "Multi-Wing Facility",has_walk = True, algorithm="Memo A2 Brute Force"))
+    return
+
+
+@app.cell(hide_code=True)
+def _():
+    mo.md(r"""
+    <div class = "g">The difference in the walk taken can be attributated to Wing Beta's depth-based traversal cost, encouraging the 'Brute Force' algorithm to stay to the lefthand side of Wing Beta. Therefore the AS (CRUDY-1) goes to exit B, not exit A when the traversal cost isn't uniform.</div>
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _():
+    mo.callout(mo.accordion({
+
+    "### Suitability":"""
+    The facility is a fully connected undirected graph with cycles. The current 'Brute Force' implementation can handle undirected and fully connected graphs. Therefore the facility fits into the scope of what the 'Brute Force' is designed to solve, showing the suitability of Brute force for this problem.
+
+
+    For a sample set of a reasonable size (100 or more seeds, refer to table and slider) it can be seen that 'Brute Force' performs optimally (compared to the other algorithms) for 3 of the 4 benchmarks, only beaten in speed by several milliseconds. Despite not being specifically designed for this problem to account for the few cycles, like 'Divide and Conquer', it has almost no overhead allowing it to run lightning fast.""",
+    "### Coherence":
+    """The 'Brute Force' implementation natively utilises the inputs specified in section A1, taking G, AS, SU, VP, EP, SUP, ASP and GP as inputs. It then returns the output map specified in section A1, meaning it is well integrated and coherent with the problem specification in part A.
 
     However, a problem with the implementation is that it is a bit clunky with many parts that aren't in use or rather redundant, namely SU, AS, SUP, ASP and GP
 
@@ -3388,33 +3784,34 @@ def _():
 
     ```python
     fac_B = {"G":G, "AS":AS, "SU":SU, "VP":VP, "EP":EP, "SUP":SUP, "ASP":ASP, "GP": GP}
-    ```
+    ```""",
 
-    ### Fitness for purpose -- stress test:
-    If one inter-wing corridor was blocked, Brute Force would handle the situation effectively as it utilises BFS to find paths, which ensures that it will always find a walk if one exists.<br>
+    "### Fitness for Purpose -- stress test":"""
+    If one inter-wing corridor was blocked, Brute Force would handle the situation effectively as it utilises Dijkstra's algorithm to find paths, which ensures that it will always find a walk if one exists.<br>
     However, unlike Divide and Conquer, it will not utilse the removal of a cycle to optimise its computational efficiency.
-    """)
-    return
-
-
-@app.cell(hide_code=True)
-def _():
-    mo.callout(mo.accordion({"### Constraints":"""
-    1. Does Brute Force's walk start at an entry? 
+    """,
+    
+    "### Constraints":"""
+    1. **Does Brute Force's walk start at an entry?**<br>
     When Brute Force constructs the walk, it defines it as  'walk = [entry]', and only appends to the list, meaning that the walk does start at an entry.
-    2. Is the last vertex of the walk an exit?
+
+    2. **Is the last vertex of the walk an exit?**<br>
     In the Brute Force code, an exit is always appended to the end of the walk permutation as in 'perm.append(exit)', meaning the last node visited will always be an exit.
-    3. Are all nodes in the walk nodes in G?
+
+    3. **Are all nodes in the walk nodes in G?**<br>
     The only nodes added to the walk list are the entry and nodes from the pm. As these are all nodes of G, all nodes of the walk must be in G.
-    4. Are all edges of the walk edges of G?
+
+    4. **Are all edges of the walk edges of G?**<br>
     Each edge of the walk is found in the pm by BFS. As BFS only traverses between nodes by edges of the graph G, all edges of the walk must be in G.
-    5. Is the "supply_units_recovered" set consistent with the supply units traversed by the walk?
+
+    5. **Is the "supply_units_recovered" set consistent with the supply units traversed by the walk?**<br>
     As the 'Brute Force' algorithm visits all supply units, and it returns that it recovered all supply units, the "supply_units_recovered" output is consistent with reality.
-    6. Does 'traversal_cost' match the traversal cost of the walk?
-    Since the 'traversal_cost' returned is the number of nodes (repetitions counted) in the walk minus 1, this is consistent with the traversal cost of the walk, as an unweighted length of a walk is just the number of edges in the walk, = |V| - 1
+
+    6. **Does 'traversal_cost' match the traversal cost of the walk?**<br>
+    Since the 'traversal_cost' returned from 'Brute Force' is the sum of the traversal cost of each edge in the walk, the traversal cost matches the traversal cost of the walk by definition.
 
     Therefore all constraints are met. This can be verified for a sample set of seeds automatically by utilising the table in part C4.""", "What are the constraints again?":mo.md(r"""
-    ### Constraints as defined in part A1 - Algorithmic Problem Statement
+    ### Constraints as defined in section A1 - Algorithmic Problem Statement
 
     1. The first vertex of the walk AS makes must be an entry.
     2. The last vertex of the walk AS makes must be an exit.
@@ -3427,7 +3824,16 @@ def _():
 
     *3 and 4 are simply ensuring the walk is indeed a walk on graph G.
 
-    """)}))
+    """)}), kind = "warn")
+    return
+
+
+@app.cell(hide_code=True)
+def _():
+    mo.md(r"""
+    <div class = "y"> Changed accordion structure to include 'Suitability', 'Coherence' and 'Fitness for Purpose -- stress test' titles, so that they are out of the way.<br>
+    Constraints were adjusted for weighted traversal costs.</div>
+    """)
     return
 
 
