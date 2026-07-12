@@ -2507,10 +2507,10 @@ def _():
     mo.md(r"""
     Known properties of the memo A2 problem:
 
-    - the maximum degree of any vertex is 4 as it is in a grid, meaning it is a 'sparse' graph for the sake of computation. (so an adjacency list is the way to go here).
+    - The maximum degree of any vertex is 4 as it is in a grid, meaning it is a 'sparse' graph for the sake of computation
     - There are 4-5 supply units
-    - There are 2 exits.
-    - There are relatively few cycles.
+    - There are 2 exits
+    - There are relatively few cycles
     """)
     return
 
@@ -3625,7 +3625,7 @@ def _():
 
     3. Divide and Conquer: Divide and Conquer should be a more efficient version of Brute Force by breaking the problem into smaller parts, but likely due to overhead is outperformed by Brute Force in all benchmarks, making it obsolete. <br>
 
-    4. Greedy: Greedy seems to perform relatively better in this environment, making it an equally good heuristic as BFS+DFS.
+    4. Greedy: Greedy seems to perform relatively better in terms of traversal cost for weighted facilities instead of the memo A1 facility. It is therefore an equally good heuristic as BFS+DFS.<br>
 
 
 
@@ -3647,12 +3647,19 @@ def _():
 def _():
     mo.md(r"""
     #### Optimality of 'Brute Force's walk
+    In response to the question: Is the algorithm guaranteed to find the *globally* optimal path across all wings, given that each wing uses a different cost model?<br><br>
+
     As 'Brute Force' uses Dijkstra's algorithm to find the pairwise shortest paths between two Points of Interest (POI) and then tests all permutations of SU collection orderings for the two exits, it is guaranteed to find  the shortest walk collecting all supply units and adhering to the the constraints.
 
     #### Wing Beta's depth-based traversal cost effect
-    Wing Beta's depth-based traversal cost means Brute Force's walk is more expensive, but not different as other options are less optimal. CRUDY-1 has to traverse Wing Beta directly.
 
-    #### Scenario where variable traversal costs cause a different path to be more optimal
+    In response to the question: How does the depth-based cost in Wing Beta affect the likelihood that CRUDY-1 traverses it directly versus routing through other wings?<br><br>
+
+    Wing Beta's depth-based traversal cost does not affect the walk that Brute Force finds. This is likely due to most of the supply units being in Wing Alpha, and that one has to traverse exit A to reach exit B, rendering exit B obsolete.
+
+    #### Scenario where variable traversal costs cause a different path to be more optimal.
+
+    In response to the prompt: Identify one scenario (based on the seed) where the minimum-cost route is *not* the shortest-hop route, and explain why.<br><br>
 
     Consider the scenario where exit B was instead in the fourth row and first column of Wing Beta.
     """)
@@ -3725,6 +3732,14 @@ def _():
 
 @app.cell(hide_code=True)
 def _():
+    mo.md(r"""
+    ## Previous Justifications
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _():
     mo.callout(mo.accordion({
 
     "### Suitability":"""
@@ -3744,11 +3759,13 @@ def _():
     ```""",
 
     "### Fitness for Purpose -- stress test":"""
-    If one inter-wing corridor was blocked, Brute Force would handle the situation effectively as it utilises Dijkstra's algorithm to find paths, which ensures that it will always find a walk if one exists.<br>
-    However, unlike Divide and Conquer, it will not utilse the removal of a cycle to optimise its computational efficiency.
+    If one inter-wing corridor was blocked, Brute Force would handle the situation effectively as it utilises BFS to find paths, which ensures that it will always find a walk if one exists.<br>
+
+    The blockage of one inter-wing corridor means that at least one cycle of the graph would be removed.
+    Unlike Divide and Conquer however, 'Brute Force' will not utilse the removal of a cycle to optimise its speed.
     """,
 
-    "### Constraints":"""
+    "### Fitness for Purpose -- Does 'Brute Force' meet all constraints?":"""
     1. **Does Brute Force's walk start at an entry?**<br>
     When Brute Force constructs the walk, it defines it as  'walk = [entry]', and only appends to the list, meaning that the walk does start at an entry.
 

@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.9"
+__generated_with = "0.23.14"
 app = marimo.App(
     width="medium",
     css_file="/usr/local/_marimo/custom.css",
@@ -2134,13 +2134,13 @@ def _():
     mo.md(r"""
     Known properties of the memo  <span class = "r">1</span> <span class = "g">A1</span> problem:
 
-    - all edges have the same weight, so it can be treated as an unweighted graph. <!--TODO change in memo A2-->
+    - All edges have the same weight, so it can be treated as an unweighted graph <!--TODO change in memo A2-->
     - <span class = "r">the graph is a tree</span>
-    - the maximum degree of any vertex is 4 as it is in a grid, meaning it is a 'sparse' graph for the sake of computation. (so an adjacency list is the way to go here).
+    - The maximum degree of any vertex is 4 as it is in a grid, meaning it is a 'sparse' graph for the sake of computation
     - There are <span class = "g">4-</span>5 supply units
-    - There are 2 exits.
-    - <span class = "g">There are relatively few cycles.
-    - <span class = "r">There are ||V|| = 144 sectors.</span>
+    - There are 2 exits
+    - <span class = "g">There are relatively few cycles</span>
+    - <span class = "r">There are ||V|| = 144 sectors</span>
 
     <div class = "r">
     BFS is the best way to find the shortest path from a node to all nodes O(V+E) for an unweighted graph.<br>
@@ -3099,7 +3099,7 @@ def _():
 
 @app.cell(hide_code=True)
 def _():
-    sample_set_size = mo.ui.slider(start = 5, stop = 500, step = 5, value = 100, full_width= True)
+    sample_set_size = mo.ui.slider(start = 5, stop = 500, step = 5, value = 100, full_width= True, label = "Sample Set Size Slider")
     table_options = mo.ui.tabs({"Current Seed": "", "Sample Set":sample_set_size})
     return sample_set_size, table_options
 
@@ -3305,7 +3305,9 @@ def _():
 
     <h3>Fitness for purpose -- stress test:</h3>
     If one inter-wing corridor was blocked, Brute Force would handle the situation effectively as it utilises BFS to find paths, which ensures that it will always find a walk if one exists.<br>
-    However, unlike Divide and Conquer, it will not utilse the removal of a cycle to optimise its computational efficiency.
+
+    The blockage of one inter-wing corridor means that at least one cycle of the graph would be removed.
+    Unlike Divide and Conquer however, 'Brute Force' will not utilse the removal of a cycle to optimise its speed.
     </div>
     """)
     return
@@ -3313,7 +3315,15 @@ def _():
 
 @app.cell(hide_code=True)
 def _():
-    mo.callout(mo.accordion({"### Constraints":"""
+    mo.md(r"""
+    ## Previous Justifications
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _():
+    mo.callout(mo.accordion({"### Fitness for Purpose -- Does 'Brute Force' meet all constraints?":"""
     1. Does Brute Force's walk start at an entry? 
     When Brute Force constructs the walk, it defines it as  'walk = [entry]', and only appends to the list, meaning that the walk does start at an entry.
     2. Is the last vertex of the walk an exit?

@@ -2536,11 +2536,11 @@ def _():
     mo.md(r"""
     Known properties of the memo A<span class = "r">1</span><span class = "g">2</span> problem:
 
-    - <span class = "r">all edges have the same weight, so it can be treated as an unweighted graph.</span>
-    - the maximum degree of any vertex is 4 as it is in a grid, meaning it is a 'sparse' graph for the sake of computation. (so an adjacency list is the way to go here).
+    - <span class = "r">All edges have the same weight, so it can be treated as an unweighted graph</span>
+    - The maximum degree of any vertex is 4 as it is in a grid, meaning it is a 'sparse' graph for the sake of computation
     - There are 4-5 supply units
-    - There are 2 exits.
-    - There are relatively few cycles.
+    - There are 2 exits
+    - There are relatively few cycles
     """)
     return
 
@@ -3506,7 +3506,7 @@ def _():
 
 @app.cell(hide_code=True)
 def _():
-    sample_set_size = mo.ui.slider(start = 5, stop = 500, step = 5, value = 100, full_width= True) 
+    sample_set_size = mo.ui.slider(start = 5, stop = 500, step = 5, value = 100, full_width= True , label = "Sample Set Size Slider") 
     table_options = mo.ui.tabs({"Current Seed": "", "Sample Set":sample_set_size}, value = "Current Seed")
     return sample_set_size, table_options
 
@@ -3664,7 +3664,7 @@ def _():
 
     3. Divide and Conquer: Divide and Conquer should be a more efficient version of Brute Force by breaking the problem into smaller parts, but likely due to overhead is outperformed by Brute Force in all benchmarks, making it obsolete. <br>
 
-    <span class = "g">4. Greedy: Greedy seems to perform relatively better in this environment, making it an equally good heuristic as BFS+DFS.</span>
+    <span class = "g">4. Greedy: Greedy seems to perform relatively better in terms of traversal cost for weighted facilities instead of the memo A1 facility. It is therefore an equally good heuristic as BFS+DFS.</span>
     <span class = "r">4. Greedy: Unfortunately this doesn't perform well in this environment, returning a significantly more expensive walk.</span><br>
 
 
@@ -3688,12 +3688,19 @@ def _():
     mo.md(r"""
     <div class = "g">
     <h4>Optimality of 'Brute Force's walk</h4>
+    In response to the question: Is the algorithm guaranteed to find the *globally* optimal path across all wings, given that each wing uses a different cost model?<br><br>
+
     As 'Brute Force' uses Dijkstra's algorithm to find the pairwise shortest paths between two Points of Interest (POI) and then tests all permutations of SU collection orderings for the two exits, it is guaranteed to find  the shortest walk collecting all supply units and adhering to the the constraints.
 
     <h4>Wing Beta's depth-based traversal cost effect</h4>
-    Wing Beta's depth-based traversal cost means Brute Force's walk is more expensive, but not different as other options are less optimal. CRUDY-1 has to traverse Wing Beta directly.
+
+    In response to the question: How does the depth-based cost in Wing Beta affect the likelihood that CRUDY-1 traverses it directly versus routing through other wings?<br><br>
+
+    Wing Beta's depth-based traversal cost does not affect the walk that Brute Force finds. This is likely due to most of the supply units being in Wing Alpha, and that one has to traverse exit A to reach exit B, rendering exit B obsolete.
 
     <h4>Scenario where variable traversal costs cause a different path to be more optimal.</h4>
+
+    In response to the prompt: Identify one scenario (based on the seed) where the minimum-cost route is *not* the shortest-hop route, and explain why.<br><br>
 
     Consider the scenario where exit B was instead in the fourth row and first column of Wing Beta.
 
@@ -3768,6 +3775,14 @@ def _():
 
 @app.cell(hide_code=True)
 def _():
+    mo.md(r"""
+    ## Previous Justifications
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _():
     mo.callout(mo.accordion({
 
     "### Suitability":"""
@@ -3787,11 +3802,13 @@ def _():
     ```""",
 
     "### Fitness for Purpose -- stress test":"""
-    If one inter-wing corridor was blocked, Brute Force would handle the situation effectively as it utilises Dijkstra's algorithm to find paths, which ensures that it will always find a walk if one exists.<br>
-    However, unlike Divide and Conquer, it will not utilse the removal of a cycle to optimise its computational efficiency.
+    If one inter-wing corridor was blocked, Brute Force would handle the situation effectively as it utilises BFS to find paths, which ensures that it will always find a walk if one exists.<br>
+
+    The blockage of one inter-wing corridor means that at least one cycle of the graph would be removed.
+    Unlike Divide and Conquer however, 'Brute Force' will not utilse the removal of a cycle to optimise its speed.
     """,
 
-    "### Constraints":"""
+    "### Fitness for Purpose -- Does 'Brute Force' meet all constraints?":"""
     1. **Does Brute Force's walk start at an entry?**<br>
     When Brute Force constructs the walk, it defines it as  'walk = [entry]', and only appends to the list, meaning that the walk does start at an entry.
 
