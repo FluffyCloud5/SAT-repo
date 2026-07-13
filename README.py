@@ -263,7 +263,7 @@ def _(mo):
     (2026d). Mintlify.App. https://marimo-team-marimo.mintlify.app/interactive-elements
     """)
 
-    choose_version = mo.ui.tabs({"README":README_text,"Memo 1": "", "Memo 1 to A1": "", "Memo A1": "", "Memo A1 to A2":"", "Memo A2":"", "Side Memos": "", "References": Bibliography_text}, value = "README")
+    choose_version = mo.ui.tabs({"README":README_text,"Memo 1": "", "Memo 1 to A1": "", "Memo A1": "", "Memo A1 to A2":"", "Memo A2":"", "Side Memos": "", "References": Bibliography_text, "Git Hub": "https://github.com/FluffyCloud5/SAT-repo/"}, value = "README")
     choose_version
     return (choose_version,)
 
