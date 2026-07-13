@@ -109,7 +109,63 @@ def _(mo):
 
 @app.cell
 def _(mo):
-    choose_version = mo.ui.tabs({"Memo 1": "", "Memo 1 to A1": "", "Memo A1": "", "Memo A1 to A2":"", "Memo A2":"", "Side Memos": ""}, value = "Memo A2")
+    README_text = mo.md("""
+    <style>
+        h1 {
+          font-size: 50px;
+          color: darkblue;
+        }
+        h2 {
+          font-size: 38px;
+          color: darkblue;
+        }
+        h3 {
+          font-size: 28px;
+          color: darkblue;
+        }
+        h4 {
+          font-size: 20px;
+          color: darkblue;
+        }
+        h5 {
+          font-size: 18px;
+          color: darkblue;
+        }
+        h6 {
+          font-size: 14px;
+          color: darkblue;
+        }
+        .r {
+        background-color: #FF6666;
+        text-decoration: line-through;
+        }
+        .g {
+         background-color: limegreen;
+        }
+        .y {
+            background-color: yellow;
+        }
+    </style>
+
+    Hi Mr Nielsen. I hope your doing well. Sorry for the big document. 
+
+    # Outline
+
+    From the tab above, you can select between each iteration of the solution, with Memo 1, Memo A1 and Memo A2. 
+
+    The Memo 'x' to 'y' shows an approximate dif file, highlighting changes made from file to file. 
+
+    The 'Memos' start at the 'Problem Outline (memo _) heading, everything before then is a review of the changes and adjustments made from memo to memo. 
+
+    The side memos tab contains all the side memos explored. 
+
+    # Thing to Know
+
+    - As this notebook is relatively large, I would recommend running it in the cloud on Molab or just a beefy computer.
+    - The figs/ folder contains the animations of walks taken by the different algorithms. Each time a new algorithm for a different seed is explored, the animations are saved there. For speed, I recommend not deleting this folder as it will have to be generated again.
+    """)
+
+    choose_version = mo.ui.tabs({"README":README_text,"Memo 1": "", "Memo 1 to A1": "", "Memo A1": "", "Memo A1 to A2":"", "Memo A2":"", "Side Memos": ""}, value = "README")
     choose_version
     return (choose_version,)
 
