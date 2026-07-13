@@ -3329,7 +3329,7 @@ def _():
 @app.cell(hide_code=True)
 def _():
     #Choose between Image and Animation displays
-    im_gif = mo.ui.tabs({"Image":"","Animation":""})
+    im_gif = mo.ui.tabs({"Image":"","Animation":""},  value = "Animation")
     im_gif
     return (im_gif,)
 

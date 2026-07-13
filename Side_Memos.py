@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.14"
+__generated_with = "0.23.9"
 app = marimo.App(auto_download=["html"])
 
 
@@ -230,6 +230,14 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     # Side Memo S1-B -- Contingency Planning
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Please refer to the memos, section B, to find the different algorithms explored.
     """)
     return
 

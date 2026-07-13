@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.14"
+__generated_with = "0.23.9"
 app = marimo.App(
     width="medium",
     css_file="/usr/local/_marimo/custom.css",
@@ -2987,7 +2987,7 @@ def _():
 @app.cell(hide_code=True)
 def _():
     #Choose between Image and Animation displays
-    im_gif = mo.ui.tabs({"Image":"","Animation":""})
+    im_gif = mo.ui.tabs({"Image":"","Animation":""}, value = "Animation")
     im_gif
     return (im_gif,)
 
