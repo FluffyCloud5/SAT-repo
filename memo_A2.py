@@ -3467,8 +3467,8 @@ def _():
 
 @app.cell(hide_code=True)
 def _():
-    sample_set_size = mo.ui.slider(start = 5, stop = 500, step = 5, value = 100, full_width= True) 
-    table_options = mo.ui.tabs({"Current Seed": "", "Sample Set":sample_set_size}, value = "Current Seed", label = "Sample Set Size Slider")
+    sample_set_size = mo.ui.slider(start = 5, stop = 500, step = 5, value = 100, full_width= True , label = "Sample Set Size Slider") 
+    table_options = mo.ui.tabs({"Current Seed": "", "Sample Set":sample_set_size}, value = "Current Seed")
     return sample_set_size, table_options
 
 
