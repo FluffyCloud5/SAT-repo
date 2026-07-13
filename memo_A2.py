@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.14"
+__generated_with = "0.23.9"
 app = marimo.App(
     width="medium",
     css_file="/usr/local/_marimo/custom.css",
@@ -3068,15 +3068,15 @@ def _(algorithm_input):
             min_dist ← ∞
             FOREACH permutation of SU_locations: su_perm DO
                 FOREACH exit in exits DO // su_perm is a list.
-                dist ← 0
-                perm ← [entry]
-                perm ← perm.concatenate(su_perm)
-                perm ← perm.append(exit)
-                FOR i from 1 (inclusive) to perm.length() (exclusive) DO
-                    dist ← dist + dm[perm[i]][perm[i+1]]
-                IF dist < min_dist THEN
-                    min_perm ← perm
-                    min_dist ← dist
+                    dist ← 0
+                    perm ← [entry]
+                    perm ← perm.concatenate(su_perm)
+                    perm ← perm.append(exit)
+                    FOR i from 1 (inclusive) to perm.length() (exclusive) DO
+                        dist ← dist + dm[perm[i]][perm[i+1]]
+                    IF dist < min_dist THEN
+                        min_perm ← perm
+                        min_dist ← dist
 
             walk ← [entry]
             FOR i from 1 (inclusive) to min_perm.length() (exclusive) DO
